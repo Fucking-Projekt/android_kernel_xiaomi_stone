@@ -882,6 +882,13 @@ static irqreturn_t adc_tm5_handler(int irq, void *data)
 				pr_err("adc_tm data_high read failed with %d\n",
 							ret);
 			code = ((data_high << ADC_TM_DATA_SHIFT) | data_low);
+			/* skip it since voltage reading is zero */
+			if (!code) {
+				pr_err("Sensor:%s voltage is zero\n",
+						chip->sensor[i].tzd->type);
+				i++;
+				continue;
+			}
 		}
 
 		mutex_lock(&chip->adc_mutex_lock);
