@@ -813,6 +813,10 @@ static ssize_t store_scaling_governor(struct cpufreq_policy *policy,
 	if (ret != 1)
 		return -EINVAL;
 
+	/* prevent schedutil from being set as cpu governor */
+	if (!strncmp(str_governor, "schedutil", sizeof("schedutil") - 1))
+		return count;
+
 	if (cpufreq_driver->setpolicy) {
 		unsigned int new_pol;
 
