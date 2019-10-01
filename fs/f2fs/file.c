@@ -31,7 +31,6 @@
 #include "gc.h"
 #include "trace.h"
 #include <trace/events/f2fs.h>
-#include <trace/events/android_fs.h>
 
 static vm_fault_t f2fs_filemap_fault(struct vm_fault *vmf)
 {
@@ -387,10 +386,6 @@ out:
 
 	/* print slow fsync spend more than 1s */
 	if (duration > 1000) {
-		char *file_path, file_pathbuf[MAX_TRACE_PATHBUF_LEN];
-
-		file_path = android_fstrace_get_pathname(file_pathbuf,
-				MAX_TRACE_PATHBUF_LEN, inode);
 		pr_info("[f2fs] slow fsync: %llu ms, cp_reason: %s, "
 			"datasync = %d, ret = %d, comm: %s: (uid %u, gid %u), "
 			"entry: %s", duration, f2fs_cp_reasons[cp_reason],
