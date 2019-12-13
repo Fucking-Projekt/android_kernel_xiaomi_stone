@@ -971,12 +971,6 @@ static void soc_set_name_prefix(struct snd_soc_card *card,
 		struct snd_soc_codec_conf *map = &card->codec_conf[i];
 		struct device_node *of_node = soc_component_to_node(component);
 
-		/* fixme */
-		if (map->dev_name)
-			map->dlc.name = map->dev_name;
-		if (map->of_node)
-			map->dlc.of_node = map->of_node;
-
 		if (snd_soc_is_matching_component(&map->dlc, component)) {
 			component->name_prefix = map->name_prefix;
 			return;
