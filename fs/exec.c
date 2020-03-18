@@ -1459,7 +1459,6 @@ static void free_bprm(struct linux_binprm *bprm)
 	/* If a binfmt changed the interp, free it. */
 	if (bprm->interp != bprm->filename)
 		kfree(bprm->interp);
-	kfree(bprm);
 }
 
 int bprm_change_interp(const char *interp, struct linux_binprm *bprm)
@@ -1776,7 +1775,7 @@ static int __do_execve_file(int fd, struct filename *filename,
 			    int flags, struct file *file)
 {
 	char *pathbuf = NULL;
-	struct linux_binprm *bprm;
+	struct linux_binprm bprm;
 	struct files_struct *displaced;
 	int retval;
 
@@ -1803,16 +1802,13 @@ static int __do_execve_file(int fd, struct filename *filename,
 	if (retval)
 		goto out_ret;
 
-	retval = -ENOMEM;
-	bprm = kzalloc(sizeof(*bprm), GFP_KERNEL);
-	if (!bprm)
-		goto out_files;
+	memset(&bprm, 0, sizeof(bprm));
 
-	retval = prepare_bprm_creds(bprm);
+	retval = prepare_bprm_creds(&bprm);
 	if (retval)
 		goto out_free;
 
-	check_unsafe_exec(bprm);
+	check_unsafe_exec(&bprm);
 	current->in_execve = 1;
 
 	if (!file)
@@ -1823,11 +1819,11 @@ static int __do_execve_file(int fd, struct filename *filename,
 
 	sched_exec();
 
-	bprm->file = file;
+	bprm.file = file;
 	if (!filename) {
-		bprm->filename = "none";
+		bprm.filename = "none";
 	} else if (fd == AT_FDCWD || filename->name[0] == '/') {
-		bprm->filename = filename->name;
+		bprm.filename = filename->name;
 	} else {
 		if (filename->name[0] == '\0')
 			pathbuf = kasprintf(GFP_KERNEL, "/dev/fd/%d", fd);
@@ -1844,33 +1840,33 @@ static int __do_execve_file(int fd, struct filename *filename,
 		 * current->files (due to unshare_files above).
 		 */
 		if (close_on_exec(fd, rcu_dereference_raw(current->files->fdt)))
-			bprm->interp_flags |= BINPRM_FLAGS_PATH_INACCESSIBLE;
-		bprm->filename = pathbuf;
+			bprm.interp_flags |= BINPRM_FLAGS_PATH_INACCESSIBLE;
+		bprm.filename = pathbuf;
 	}
-	bprm->interp = bprm->filename;
+	bprm.interp = bprm.filename;
 
-	retval = bprm_mm_init(bprm);
+	retval = bprm_mm_init(&bprm);
 	if (retval)
 		goto out_unmark;
 
-	retval = prepare_arg_pages(bprm, argv, envp);
+	retval = prepare_arg_pages(&bprm, argv, envp);
 	if (retval < 0)
 		goto out;
 
-	retval = prepare_binprm(bprm);
+	retval = prepare_binprm(&bprm);
 	if (retval < 0)
 		goto out;
 
-	retval = copy_strings_kernel(1, &bprm->filename, bprm);
+	retval = copy_strings_kernel(1, &bprm.filename, &bprm);
 	if (retval < 0)
 		goto out;
 
-	bprm->exec = bprm->p;
-	retval = copy_strings(bprm->envc, envp, bprm);
+	bprm.exec = bprm.p;
+	retval = copy_strings(bprm.envc, envp, &bprm);
 	if (retval < 0)
 		goto out;
 
-	retval = copy_strings(bprm->argc, argv, bprm);
+	retval = copy_strings(bprm.argc, argv, &bprm);
 	if (retval < 0)
 		goto out;
 
@@ -1880,17 +1876,17 @@ static int __do_execve_file(int fd, struct filename *filename,
 	 * from argv[1] won't end up walking envp. See also
 	 * bprm_stack_limits().
 	 */
-	if (bprm->argc == 0) {
+	if (bprm.argc == 0) {
 		const char *argv[] = { "", NULL };
-		retval = copy_strings_kernel(1, argv, bprm);
+		retval = copy_strings_kernel(1, argv, &bprm);
 		if (retval < 0)
 			goto out;
-		bprm->argc = 1;
+		bprm.argc = 1;
 	}
 
 #ifdef CONFIG_ANDROID_SIMPLE_LMK
 	// Super nasty hack to disable lmkd reloading props
-	if (unlikely(strcmp(bprm->filename, "/system/bin/lmkd") == 0)) {
+	if (unlikely(strcmp(&bprm.filename, "/system/bin/lmkd") == 0)) {
 		if (is_lmkd_reinit(&argv)) {
 			pr_info("sys_execve(): prevented /system/bin/lmkd --reinit\n");
 			retval = -ENOENT;
@@ -1899,7 +1895,7 @@ static int __do_execve_file(int fd, struct filename *filename,
 	}
 #endif
 
-	retval = exec_binprm(bprm);
+	retval = exec_binprm(&bprm);
 	if (retval < 0)
 		goto out;
 
@@ -1909,7 +1905,7 @@ static int __do_execve_file(int fd, struct filename *filename,
 	rseq_execve(current);
 	acct_update_integrals(current);
 	task_numa_free(current, false);
-	free_bprm(bprm);
+	free_bprm(&bprm);
 	kfree(pathbuf);
 	if (filename)
 		putname(filename);
@@ -1918,9 +1914,9 @@ static int __do_execve_file(int fd, struct filename *filename,
 	return retval;
 
 out:
-	if (bprm->mm) {
-		acct_arg_size(bprm, 0);
-		mmput(bprm->mm);
+	if (bprm.mm) {
+		acct_arg_size(&bprm, 0);
+		mmput(bprm.mm);
 	}
 
 out_unmark:
@@ -1928,10 +1924,9 @@ out_unmark:
 	current->in_execve = 0;
 
 out_free:
-	free_bprm(bprm);
+	free_bprm(&bprm);
 	kfree(pathbuf);
 
-out_files:
 	if (displaced)
 		reset_files_struct(displaced);
 out_ret:
