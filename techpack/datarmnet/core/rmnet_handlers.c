@@ -88,8 +88,8 @@ bool rmnet_slow_start_on(u32 hash_key)
 EXPORT_SYMBOL(rmnet_slow_start_on);
 
 /* Shs hook handler */
-int (*rmnet_shs_skb_entry)(struct sk_buff *skb,
-			   struct rmnet_shs_clnt_s *cfg) __rcu __read_mostly;
+void (*rmnet_shs_skb_entry)(struct sk_buff *skb,
+			    struct rmnet_shs_clnt_s *cfg) __rcu __read_mostly;
 EXPORT_SYMBOL(rmnet_shs_skb_entry);
 
 int (*rmnet_shs_switch)(struct sk_buff *skb,
@@ -98,8 +98,8 @@ EXPORT_SYMBOL(rmnet_shs_switch);
 
 
 /* Shs hook handler for work queue*/
-int (*rmnet_shs_skb_entry_wq)(struct sk_buff *skb,
-			      struct rmnet_shs_clnt_s *cfg) __rcu __read_mostly;
+void (*rmnet_shs_skb_entry_wq)(struct sk_buff *skb,
+			       struct rmnet_shs_clnt_s *cfg) __rcu __read_mostly;
 EXPORT_SYMBOL(rmnet_shs_skb_entry_wq);
 
 /* Generic handler */
@@ -107,8 +107,8 @@ EXPORT_SYMBOL(rmnet_shs_skb_entry_wq);
 void
 rmnet_deliver_skb(struct sk_buff *skb, struct rmnet_port *port)
 {
-	int (*rmnet_shs_stamp)(struct sk_buff *skb,
-			       struct rmnet_shs_clnt_s *cfg);
+	void (*rmnet_shs_stamp)(struct sk_buff *skb,
+				struct rmnet_shs_clnt_s *cfg);
 
 	trace_rmnet_low(RMNET_MODULE, RMNET_DLVR_SKB, 0xDEF, 0xDEF,
 			0xDEF, 0xDEF, (void *)skb, NULL);
@@ -157,8 +157,8 @@ void
 rmnet_deliver_skb_wq(struct sk_buff *skb, struct rmnet_port *port,
 		     enum rmnet_packet_context ctx)
 {
-	int (*rmnet_shs_stamp)(struct sk_buff *skb,
-			       struct rmnet_shs_clnt_s *cfg);
+	void (*rmnet_shs_stamp)(struct sk_buff *skb,
+				struct rmnet_shs_clnt_s *cfg);
 	struct rmnet_priv *priv = netdev_priv(skb->dev);
 
 	trace_rmnet_low(RMNET_MODULE, RMNET_DLVR_SKB, 0xDEF, 0xDEF,
