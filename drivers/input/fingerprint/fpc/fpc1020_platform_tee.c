@@ -38,13 +38,10 @@
 #include <linux/pinctrl/consumer.h>
 #include <linux/pm_wakeup.h>
 #include <linux/fb.h>
-#include <drm/drm_notifier.h>
-#include <drm/drm_bridge.h>
 
 #define CONFIG_FPC_COMPAT 1
 #define FINGER_PWR_USE_GPIO 1
 #define FPC_TTW_HOLD_TIME 2000
-#define FP_UNLOCK_REJECTION_TIMEOUT (FPC_TTW_HOLD_TIME - 500)
 
 #define RESET_LOW_SLEEP_MIN_US 5000
 #define RESET_LOW_SLEEP_MAX_US (RESET_LOW_SLEEP_MIN_US + 100)
@@ -100,10 +97,6 @@ struct fpc1020_data {
 	bool compatible_enabled;
 #endif
 	atomic_t wakeup_enabled; /* Used both in ISR and non-ISR */
-	struct notifier_block fb_notifier;
-	bool fb_black;
-	bool wait_finger_down;
-	struct work_struct work;
 };
 
 static irqreturn_t fpc1020_irq_handler(int irq, void *handle);
@@ -523,25 +516,6 @@ static ssize_t irq_ack(struct device *dev,
 }
 static DEVICE_ATTR(irq, S_IRUSR | S_IWUSR, irq_get, irq_ack);
 
-static ssize_t fingerdown_wait_set(struct device *dev,
-				   struct device_attribute *attr,
-				   const char *buf, size_t count)
-{
-	struct fpc1020_data *fpc1020 = dev_get_drvdata(dev);
-
-	dev_info(fpc1020->dev, "%s -> %s\n", __func__, buf);
-	if (!strncmp(buf, "enable", strlen("enable")))
-		fpc1020->wait_finger_down = true;
-	else if (!strncmp(buf, "disable", strlen("disable")))
-		fpc1020->wait_finger_down = false;
-	else
-		return -EINVAL;
-
-	return count;
-}
-
-static DEVICE_ATTR(fingerdown_wait, S_IWUSR, NULL, fingerdown_wait_set);
-
 #ifdef CONFIG_FPC_COMPAT
 static ssize_t compatible_all_set(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t count)
@@ -660,7 +634,6 @@ static struct attribute *attributes[] = {
 	&dev_attr_handle_wakelock.attr,
 	&dev_attr_clk_enable.attr,
 	&dev_attr_irq.attr,
-	&dev_attr_fingerdown_wait.attr,
 #ifdef CONFIG_FPC_COMPAT
 	&dev_attr_compatible_all.attr,
 #endif
@@ -688,11 +661,7 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 
 	sysfs_notify(&fpc1020->dev->kobj, NULL, dev_attr_irq.attr.name);
 
-	pr_info("%s %d,%d,%d",__func__,fpc1020->wait_finger_down,fpc1020->prepared,fpc1020->fb_black);
-	if (fpc1020->wait_finger_down && fpc1020->fb_black && fpc1020->prepared) {
-		pr_info("%s enter fingerdown & fb_black then schedule_work\n", __func__);
-		fpc1020->wait_finger_down = false;
-	}
+	pr_info("%s %d",__func__,fpc1020->prepared);
 
 	return IRQ_HANDLED;
 }
@@ -846,8 +815,6 @@ static int fpc1020_probe(struct platform_device *pdev)
 	}
 #endif
 	dev_info(dev, "%s: ok\n", __func__);
-	fpc1020->fb_black = false;
-	fpc1020->wait_finger_down = false;
 exit:
 	return rc;
 }
