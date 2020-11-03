@@ -828,6 +828,9 @@ config OOM_TASK_PRIORITY_ADJ_LIMIT
 	  tasks with an oom_score_adj value above a certain threshold
 	  before considering tasks with a lower oom_score_adj value.
 
+config KMAP_LOCAL
+	bool
+
 endmenu
 
 config PROCESS_RECLAIM
