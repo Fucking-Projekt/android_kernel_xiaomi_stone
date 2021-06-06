@@ -36,8 +36,8 @@
 #include <soc/qcom/qseecom_scm.h>
 #include <soc/qcom/qseecomi.h>
 #include <asm/cacheflush.h>
-#include "qseecom_kernel.h"
 #include <linux/crypto-qti-common.h>
+#include <misc/qseecom_kernel.h>
 #include <linux/delay.h>
 #include <linux/signal.h>
 #include <linux/compat.h>
