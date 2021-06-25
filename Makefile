@@ -1013,7 +1013,76 @@ KBUILD_CFLAGS += $(call cc-disable-warning, restrict)
 # Enabled with W=2, disabled by default as noisy
 KBUILD_CFLAGS += $(call cc-disable-warning, maybe-uninitialized)
 
-# disable invalid "can't wrap" optimizations for signed / pointers
+# disable warning -Wempty-body
+KBUILD_CFLAGS += $(call cc-disable-warning, empty-body)
+
+# disable warning -Wfortify-source
+KBUILD_CFLAGS += $(call cc-disable-warning, fortify-source)
+
+# disable warning -Wignored-attributes
+KBUILD_CFLAGS += $(call cc-disable-warning, ignored-attributes)
+
+# disable warning -Wincompatible-pointer-types
+KBUILD_CFLAGS += $(call cc-disable-warning, incompatible-pointer-types)
+
+# disable warning -Wimplicit-int
+KBUILD_CFLAGS += $(call cc-disable-warning, implicit-int)
+
+# disable warning -Wint-conversion
+KBUILD_CFLAGS += $(call cc-disable-warning, int-conversion)
+
+# disable warning -Wstrict-prototypes
+KBUILD_CFLAGS += $(call cc-disable-warning, strict-prototypes)
+
+# disable warning -Wmisleading-indentation
+KBUILD_CFLAGS += $(call cc-disable-warning, misleading-indentation)
+
+# disable warning -Wnon-literal-null-conversion
+KBUILD_CFLAGS += $(call cc-disable-warning, non-literal-null-conversion)
+
+# disable warning -Wparentheses-equality
+KBUILD_CFLAGS += $(call cc-disable-warning, parentheses-equality)
+
+# disable warning -Wpointer-bool-conversion
+KBUILD_CFLAGS += $(call cc-disable-warning, pointer-bool-conversion)
+
+# disable warning -Wpointer-integer-compare
+KBUILD_CFLAGS += $(call cc-disable-warning, pointer-integer-compare)
+
+# disable warning -Wpointer-to-int-cast
+KBUILD_CFLAGS += $(call cc-disable-warning, pointer-to-int-cast)
+
+# disable warning -Wunused-but-set-variable
+KBUILD_CFLAGS += $(call cc-disable-warning, unused-but-set-variable)
+
+# disable warning -Wunused-function
+KBUILD_CFLAGS += $(call cc-disable-warning, unused-function)
+
+# disable warning -Wunused-variable
+KBUILD_CFLAGS += $(call cc-disable-warning, unused-variable)
+
+# disable -Wstrict-prototypes
+KBUILD_CFLAGS += $(call cc-option, -Wno-error=strict-prototypes)
+
+# disable -Wimplicit-function-declaration
+KBUILD_CFLAGS += $(call cc-option, -Wno-error=implicit-function-declaration)
+
+# disable -Wincompatible-function-pointer-types
+KBUILD_CFLAGS   += $(call cc-option,-Wno-error=incompatible-pointer-types)
+
+# disable -Wimplicit-int
+KBUILD_CFLAGS += $(call cc-option, -Wno-error=implicit-int)
+
+# disable -Wunused-but-set-variable
+KBUILD_CFLAGS += $(call cc-option, -Wno-error=unused-but-set-variable)
+
+# disable -Wunused-function
+KBUILD_CFLAGS += $(call cc-option, -Wno-error=unused-function)
+
+# disable -Wunused-variable
+KBUILD_CFLAGS += $(call cc-option, -Wno-error=unused-variable)
+
+# disable "can't wrap" optimizations for signed / pointers
 KBUILD_CFLAGS	+= $(call cc-option,-fno-strict-overflow)
 
 # Make sure -fstack-check isn't enabled (like gentoo apparently did)
@@ -1024,9 +1093,6 @@ KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
 
 # Prohibit date/time macros, which would make the build non-deterministic
 KBUILD_CFLAGS   += $(call cc-option,-Werror=date-time)
-
-# enforce correct pointer usage
-KBUILD_CFLAGS   += $(call cc-option,-Werror=incompatible-pointer-types)
 
 # Require designated initializers for all marked structures
 KBUILD_CFLAGS   += $(call cc-option,-Werror=designated-init)
