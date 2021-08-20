@@ -522,7 +522,7 @@ static int qcom_cpufreq_hw_read_lut(struct platform_device *pdev,
 			 * Two of the same frequencies with the same core counts means
 			 * end of table.
 			 */
-			if (i > 0 && prev_freq == freq && prev_cc == core_count)
+			if (i > 0 && prev_freq == freq)
 				break;
 		}
 
