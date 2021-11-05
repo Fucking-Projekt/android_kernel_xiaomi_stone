@@ -61,6 +61,8 @@ bool is_skip_op_required(struct dsi_display *display)
 	return (display->is_cont_splash_enabled || display->trusted_vm_env);
 }
 
+struct dsi_display *main_display;
+
 static void dsi_display_mask_ctrl_error_interrupts(struct dsi_display *display,
 			u32 mask, bool enable)
 {
@@ -7259,6 +7261,7 @@ int dsi_display_get_modes(struct dsi_display *display,
 exit:
 	*out_modes = display->modes;
 	rc = 0;
+	main_display = display;
 
 error:
 	if (rc) {
@@ -8933,6 +8936,10 @@ ssize_t dsi_display_get_hbm_status(struct drm_connector *connector)
 	hbm_status = display->panel->bl_config.hbm_status;
 
 	return hbm_status;
+}
+
+struct dsi_display *get_main_display(void) {
+	return main_display;
 }
 
 void __init dsi_display_register(void)
