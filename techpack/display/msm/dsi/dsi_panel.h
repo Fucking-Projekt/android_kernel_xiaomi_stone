@@ -295,6 +295,10 @@ struct dsi_read_config {
 	u32 cmds_rlen;
 	u32 valid_bits;
 	u8 rbuf[64];
+
+#ifdef CONFIG_DRM_SDE_EXPO
+	bool dimlayer_exposure;
+#endif
 };
 
 static inline bool dsi_panel_ulps_feature_enabled(struct dsi_panel *panel)
