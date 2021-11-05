@@ -291,6 +291,10 @@ struct dsi_panel {
 	u32 doze_hbm_threshold;
 
 	u8 dsi_refresh_flag;
+
+#ifdef CONFIG_DRM_SDE_EXPO
+	bool dimlayer_exposure;
+#endif
 };
 
 static inline bool dsi_panel_ulps_feature_enabled(struct dsi_panel *panel)
