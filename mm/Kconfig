@@ -831,6 +831,9 @@ config OOM_TASK_PRIORITY_ADJ_LIMIT
 config KMAP_LOCAL
 	bool
 
+config KMAP_LOCAL_NON_LINEAR_PTE_ARRAY
+	bool
+
 endmenu
 
 config PROCESS_RECLAIM
