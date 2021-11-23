@@ -1760,12 +1760,14 @@ void a6xx_gmu_suspend(struct adreno_device *adreno_dev)
 {
 	struct a6xx_gmu_device *gmu = to_a6xx_gmu(adreno_dev);
 	struct kgsl_device *device = KGSL_DEVICE(adreno_dev);
+	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
 
 	a6xx_gmu_irq_disable(adreno_dev);
 
 	a6xx_gmu_pwrctrl_suspend(adreno_dev);
 
 	clk_bulk_disable_unprepare(gmu->num_clks, gmu->clks);
+	clear_bit(KGSL_PWRFLAGS_CLK_ON, &pwr->power_flags);
 
 	a6xx_cx_regulator_disable_wait(gmu->cx_gdsc, device, 5000);
 
@@ -2126,6 +2128,7 @@ int a6xx_gmu_enable_clks(struct adreno_device *adreno_dev)
 {
 	struct a6xx_gmu_device *gmu = to_a6xx_gmu(adreno_dev);
 	struct kgsl_device *device = KGSL_DEVICE(adreno_dev);
+	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
 	int ret;
 
 	a6xx_rdpm_cx_freq_update(gmu, GMU_FREQUENCY / 1000);
@@ -2149,6 +2152,7 @@ int a6xx_gmu_enable_clks(struct adreno_device *adreno_dev)
 	}
 
 	device->state = KGSL_STATE_AWARE;
+	set_bit(KGSL_PWRFLAGS_CLK_ON, &pwr->power_flags);
 
 	return 0;
 }
@@ -2243,6 +2247,7 @@ err:
 
 clks_gdsc_off:
 	clk_bulk_disable_unprepare(gmu->num_clks, gmu->clks);
+	clear_bit(KGSL_PWRFLAGS_CLK_ON, &pwr->power_flags);
 
 gdsc_off:
 	/* Poll to make sure that the CX is off */
@@ -2257,6 +2262,7 @@ static int a6xx_gmu_boot(struct adreno_device *adreno_dev)
 {
 	struct kgsl_device *device = KGSL_DEVICE(adreno_dev);
 	struct a6xx_gmu_device *gmu = to_a6xx_gmu(adreno_dev);
+	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
 	int ret = 0;
 
 	trace_kgsl_pwr_request_state(device, KGSL_STATE_AWARE);
@@ -2323,6 +2329,7 @@ err:
 
 clks_gdsc_off:
 	clk_bulk_disable_unprepare(gmu->num_clks, gmu->clks);
+	clear_bit(KGSL_PWRFLAGS_CLK_ON, &pwr->power_flags);
 
 gdsc_off:
 	/* Poll to make sure that the CX is off */
@@ -2774,6 +2781,7 @@ static int a6xx_gmu_power_off(struct adreno_device *adreno_dev)
 {
 	struct a6xx_gmu_device *gmu = to_a6xx_gmu(adreno_dev);
 	struct kgsl_device *device = KGSL_DEVICE(adreno_dev);
+	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
 	int ret = 0;
 
 	if (device->gmu_fault)
@@ -2808,6 +2816,7 @@ static int a6xx_gmu_power_off(struct adreno_device *adreno_dev)
 	a6xx_hfi_stop(adreno_dev);
 
 	clk_bulk_disable_unprepare(gmu->num_clks, gmu->clks);
+	clear_bit(KGSL_PWRFLAGS_CLK_ON, &pwr->power_flags);
 
 	/* Poll to make sure that the CX is off */
 	a6xx_cx_regulator_disable_wait(gmu->cx_gdsc, device, 5000);
