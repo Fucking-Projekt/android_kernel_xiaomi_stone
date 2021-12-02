@@ -249,45 +249,10 @@ struct fuse_file {
 	bool flock:1;
 };
 
-/** One input argument of a request */
-struct fuse_in_arg {
-	unsigned size;
-	const void *value;
-};
-
-/** One output argument of a request */
-struct fuse_arg {
-	unsigned size;
-	void *value;
-};
-
 /** FUSE page descriptor */
 struct fuse_page_desc {
 	unsigned int length;
 	unsigned int offset;
-};
-
-struct fuse_args {
-	uint64_t nodeid;
-	uint32_t opcode;
-	unsigned short in_numargs;
-	unsigned short out_numargs;
-	bool force:1;
-	bool noreply:1;
-	bool nocreds:1;
-	bool in_pages:1;
-	bool out_pages:1;
-	bool user_pages:1;
-	bool out_argvar:1;
-	bool page_zeroing:1;
-	bool page_replace:1;
-	bool may_block:1;
-	struct fuse_in_arg in_args[3];
-	struct fuse_arg out_args[2];
-	void (*end)(struct fuse_mount *fm, struct fuse_args *args, int error);
-
-	/* Path used for completing d_canonical_path */
-	struct path *canonical_path;
 };
 
 struct fuse_args_pages {
@@ -954,6 +919,9 @@ struct fuse_io_args {
 void fuse_read_args_fill(struct fuse_io_args *ia, struct file *file, loff_t pos,
 			 size_t count, int opcode);
 
+
+int fuse_parse_dirfile(char *buf, size_t nbytes, struct file *file,
+			 struct dir_context *ctx);
 
 /**
  * Send OPEN or OPENDIR request
