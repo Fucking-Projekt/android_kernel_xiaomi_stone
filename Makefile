@@ -806,6 +806,14 @@ KBUILD_CFLAGS	+= -mllvm -polly \
 		   -mllvm -polly-invariant-load-hoisting
 endif
 
+ifdef CONFIG_CC_IS_CLANG
+KBUILD_CFLAGS += -mcpu=cortex-a55
+KBUILD_AFLAGS += -mcpu=cortex-a55
+else
+KBUILD_CFLAGS += -mcpu=cortex-a78.cortex-a55
+KBUILD_AFLAGS += -mcpu=cortex-a78.cortex-a55
+endif
+
 # Use generated profiles from profiling with CONFIG_PGO_GEN to optimize the kernel
 ifeq ($(CONFIG_PGO_USE),y)
 KBUILD_CFLAGS	+=	-fprofile-use \
