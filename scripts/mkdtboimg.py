@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function
 
 """Tool for packing multiple DTB/DTBO files into a single image"""
 
@@ -25,12 +24,22 @@ import struct
 from sys import stdout
 import zlib
 
-class CompressionFormat(object):
+class CompressionFormat:
+    """Enum representing DT compression format for a DT entry.
+    """
     NO_COMPRESSION = 0x00
     ZLIB_COMPRESSION = 0x01
     GZIP_COMPRESSION = 0x02
 
-class DtEntry(object):
+class DtEntry:
+    """Provides individual DT image file arguments to be added to a DTBO.
+
+    Attributes:
+        _REQUIRED_KEYS: 'keys' needed to be present in the dictionary passed to instantiate
+            an object of this class.
+        _COMPRESSION_FORMAT_MASK: Mask to retrieve compression info for DT entry from flags field
+            when a DTBO header of version 1 is used.
+    """
     _COMPRESSION_FORMAT_MASK = 0x0f
     REQUIRED_KEYS = ('dt_file', 'dt_size', 'dt_offset', 'id', 'rev', 'flags',
                      'custom0', 'custom1', 'custom2')
@@ -87,7 +96,13 @@ class DtEntry(object):
         return '\n'.join(sb)
 
     def compression_info(self, version):
-        if version is 0:
+        """CompressionFormat: compression format for DT image file.
+
+           Args:
+                version: Version of DTBO header, compression is only
+                         supported from version 1.
+        """
+        if version == 0:
             return CompressionFormat.NO_COMPRESSION
         return self.flags & self._COMPRESSION_FORMAT_MASK
 
@@ -136,7 +151,22 @@ class DtEntry(object):
         return self.__custom2
 
 
-class Dtbo(object):
+class Dtbo:
+    """
+    Provides parser, reader, writer for dumping and creating Device Tree Blob
+    Overlay (DTBO) images.
+
+    Attributes:
+        _DTBO_MAGIC: Device tree table header magic.
+        _ACPIO_MAGIC: Advanced Configuration and Power Interface table header
+                      magic.
+        _DT_TABLE_HEADER_SIZE: Size of Device tree table header.
+        _DT_TABLE_HEADER_INTS: Number of integers in DT table header.
+        _DT_ENTRY_HEADER_SIZE: Size of Device tree entry header within a DTBO.
+        _DT_ENTRY_HEADER_INTS: Number of integers in DT entry header.
+        _GZIP_COMPRESSION_WBITS: Argument 'wbits' for gzip compression
+        _ZLIB_DECOMPRESSION_WBITS: Argument 'wbits' for zlib/gzip compression
+    """
 
     _DTBO_MAGIC = 0xd7b7ab1e
     _ACPIO_MAGIC = 0x41435049
@@ -162,7 +192,7 @@ class Dtbo(object):
 
     def _update_metadata(self):
 
-        self.__metadata = array('c', ' ' * self.__metadata_size)
+        self.__metadata = array('b', b' ' * self.__metadata_size)
         metadata_offset = self.header_size
         for dt_entry in self.__dt_entries:
             self._update_dt_entry_header(dt_entry, metadata_offset)
@@ -279,7 +309,7 @@ class Dtbo(object):
                                                          value=self.__dict__[key]))
         count = 0
         for dt_entry in self.__dt_entries:
-            sb.append('dt_table_entry[{0:d}]:'.format(count))
+            sb.append(f'dt_table_entry[{count:d}]:')
             sb.append(str(dt_entry))
             count = count + 1
         return '\n'.join(sb)
@@ -321,7 +351,7 @@ class Dtbo(object):
         dt_offset = (self.header_size +
                      dt_entry_count * self.dt_entry_size)
 
-        dt_entry_buf = ""
+        dt_entry_buf = b""
         for dt_entry in dt_entries:
             if not isinstance(dt_entry, DtEntry):
                 raise ValueError('Adding invalid DT entry object to DTBO')
@@ -417,7 +447,7 @@ def parse_dt_entries(global_args, arg_list):
         raise ValueError('Input DT images must be provided')
 
     total_images = len(img_file_idx)
-    for idx in xrange(total_images):
+    for idx in range(total_images):
         start_idx = img_file_idx[idx]
         if idx == total_images - 1:
             argv = arg_list[start_idx:]
@@ -449,7 +479,7 @@ def parse_config_option(line, is_global, dt_keys, global_key_types):
 def parse_config_file(fin, dt_keys, global_key_types):
 
     # set all global defaults
-    global_args = dict((k, '0') for k in dt_keys)
+    global_args = {k: '0' for k in dt_keys}
     global_args['dt_type'] = 'dtb'
     global_args['page_size'] = 2048
     global_args['version'] = 0
@@ -550,7 +580,7 @@ def dump_dtbo_image(fin, argv):
     if args.dtfilename:
         num_entries = len(dtbo.dt_entries)
         for idx in range(0, num_entries):
-            with open(args.dtfilename + '.{:d}'.format(idx), 'wb') as fout:
+            with open(args.dtfilename + f'.{idx:d}', 'wb') as fout:
                 dtbo.extract_dt_file(idx, fout, args.decompress)
     args.outfile.write(str(dtbo) + '\n')
     args.outfile.close()
