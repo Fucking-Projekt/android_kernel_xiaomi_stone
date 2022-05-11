@@ -102,6 +102,8 @@ extern void smp_cpus_done(unsigned int max_cpus);
  * Call a function on all other processors
  */
 void smp_call_function(smp_call_func_t func, void *info, int wait);
+int generic_exec_single(int cpu, struct __call_single_data *csd,
+			smp_call_func_t func, void *info);
 void smp_call_function_many(const struct cpumask *mask,
 			    smp_call_func_t func, void *info, bool wait);
 
