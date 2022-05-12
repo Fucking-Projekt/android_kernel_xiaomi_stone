@@ -68,3 +68,4 @@ obj-$(CONFIG_HISI_HIKEY_USB)	+= hisi_hikey_usb.o
 obj-$(CONFIG_LDO_WL2866D)	+= wl2866d.o
 obj-$(CONFIG_HQ_SYSFS_SUPPORT) 	+= hqsysfs/
 obj-$(CONFIG_MI_FS)		+= xiaomi_fs/
+obj-$(CONFIG_MI_HARDWARE_ID)	+= hwid.o

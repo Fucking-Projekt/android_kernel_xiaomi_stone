@@ -529,6 +529,12 @@ config LDO_WL2866D
 	help
 	  This option enables multi ldo wl2866d
 
+config MI_HARDWARE_ID
+	tristate "Register xiaomi hwid module"
+	default y
+	help
+	  This adds support for mi hwid.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
