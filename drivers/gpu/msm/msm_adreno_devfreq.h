@@ -16,6 +16,11 @@
 #define ADRENO_DEVFREQ_NOTIFY_RETIRE	2
 #define ADRENO_DEVFREQ_NOTIFY_IDLE	3
 
+/* Flags used to send bus modifier hint from busmon governer to driver */
+#define BUSMON_FLAG_FAST_HINT		BIT(0)
+#define BUSMON_FLAG_SUPER_FAST_HINT	BIT(1)
+#define BUSMON_FLAG_SLOW_HINT		BIT(2)
+
 struct device;
 
 /* same as KGSL_MAX_PWRLEVELS */
@@ -69,7 +74,6 @@ struct msm_busmon_extended_profile {
 	u32 sampling_ms;
 	unsigned long percent_ab;
 	unsigned long ab_mbytes;
-	u32 wait_active_percent;
 	struct devfreq_msm_adreno_tz_data *private_data;
 	struct devfreq_dev_profile profile;
 };
