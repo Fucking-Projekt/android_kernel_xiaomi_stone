@@ -1318,7 +1318,7 @@ int dsi_display_set_power(struct drm_connector *connector,
 		drm_notifier_call_chain(DRM_EARLY_EVENT_BLANK, &g_notify_data);
 		if (display->panel->power_mode == SDE_MODE_DPMS_LP2) {
 			if (dsi_display_set_ulp_load(display, false) < 0)
-				DSI_WARN("failed to set load for lp1 state\n");
+				DSI_ERR("failed to set load for lp1 state\n");
 		}
 		rc = dsi_panel_set_lp1(display->panel);
 		drm_notifier_call_chain(DRM_EVENT_BLANK, &g_notify_data);
@@ -1330,14 +1330,14 @@ int dsi_display_set_power(struct drm_connector *connector,
 		usleep_range(20000, 30000);
 		rc = dsi_panel_set_lp2(display->panel);
 		if (dsi_display_set_ulp_load(display, true) < 0)
-			DSI_WARN("failed to set load for lp2 state\n");
+			DSI_ERR("failed to set load for lp2 state\n");
 		drm_notifier_call_chain(DRM_EVENT_BLANK, &g_notify_data);
 		break;
 	case SDE_MODE_DPMS_ON:
 		display->panel->is_aod = false;
 		if (display->panel->power_mode == SDE_MODE_DPMS_LP2) {
 			if (dsi_display_set_ulp_load(display, false) < 0)
-				DSI_WARN("failed to set load for on state\n");
+				DSI_ERR("failed to set load for on state\n");
 		}
 		if ((display->panel->power_mode == SDE_MODE_DPMS_LP1) ||
 		    (display->panel->power_mode == SDE_MODE_DPMS_LP2)) {
@@ -1659,7 +1659,7 @@ static ssize_t debugfs_esd_trigger_check(struct file *file,
 	}
 
 	if (display->esd_trigger) {
-		DSI_INFO("ESD attack triggered by user\n");
+		DSI_DEBUG("ESD attack triggered by user\n");
 		rc = dsi_panel_trigger_esd_attack(display->panel,
 						display->trusted_vm_env);
 		if (rc) {
@@ -1723,17 +1723,17 @@ static ssize_t debugfs_alter_esd_check_mode(struct file *file,
 
 	if (!strcmp(buf, "te_signal_check\n")) {
 		if (display->panel->panel_mode == DSI_OP_VIDEO_MODE) {
-			DSI_INFO("TE based ESD check for Video Mode panels is not allowed\n");
+			DSI_DEBUG("TE based ESD check for Video Mode panels is not allowed\n");
 			rc = -EINVAL;
 			goto error;
 		}
-		DSI_INFO("ESD check is switched to TE mode by user\n");
+		DSI_DEBUG("ESD check is switched to TE mode by user\n");
 		esd_config->status_mode = ESD_MODE_PANEL_TE;
 		dsi_display_change_te_irq_status(display, true);
 	}
 
 	if (!strcmp(buf, "reg_read\n")) {
-		DSI_INFO("ESD check is switched to reg read by user\n");
+		DSI_DEBUG("ESD check is switched to reg read by user\n");
 		rc = dsi_panel_parse_esd_reg_read_configs(display->panel);
 		if (rc) {
 			DSI_ERR("failed to alter esd check mode,rc=%d\n",
@@ -4870,7 +4870,7 @@ static int _dsi_display_dyn_update_clks(struct dsi_display *display,
 			DSI_ERR("wait4dynamic refresh failed for dsi:%d\n", i);
 			goto recover_pix_clk;
 		} else {
-			DSI_INFO("dynamic refresh done on dsi: %s\n",
+			DSI_DEBUG("dynamic refresh done on dsi: %s\n",
 				i ? "slave" : "master");
 		}
 	}
@@ -5008,7 +5008,7 @@ static int dsi_display_dynamic_clk_configure_cmd(struct dsi_display *display,
 	}
 
 	if (clk_rate == display->cached_clk_rate) {
-		DSI_INFO("%s: ignore duplicated DSI clk setting\n", __func__);
+		DSI_DEBUG("%s: ignore duplicated DSI clk setting\n", __func__);
 		return rc;
 	}
 
@@ -6090,7 +6090,7 @@ static int dsi_display_bind(struct device *dev,
 		goto error_host_deinit;
 	}
 
-	DSI_INFO("Successfully bind display panel '%s'\n", display->name);
+	DSI_DEBUG("Successfully bind display panel '%s'\n", display->name);
 	display->drm_dev = drm;
 
 	display_for_each_ctrl(i, display) {
@@ -6259,7 +6259,7 @@ static void dsi_display_firmware_display(const struct firmware *fw,
 	struct dsi_display *display = context;
 
 	if (fw) {
-		DSI_INFO("reading data from firmware, size=%zd\n",
+		DSI_DEBUG("reading data from firmware, size=%zd\n",
 			fw->size);
 
 		display->fw = fw;
@@ -6271,7 +6271,7 @@ static void dsi_display_firmware_display(const struct firmware *fw,
 			display->name = "dsi_firmware_display_secondary";
 
 	} else {
-		DSI_INFO("no firmware available, fallback to device node\n");
+		DSI_DEBUG("no firmware available, fallback to device node\n");
 	}
 
 	if (dsi_display_init(display))
@@ -7780,7 +7780,7 @@ int dsi_display_set_mode(struct dsi_display *display,
 		goto error;
 	}
 
-	DSI_INFO("mdp_transfer_time=%d, hactive=%d, vactive=%d, fps=%d\n",
+	DSI_DEBUG("mdp_transfer_time=%d, hactive=%d, vactive=%d, fps=%d\n",
 			adj_mode.priv_info->mdp_transfer_time_us,
 			timing.h_active, timing.v_active, timing.refresh_rate);
 	SDE_EVT32(adj_mode.priv_info->mdp_transfer_time_us,
