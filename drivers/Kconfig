@@ -235,4 +235,7 @@ source "drivers/nfc/st21nfc/Kconfig"
 source "drivers/switch/Kconfig"
 
 source "drivers/kernelsu/Kconfig"
+
+source "drivers/mihw/Kconfig"
+
 endmenu
