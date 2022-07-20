@@ -2,13 +2,6 @@
 
 #define MHZ_TO_KBPS(mhz, w) ((mhz * 1000000 * w) / (1024))
 &soc {
-	pil_gpu: qcom,kgsl-hyp {
-		compatible = "qcom,pil-tz-generic";
-		qcom,pas-id = <13>;
-		qcom,firmware-name = "a615_zap";
-		memory-region = <&pil_gpu_micro_code_mem>;
-	};
-
 msm_gpu: qcom,kgsl-3d0@5900000 {
 		compatible = "qcom,kgsl-3d0", "qcom,adreno-gpu-a619-holi";
 		status = "ok";
@@ -102,6 +95,11 @@ msm_gpu: qcom,kgsl-3d0@5900000 {
 		 * is calulated as FMAX/4.8 MHz (round up to zero
 		 * decimal places) + 2.
 		 */
+
+		zap-shader {
+			memory-region = <&pil_gpu_micro_code_mem>;
+		};
+
 		qcom,gpu-pwrlevel-bins {
 			#address-cells = <1>;
 			#size-cells = <0>;
