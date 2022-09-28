@@ -23,6 +23,7 @@ extern cpumask_t __read_mostly **cpu_array;
 extern void
 walt_update_task_ravg(struct task_struct *p, struct rq *rq, int event,
 						u64 wallclock, u64 irqtime);
+extern u64 walt_get_prev_group_run_sum(struct rq *rq);
 
 struct waltgov_callback {
 	void (*func)(struct waltgov_callback *cb, u64 time, unsigned int flags);
