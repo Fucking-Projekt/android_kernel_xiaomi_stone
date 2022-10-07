@@ -679,7 +679,8 @@ static void hwsched_idle_check(struct work_struct *work)
 	    device->pwrctrl.ctrl_flags)
 		goto done;
 
-	if (!atomic_read(&device->active_cnt)) {
+	if (!atomic_read(&device->active_cnt) &&
+		time_is_before_eq_jiffies(device->idle_jiffies)) {
 		a6xx_hwsched_power_off(adreno_dev);
 	} else {
 		kgsl_pwrscale_update(device);
