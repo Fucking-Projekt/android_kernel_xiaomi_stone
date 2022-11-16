@@ -26,3 +26,13 @@
 &sdhc_2 {
 	cd-gpios = <&tlmm 94 GPIO_ACTIVE_HIGH>;
 };
+
+&soc {
+	qcom,glink {
+		glink_adsp: adsp {
+				qcom,adsp_qrtr {
+						qcom,non-wake-svc = <0x190>;
+						};
+				};
+		};
+};					
