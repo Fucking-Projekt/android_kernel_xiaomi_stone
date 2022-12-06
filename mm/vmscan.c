@@ -68,6 +68,9 @@
 #ifdef CONFIG_CAM_RECLAIM
 #include <linux/cam_reclaim.h>
 #endif
+#ifdef CONFIG_MI_RECLAIM
+#include <linux/mi_reclaim.h>
+#endif
 #include "internal.h"
 
 #define CREATE_TRACE_POINTS
@@ -2439,6 +2442,9 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 	unsigned long anon, file;
 	unsigned long ap, fp;
 	enum lru_list lru;
+#ifdef CONFIG_RTMM
+	bool rtmm_active = false;
+#endif
 
 	/* If we have no swap space, do not bother scanning anon pages. */
 	if (!sc->may_swap || mem_cgroup_get_nr_swap_pages(memcg) <= 0) {
@@ -2447,9 +2453,16 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 	}
 
 #ifdef CONFIG_RTMM
-        if (unlikely(rtmm_reclaim(current->comm))) {
-                swappiness = rtmm_reclaim_swappiness();
-        }
+	rtmm_active = unlikely(rtmm_reclaim(current->comm));
+	if (rtmm_active) {
+		swappiness = rtmm_reclaim_swappiness();
+	}
+#endif
+
+#ifdef CONFIG_MI_RECLAIM
+	if (mi_st()) {
+		swappiness = mi_reclaim_swappiness();
+	}
 #endif
 
 	/*
@@ -2587,6 +2600,16 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 	fraction[1] = fp;
 	denominator = ap + fp + 1;
 out:
+
+#ifdef CONFIG_MI_RECLAIM
+	if (mi_reclaim(current->comm)
+#ifdef CONFIG_RTMM
+	    && !rtmm_active
+#endif
+	) {
+		scan_balance = SCAN_ANON;
+	}
+#endif
 
 #ifdef CONFIG_CAM_RECLAIM
 	if (cam_reclaim(current->comm) && cam_reclaim_anonprivate() == 0) {
@@ -7573,5 +7596,38 @@ unsigned long cam_reclaim_global(unsigned long nr_to_reclaim, int reclaim_type)
         fs_reclaim_release(sc.gfp_mask);
 
         return nr_reclaimed;
+}
+#endif
+
+#ifdef CONFIG_MI_RECLAIM
+unsigned long mi_reclaim_global(unsigned long nr_to_reclaim, int reclaim_type)
+{
+	struct reclaim_state reclaim_state;
+	struct scan_control sc = {
+		.nr_to_reclaim = min(nr_to_reclaim, SWAP_CLUSTER_MAX),
+		.gfp_mask = GFP_HIGHUSER_MOVABLE,
+		.reclaim_idx = MAX_NR_ZONES - 1,
+		.order = 0,
+		.priority = DEF_PRIORITY,
+		.may_writepage = !!(reclaim_type & 4),
+		.may_unmap = !!(reclaim_type & 1),
+		.may_swap = !!(reclaim_type & 2),
+		.target_mem_cgroup = NULL,
+		.nodemask = NULL,
+	};
+	struct zonelist *zonelist = node_zonelist(numa_node_id(), sc.gfp_mask);
+	struct task_struct *p = current;
+	unsigned long nr_reclaimed;
+
+	fs_reclaim_acquire(sc.gfp_mask);
+	reclaim_state.reclaimed_slab = 0;
+	p->reclaim_state = &reclaim_state;
+
+	nr_reclaimed = do_try_to_free_pages(zonelist, &sc);
+
+	p->reclaim_state = NULL;
+	fs_reclaim_release(sc.gfp_mask);
+
+	return nr_reclaimed;
 }
 #endif
