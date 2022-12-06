@@ -55,3 +55,4 @@ obj-$(CONFIG_QLGE)		+= qlge/
 obj-$(CONFIG_QCA_CLD_WLAN)	+= qcacld-3.0/
 obj-$(CONFIG_RTMM)		+= rtmm/
 obj-$(CONFIG_CAM_RECLAIM)	+= cam-reclaim/
+obj-$(CONFIG_MI_RECLAIM)	+= mi-reclaim/
