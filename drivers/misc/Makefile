@@ -70,3 +70,4 @@ obj-$(CONFIG_HQ_SYSFS_SUPPORT) 	+= hqsysfs/
 obj-$(CONFIG_MI_FS)		+= xiaomi_fs/
 obj-$(CONFIG_MI_HARDWARE_ID)	+= hwid.o
 obj-$(CONFIG_GPIO_TESTING_MODE)	+= gpio-testing-mode.o
+obj-$(CONFIG_MMHARDWARE_OTHER_DETECTION) += mmhardware_others.o
