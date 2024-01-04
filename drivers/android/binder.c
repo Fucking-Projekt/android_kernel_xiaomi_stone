@@ -6845,9 +6845,7 @@ static void print_binder_node_nilocked(struct seq_file *m,
 	struct binder_work *w;
 	int count;
 
-	count = 0;
-	hlist_for_each_entry(ref, &node->refs, node_entry)
-		count++;
+	count = hlist_count_nodes(&node->refs);
 
 	if (hash_ptrs)
 		seq_printf(m, "  node %d: u%p c%p", node->debug_id,
