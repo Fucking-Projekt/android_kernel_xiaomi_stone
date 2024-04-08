@@ -114,6 +114,16 @@ config CPU_FREQ_DEFAULT_GOV_WALT
 	  Use the 'walt' CPUFreq governor by default. If unsure,
 	  have a look at the help section of that governor.
 
+config CPU_FREQ_DEFAULT_GOV_SCHEDHORIZON
+	bool "schedhorizon"
+	depends on SMP
+	select CPU_FREQ_GOV_SCHEDHORIZON
+	select CPU_FREQ_GOV_PERFORMANCE
+	help
+	  Use the 'schedhorizon' CPUFreq governor by default. If unsure,
+	  have a look at the help section of that governor. The fallback
+	  governor will be 'performance'.
+
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -255,6 +265,64 @@ config CPU_FREQ_GOV_REFLEX
 	  If in doubt, say N.
 
 comment "CPU frequency scaling drivers"
+
+config CPU_FREQ_GOV_SCHEDHORIZON
+	bool "'schedhorizon' cpufreq policy governor"
+	depends on CPU_FREQ && SMP
+	select CPU_FREQ_GOV_ATTR_SET
+	select IRQ_WORK
+	default y
+	help
+	  This is a modified version of schedutil, introducing two new tunables: 
+          "efficient_freq" and "up_delay".
+
+          Only raise cpufreq to the non-efficient one (higher than effcient frequencies) 
+          if the governor keeps requiring non-efficient frequencies for more than up_delay time.
+
+          Override the new frequencies with the efficient one if the consecutive request time 
+          doesn't reach up_delay.
+
+          The two tunables support multiple args, e.g. you can set "1248000 1401600" for 
+          "efficient_freq" and set "50 60" for "up_delay", which means it would wait 50ms 
+          before raising the frequency to 1248mhz and wait for 60ms before raising the frequency 
+          to 1401mhz.
+
+	  If in doubt, say N.
+
+if CPU_FREQ_GOV_SCHEDHORIZON
+
+config SCHEDHORIZON_DEFAULT_EFFICIENT_FREQ_LP
+	int "Default efficient frequency for the lp cluster"
+	default "1516800"
+	help
+	  This sets schedhorizon's default efficient frequency for the lp
+	  cluster. This frequency needs to be set according to the available
+	  frequencies at cpufreq-table-0 for the little cores.
+
+config SCHEDHORIZON_DEFAULT_EFFICIENT_FREQ_HP
+	int "Default efficient frequency for the hp cluster"
+	default "1804800"
+	help
+	  This sets schedhorizon's default efficient frequency for the hp
+	  cluster. This frequency needs to be set according to the available
+	  frequencies at cpufreq-table-4 for the big cores.
+
+config SCHEDHORIZON_DEFAULT_UP_DELAY_LP
+	int "Default multiplicand of the up delay for the lp cluster"
+	default "80"
+	help
+	  This sets schedhorizon's default up delay for the lp cluster where
+	  the default value acts as a multiplicand which is to be multiplied
+	  by the number of nanosecond in one milisecond (NSEC_PER_MSEC).
+
+config SCHEDHORIZON_DEFAULT_UP_DELAY_HP
+	int "Default multiplicand of the up delay for the hp cluster"
+	default "100"
+	help
+	  This sets schedhorizon's default up delay for the hp cluster where
+	  the default value acts as a multiplicand which is to be multiplied
+	  by the number of nanosecond in one milisecond (NSEC_PER_MSEC).
+endif
 
 config CPUFREQ_DT
 	tristate "Generic DT based cpufreq driver"
