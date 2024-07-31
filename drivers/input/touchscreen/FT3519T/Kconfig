@@ -1,0 +1,20 @@
+#
+# Focaltech Touchscreen driver configuration
+#
+
+config TOUCHSCREEN_FT3519T
+	bool "Focaltech Touchscreen"
+	default y
+	help
+	  Say Y here if you have Focaltech touch panel.
+	  If unsure, say N.
+
+config TOUCHSCREEN_FTS
+	bool "dummy config for Focaltech Touchscreen"
+	default y
+
+config TOUCHSCREEN_FTS_DIRECTORY
+	string "Focaltech ts directory name"
+	default "focaltech_touch"
+	depends on TOUCHSCREEN_FTS
+
