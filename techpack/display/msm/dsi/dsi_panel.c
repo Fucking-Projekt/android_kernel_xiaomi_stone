@@ -1785,6 +1785,7 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-doze-hbm-command",
 	"qcom,mdss-dsi-doze-lbm-command",
 	"qcom,mdss-dsi-dispparam-bc-120hz-command",
+	"qcom,mdss-dsi-dispparam-bc-90hz-command",
 	"qcom,mdss-dsi-dispparam-bc-60hz-command",
 	"qcom,mdss-dsi-dispparam-hbm-on-l1-command",
 	"qcom,mdss-dsi-dispparam-hbm-on-l2-command",
@@ -1819,6 +1820,7 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-doze-hbm-command-state",
 	"qcom,mdss-dsi-doze-lbm-command-state",
 	"qcom,mdss-dsi-dispparam-bc-120hz-command-state",
+	"qcom,mdss-dsi-dispparam-bc-90hz-command-state",
 	"qcom,mdss-dsi-dispparam-bc-60hz-command-state",
 	"qcom,mdss-dsi-dispparam-hbm-on-l1-command-state",
 	"qcom,mdss-dsi-dispparam-hbm-on-l2-command-state",
@@ -4780,6 +4782,8 @@ int dsi_panel_post_switch(struct dsi_panel *panel)
 int dsi_panel_enable(struct dsi_panel *panel)
 {
 	int rc = 0;
+	u8 refresh_rate;
+	enum dsi_cmd_set_type cmd = DSI_CMD_SET_DISP_BC_60HZ;
 
 	if (!panel) {
 		DSI_ERR("Invalid params\n");
@@ -4795,15 +4799,23 @@ int dsi_panel_enable(struct dsi_panel *panel)
 	else
 		panel->panel_initialized = true;
 
-	panel->dsi_refresh_flag = 60;
-	if (panel->cur_mode->timing.refresh_rate == 120) {
-		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_BC_120HZ);
-		if (unlikely(rc))
-			DSI_ERR("[%s] failed to send DSI_CMD_SET_DISP_BC_120HZ cmd, rc=%d\n",
-				panel->name, rc);
-		else
-			panel->dsi_refresh_flag = 120;
+	refresh_rate = panel->cur_mode->timing.refresh_rate;
+
+	switch(refresh_rate) {
+		case 120:
+			cmd = DSI_CMD_SET_DISP_BC_120HZ;
+		break;
+		case 90:
+			cmd = DSI_CMD_SET_DISP_BC_90HZ;
+		break;
 	}
+
+	rc = dsi_panel_tx_cmd_set(panel, cmd);
+	if (unlikely(rc))
+		DSI_ERR("[%s] failed to send cmd %d, rc=%d\n",
+			panel->name, cmd, rc);
+	else
+		panel->dsi_refresh_flag = refresh_rate;
 
 	mutex_unlock(&panel->panel_lock);
 	return rc;
@@ -4956,21 +4968,27 @@ inline void dsi_set_backlight_control(struct dsi_panel *panel)
 	u8 refresh_rate;
 	enum dsi_cmd_set_type cmd = DSI_CMD_SET_DISP_BC_60HZ;
 
-	if (likely(panel->cur_mode->timing.refresh_rate ==
-		   panel->dsi_refresh_flag))
-		return;
-
 	if (unlikely(!panel->panel_initialized)) {
 		DSI_ERR("Invalid params\n");
 		return;
 	}
 
+	if (likely(panel->cur_mode->timing.refresh_rate ==
+		   panel->dsi_refresh_flag))
+		return;
+
 	mutex_lock(&panel->panel_lock);
 
 	refresh_rate = panel->cur_mode->timing.refresh_rate;
 
-	if (refresh_rate == 120)
-		cmd = DSI_CMD_SET_DISP_BC_120HZ;
+	switch(refresh_rate) {
+		case 120:
+			cmd = DSI_CMD_SET_DISP_BC_120HZ;
+		break;
+		case 90:
+			cmd = DSI_CMD_SET_DISP_BC_90HZ;
+		break;
+	}
 
 	rc = dsi_panel_tx_cmd_set(panel, cmd);
 
