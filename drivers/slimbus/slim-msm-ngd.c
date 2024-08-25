@@ -1920,7 +1920,7 @@ static int ngd_slim_probe(struct platform_device *pdev)
 
 	ret = sysfs_create_file(&dev->dev->kobj, &dev_attr_debug_mask.attr);
 	if (ret) {
-		dev_err(&pdev->dev, "Failed to create dev. attr\n");
+		dev_dbg(&pdev->dev, "Failed to create dev. attr\n");
 		dev->sysfs_created = false;
 	} else
 		dev->sysfs_created = true;
