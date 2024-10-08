@@ -3217,6 +3217,51 @@ static int msm_bt_sample_rate_tx_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+#ifdef CONFIG_SND_SOC_SIPA
+extern int wcd937x_sia81xx_resume(void);
+extern int wcd937x_sia81xx_suspend(void);
+
+static int sia81xx_power_control = 0;
+static const char *const sia81xx_power_function[] = { "Off", "On" };
+
+static int sipa_power_get(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = sia81xx_power_control;
+
+	pr_debug("%s: sia81xx_power_control = %d\n",
+		__func__,
+		ucontrol->value.integer.value[0]);
+	
+	return 0;
+}
+
+static int sipa_power_set(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	if (ucontrol->value.integer.value[0] == sia81xx_power_control)
+		return 1;
+	
+	sia81xx_power_control = ucontrol->value.integer.value[0];
+
+	if (ucontrol->value.integer.value[0]) {
+		wcd937x_sia81xx_resume();
+	} else {
+		wcd937x_sia81xx_suspend();
+	}
+
+	pr_debug("%s: value.integer.value = %d\n",
+		__func__,
+		ucontrol->value.integer.value[0]);
+	
+	return 0;
+}
+
+static const struct soc_enum msm_snd_enum =
+	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(sia81xx_power_function),
+				sia81xx_power_function);
+#endif
+
 static const struct snd_kcontrol_new msm_int_wcd937x_snd_controls[] = {
 	SOC_ENUM_EXT("RX_CDC_DMA_RX_0 Format", rx_cdc_dma_rx_0_format,
 			cdc_dma_rx_format_get, cdc_dma_rx_format_put),
@@ -3287,6 +3332,10 @@ static const struct snd_kcontrol_new msm_int_snd_controls[] = {
 			cdc_dma_tx_format_get, cdc_dma_tx_format_put),
 	SOC_ENUM_EXT("VA_CDC_DMA_TX_2 Format", va_cdc_dma_tx_2_format,
 			cdc_dma_tx_format_get, cdc_dma_tx_format_put),
+#ifdef CONFIG_SND_SOC_SIPA
+	SOC_ENUM_EXT("SpkrLeft Sipa Power", msm_snd_enum,
+			sipa_power_get, sipa_power_set),
+#endif
 	SOC_ENUM_EXT("TX_CDC_DMA_TX_0 SampleRate",
 			tx_cdc_dma_tx_0_sample_rate,
 			cdc_dma_tx_sample_rate_get,
@@ -6713,6 +6762,10 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 		goto err;
 	}
 
+	#ifdef CONFIG_SND_SOC_SIPA
+	soc_aux_init_only_sia81xx(pdev, card);
+	#endif /*CONFIG_SND_SOC_SIPA*/
+
 	ret = devm_snd_soc_register_card(&pdev->dev, card);
 	if (ret == -EPROBE_DEFER) {
 		if (codec_reg_done)
@@ -6841,6 +6894,10 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 
 	return 0;
 err:
+	#ifdef CONFIG_SND_SOC_SIPA
+	soc_aux_deinit_only_sia81xx(pdev, card);
+	#endif /*CONFIG_SND_SOC_SIPA*/
+
 	devm_kfree(&pdev->dev, pdata);
 	return ret;
 }
