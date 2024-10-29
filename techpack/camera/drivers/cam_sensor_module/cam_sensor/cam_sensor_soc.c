@@ -12,6 +12,8 @@
 #include "cam_sensor_soc.h"
 #include "cam_soc_util.h"
 
+extern struct mutex custom_gpio1_powernum_mutex;
+
 int32_t cam_sensor_get_sub_module_index(struct device_node *of_node,
 	struct cam_sensor_board_info *s_info)
 {
@@ -256,6 +258,7 @@ int32_t cam_sensor_parse_dt(struct cam_sensor_ctrl_t *s_ctrl)
 
 	/* Initialize mutex */
 	mutex_init(&(s_ctrl->cam_sensor_mutex));
+	mutex_init(&custom_gpio1_powernum_mutex);
 
 	/* Initialize default parameters */
 	for (i = 0; i < soc_info->num_clk; i++) {
