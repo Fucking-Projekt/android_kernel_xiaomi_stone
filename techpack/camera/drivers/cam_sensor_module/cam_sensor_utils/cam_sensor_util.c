@@ -6,6 +6,8 @@
 
 #include <linux/kernel.h>
 #include <clocksource/arm_arch_timer.h>
+#include <misc/wl2866d.h>
+
 #include "cam_sensor_util.h"
 #include "cam_mem_mgr.h"
 #include "cam_res_mgr_api.h"
@@ -2232,6 +2234,18 @@ int cam_sensor_core_power_up(struct cam_sensor_power_ctrl_t *ctrl,
 				goto power_up_failed;
 			}
 			break;
+#ifdef CONFIG_LDO_WL2866D
+		case SENSOR_WL2866D_DVDD1:
+		case SENSOR_WL2866D_DVDD2:
+		case SENSOR_WL2866D_AVDD1:
+		case SENSOR_WL2866D_AVDD2:
+			rc = wl2866d_camera_power_up(((int)power_setting->seq_type) - SENSOR_WL2866D_DVDD1);
+			if (rc < 0) {
+				CAM_ERR(CAM_SENSOR,"wl2866d_camera_power_up_io_type [%d] failed",power_setting->seq_type);
+				goto power_up_failed;
+			}
+			break;
+#endif
 		default:
 			CAM_ERR(CAM_SENSOR, "error power seq type %d",
 				power_setting->seq_type);
@@ -2499,6 +2513,18 @@ int cam_sensor_util_power_down(struct cam_sensor_power_ctrl_t *ctrl,
 				CAM_ERR(CAM_SENSOR,
 					"Error disabling VREG GPIO");
 			break;
+#ifdef CONFIG_LDO_WL2866D
+		case SENSOR_WL2866D_DVDD1:
+		case SENSOR_WL2866D_DVDD2:
+		case SENSOR_WL2866D_AVDD1:
+		case SENSOR_WL2866D_AVDD2:
+			ret = wl2866d_camera_power_down(((int)pd->seq_type) - SENSOR_WL2866D_DVDD1);
+			if (ret < 0) {
+				CAM_ERR(CAM_SENSOR,"wl2866d_camera_power_down iotype [%d] failed", pd->seq_type);
+				break;
+			}
+			break;
+#endif
 		default:
 			CAM_ERR(CAM_SENSOR, "error power seq type %d",
 				pd->seq_type);
