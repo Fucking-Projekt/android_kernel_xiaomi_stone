@@ -23,6 +23,7 @@
 #include "sde_dbg.h"
 #include "dsi_parser.h"
 
+#define to_dsi_bridge(x) container_of((x), struct dsi_bridge, base)
 #define to_dsi_display(x) container_of(x, struct dsi_display, host)
 #define INT_BASE_10 10
 
@@ -8801,6 +8802,53 @@ int dsi_display_unprepare(struct dsi_display *display)
 
 	SDE_EVT32(SDE_EVTLOG_FUNC_EXIT);
 	return rc;
+}
+
+ssize_t dsi_display_set_hbm(struct drm_connector *connector, int hbm_status)
+{
+	ssize_t rc;
+	struct dsi_display *display = NULL;
+	struct dsi_bridge *c_bridge = NULL;
+
+	if (!connector || !connector->encoder || !connector->encoder->bridge) {
+		pr_err("Invalid connector/encoder/bridge ptr\n");
+		return -EINVAL;
+	}
+
+	c_bridge =  to_dsi_bridge(connector->encoder->bridge);
+	display = c_bridge->display;
+
+	if (!display || !display->panel) {
+		pr_err("Invalid display/panel ptr\n");
+		return -EINVAL;
+	}
+
+	rc = dsi_panel_set_hbm(display->panel, hbm_status);
+
+	return rc;
+}
+
+ssize_t dsi_display_get_hbm_status(struct drm_connector *connector)
+{
+	ssize_t hbm_status;
+	struct dsi_display *display = NULL;
+	struct dsi_bridge *c_bridge = NULL;
+
+	if (!connector || !connector->encoder || !connector->encoder->bridge) {
+		pr_err("Invalid connector/encoder/bridge ptr\n");
+		return -EINVAL;
+	}
+
+	c_bridge =  to_dsi_bridge(connector->encoder->bridge);
+	display = c_bridge->display;
+
+	if (!display || !display->panel) {
+		pr_err("Invalid display/panel ptr\n");
+		return -EINVAL;
+	}
+	hbm_status = display->panel->bl_config.hbm_status;
+
+	return hbm_status;
 }
 
 void __init dsi_display_register(void)
