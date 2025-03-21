@@ -868,6 +868,7 @@ static void log_failure_reason(const struct pil_tz_data *d)
 	strlcpy(reason, smem_reason, min(size, (size_t)MAX_SSR_REASON_LEN));
 	/*BSP.Security - 2022.7.18 -NV check failed,reboot into recovery*/
 	strlcpy(last_modem_sfr_reason, smem_reason, min(size, (size_t)MAX_SSR_REASON_LEN));
+	update_crash_reason(d->subsys, reason, size);
 	pr_err("%s subsystem failure reason: %s.\n", name, reason);
 	snprintf(last_ssr_reason, (size_t)MAX_SSR_REASON_LEN,
 			"%s: %s", name, reason);
