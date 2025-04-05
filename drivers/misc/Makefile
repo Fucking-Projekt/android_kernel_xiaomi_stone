@@ -69,3 +69,4 @@ obj-$(CONFIG_LDO_WL2866D)	+= wl2866d.o
 obj-$(CONFIG_HQ_SYSFS_SUPPORT) 	+= hqsysfs/
 obj-$(CONFIG_MI_FS)		+= xiaomi_fs/
 obj-$(CONFIG_SIMTRAY_STATUS)    += simtray.o
+obj-y				+= fastchg.o
