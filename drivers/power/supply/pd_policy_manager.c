@@ -19,6 +19,8 @@
 //#include <linux/usb/usbpd.h>
 #include "pd_policy_manager.h"
 
+#include <misc/fastchgtoggle.h>
+
 //config battery charge full voltage
 #define BATT_MAX_CHG_VOLT           4460
 
@@ -834,6 +836,8 @@ static int battery_sw_jeita(struct usbpd_pm *pdpm)
     int jeita_curr = 0;
     int pd_auth = 0;
     int cycle_volt = 0;
+    bool thermal_boost = thermal_boost_allowed();
+    int thermal_threshold = thermal_boost ? 480 : 400;
 
     pd_auth = get_usbpd_verifed_state();
     usbpd_check_batverify(pdpm);
@@ -876,7 +880,7 @@ static int battery_sw_jeita(struct usbpd_pm *pdpm)
                         pdpm->bat_temp,  jeita_curr, pdpm->therm_curr, pdpm->pps_temp_flag, pd_auth, pdpm->bat_cycle, pdpm->batt_auth);
 
     // Thermal charge bypass
-    if (pdpm->bat_temp < 400) {
+    if (pdpm->bat_temp < thermal_threshold) {
         pdpm->therm_curr = jeita_curr;
     }
 
