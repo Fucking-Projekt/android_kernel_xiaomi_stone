@@ -1,8 +1,0 @@
-ARCH=arm
-
-FILES="
-arch/arm/boot/Image.gz
-arch/arm/boot/Image
-vmlinux
-System.map
-"
