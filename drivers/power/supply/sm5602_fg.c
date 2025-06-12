@@ -13,7 +13,6 @@
  *
  */
 
-#define pr_fmt(fmt)	"[sm5602] %s(%d): " fmt, __func__, __LINE__
 #include <linux/module.h>
 #include <linux/param.h>
 #include <linux/jiffies.h>
@@ -38,6 +37,8 @@
 #include <linux/ktime.h>
 #include <linux/time.h>
 #include <linux/poll.h>
+
+#include <linux/quiet_logs.h>
 
 extern s32 i2c_smbus_write_word_data(const struct i2c_client *client, u8 command,
 			      u16 value);
