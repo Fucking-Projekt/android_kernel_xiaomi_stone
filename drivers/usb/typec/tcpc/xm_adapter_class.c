@@ -1,3 +1,4 @@
+
 #include <linux/module.h>
 #include <linux/stat.h>
 #include <linux/init.h>
@@ -13,26 +14,10 @@
 #include "inc/xm_adapter_class.h"
 #include "inc/tcpci_config.h"
 
+#include <linux/quiet_logs.h>
+
 static struct class *adapter_class;
 static int log_level = 2;
-
-#define class_err(fmt, ...)							\
-do {										\
-	if (log_level >= 0)							\
-		printk(KERN_ERR "[xm_adapter_class] " fmt, ##__VA_ARGS__);	\
-} while (0)
-
-#define class_info(fmt, ...)							\
-do {										\
-	if (log_level >= 1)							\
-		printk(KERN_ERR "[xm_adapter_class] " fmt, ##__VA_ARGS__);	\
-} while (0)
-
-#define class_dbg(fmt, ...)							\
-do {										\
-	if (log_level >= 2)							\
-		printk(KERN_ERR "[xm_adapter_class] " fmt, ##__VA_ARGS__);	\
-} while (0)
 
 static const char * const usbpd_state_strings[] = {
 	"UNKNOWN",

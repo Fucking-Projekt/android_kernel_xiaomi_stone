@@ -1,5 +1,3 @@
-#define pr_fmt(fmt) "batt_chg %s: " fmt, __func__
-
 #include <linux/slab.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -19,6 +17,8 @@
 #include <linux/iio/consumer.h>
 #include "hq_charger_manager.h"
 
+
+#include <linux/quiet_logs.h>
 
 #if 0
 int set_jeita_lcd_on_off(bool lcdon)
