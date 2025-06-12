@@ -2,7 +2,6 @@
 /*
 * Copyright (c) 2022 Southchip Semiconductor Technology(Shanghai) Co., Ltd.
 */
-#define pr_fmt(fmt)	"[SC-USBPD-PM]: %s: " fmt, __func__
 
 #include <linux/slab.h>
 #include <linux/module.h>
@@ -18,6 +17,8 @@
 #include <linux/iio/consumer.h>
 //#include <linux/usb/usbpd.h>
 #include "pd_policy_manager.h"
+
+#include <linux/quiet_logs.h>
 
 //config battery charge full voltage
 #define BATT_MAX_CHG_VOLT           4460
