@@ -46,7 +46,8 @@ static int ir_spi_tx(struct rc_dev *dev,
 		int j;
 		u16 val;
 
-		periods = DIV_ROUND_CLOSEST(buffer[i] * idata->freq, 1000000);
+		periods = DIV_ROUND_CLOSEST_ULL((u64)buffer[i] * idata->freq,
+						1000000);
 
 		if (len + periods >= IR_SPI_MAX_BUFSIZE)
 			return -EINVAL;
