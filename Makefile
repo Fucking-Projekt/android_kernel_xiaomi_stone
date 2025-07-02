@@ -1028,6 +1028,9 @@ KBUILD_CFLAGS += $(call cc-disable-warning, incompatible-pointer-types)
 # disable warning -Wimplicit-int
 KBUILD_CFLAGS += $(call cc-disable-warning, implicit-int)
 
+# disable warning -Wimplicit-enum-enum-cast
+KBUILD_CFLAGS += $(call cc-disable-warning, implicit-enum-enum-cast)
+
 # disable warning -Wint-conversion
 KBUILD_CFLAGS += $(call cc-disable-warning, int-conversion)
 
@@ -1078,6 +1081,9 @@ KBUILD_CFLAGS   += $(call cc-option,-Wno-error=incompatible-pointer-types)
 
 # disable -Wimplicit-int
 KBUILD_CFLAGS += $(call cc-option, -Wno-error=implicit-int)
+
+# disable -Wimplicit-enum-enum-cast
+KBUILD_CFLAGS += $(call cc-option, -Wno-error=implicit-enum-enum-cast)
 
 # disable -Wunused-but-set-variable
 KBUILD_CFLAGS += $(call cc-option, -Wno-error=unused-but-set-variable)
