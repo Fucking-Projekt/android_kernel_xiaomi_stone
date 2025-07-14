@@ -67,11 +67,6 @@ struct kgsl_pwrscale {
 	struct device busmondev;
 	/** @bus_devfreq: Pointer to the bus devfreq device */
 	struct devfreq *bus_devfreq;
-	/**
-	 * @avoid_ddr_stall: Whether or not to increase IB vote on high
-	 * ddr stall
-	 */
-	bool avoid_ddr_stall;
 };
 
 /**
