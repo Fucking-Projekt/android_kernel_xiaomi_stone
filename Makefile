@@ -1067,6 +1067,9 @@ KBUILD_CFLAGS += $(call cc-disable-warning, unused-variable)
 # disable warning -Wunused-result
 KBUILD_CFLAGS += $(call cc-disable-warning, unused-result)
 
+# disable warning -Wuninitialized
+KBUILD_CFLAGS += $(call cc-disable-warning, uninitialized)
+
 # disable warning -Wframe-larger-than
 KBUILD_CFLAGS += $(call cc-disable-warning, frame-larger-than)
 
@@ -1096,6 +1099,9 @@ KBUILD_CFLAGS += $(call cc-option, -Wno-error=unused-variable)
 
 # disable -Wunused-result
 KBUILD_CFLAGS += $(call cc-option, -Wno-error=unused-result)
+
+# disable -Wuninitialized
+KBUILD_CFLAGS += $(call cc-option, -Wno-error=uninitialized)
 
 # disable -Wframe-larger-than
 KBUILD_CFLAGS += $(call cc-option, -Wno-error=frame-larger-than)
