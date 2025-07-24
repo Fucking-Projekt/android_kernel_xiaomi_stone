@@ -20,7 +20,7 @@
 #include <linux/list.h>
 #include <linux/device.h>
 #include <linux/spinlock.h>
-#include "hqsys_pcba.h"
+#include <misc/hqsys_pcba.h>
 
 #define ow_info	pr_info
 #define ow_dbg	pr_debug
