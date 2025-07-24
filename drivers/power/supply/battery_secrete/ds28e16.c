@@ -20,7 +20,7 @@
 #include "sha384_software.h"
 #include "ds28e16.h"
 #include "onewire_gpio.h"
-#include "hqsys_pcba.h"
+#include <misc/hqsys_pcba.h>
 
 #include <linux/param.h>
 #include <linux/jiffies.h>
