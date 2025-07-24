@@ -17,7 +17,7 @@
 #include <linux/delay.h>
 #include <linux/io.h>
 #include <linux/w1.h>
-#include "hqsys_pcba.h"
+#include <misc/hqsys_pcba.h>
 
 extern PCBA_CONFIG get_huaqin_pcba_config(void);
 #define DRV_STRENGTH_8MA		(0x3 << 6)
