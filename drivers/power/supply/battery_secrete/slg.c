@@ -21,7 +21,7 @@
 #include <linux/regmap.h>
 #include <linux/random.h>
 
-#include "hqsys_pcba.h"
+#include <misc/hqsys_pcba.h>
 #include "w1_slg.h"
 
 #define ds_info	pr_err
