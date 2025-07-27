@@ -1507,9 +1507,7 @@ static int set_machine_constraints(struct regulator_dev *rdev)
 				regulator_disable(rdev->supply);
 			return ret;
 		}
-
-		if (rdev->constraints->always_on)
-			rdev->use_count++;
+		rdev->use_count++;
 	}
 
 	print_constraints(rdev);
