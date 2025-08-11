@@ -66,6 +66,10 @@ config ZRAM_DEF_COMP_LZORLE
 	bool "lzo-rle"
 	depends on ZRAM_BACKEND_LZO
 
+config ZRAM_DEF_COMP_LZ4P
+	bool "lz4p"
+	depends on ZRAM_LZ4P
+
 config ZRAM_DEF_COMP_LZO
 	bool "lzo"
 	depends on ZRAM_BACKEND_LZO
@@ -95,6 +99,7 @@ endchoice
 config ZRAM_DEF_COMP
 	string
 	depends on ZRAM
+	default "lz4p" if ZRAM_DEF_COMP_LZ4P
 	default "lzo-rle" if ZRAM_DEF_COMP_LZORLE
 	default "lzo" if ZRAM_DEF_COMP_LZO
 	default "lz4" if ZRAM_DEF_COMP_LZ4
@@ -136,3 +141,10 @@ config ZRAM_MULTI_COMP
 	  re-compress pages using a potentially slower but more effective
 	  compression algorithm. Note, that IDLE page recompression
 	  requires ZRAM_MEMORY_TRACKING.
+
+config ZRAM_LZ4P
+	bool "LZ4P zram compression algorithm from XRING team"
+	default n
+	help
+	  Choose this option to enable zram lz4p.
+	  When enable this option, ZRAM enables LZ4P compress and decompress algorithm.
