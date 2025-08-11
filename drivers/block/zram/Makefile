@@ -9,4 +9,12 @@ zram-$(CONFIG_ZRAM_BACKEND_ZSTD)	+= backend_zstd.o
 zram-$(CONFIG_ZRAM_BACKEND_DEFLATE)	+= backend_deflate.o
 zram-$(CONFIG_ZRAM_BACKEND_842)		+= backend_842.o
 
+zram-$(CONFIG_ZRAM_LZ4P)		+= backend_lz4p.o
+zram-$(CONFIG_ZRAM_LZ4P)		+=	lz4p/lz4p.o
+zram-$(CONFIG_ZRAM_LZ4P)		+=	lz4p/lz4p_compress.o
+zram-$(CONFIG_ZRAM_LZ4P)		+=	lz4p/lz4p_decompress.o
+zram-$(CONFIG_ZRAM_LZ4P)		+=	lz4p/lz4p_encode.o
+zram-$(CONFIG_ZRAM_LZ4P)		+=	lz4p/lz4p_decode.o
+
+
 obj-$(CONFIG_ZRAM)	+=	zram.o
