@@ -47,7 +47,7 @@ _lz4_encode_2gb:
     ldr w28, [x7, #4]                        // x28 = 0x80808081 (magic number to cmopute 1/255)
     ldr w7, [x7]                             //  x7 = LZ4_COMPRESS_HASH_MULTIPLY
     mov x27, #-1                             // x27 = 0xffffffffffffffff
-    dup.4s v1, w27                           //  q1 = {0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff}
+    dup v1.4s, w27                           //  q1 = {0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff}
 
 
     //  x9 - is current dst
