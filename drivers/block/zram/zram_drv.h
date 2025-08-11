@@ -20,6 +20,10 @@
 
 #include "zcomp.h"
 
+#ifdef CONFIG_ZRAM_LZ4P
+#include "lz4p/lz4p.h"
+#endif
+
 #define SECTORS_PER_PAGE_SHIFT	(PAGE_SHIFT - SECTOR_SHIFT)
 #define SECTORS_PER_PAGE	(1 << SECTORS_PER_PAGE_SHIFT)
 #define ZRAM_LOGICAL_BLOCK_SHIFT 12
