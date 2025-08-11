@@ -199,7 +199,8 @@ size_t lz4raw_encode_buffer(uint8_t *__restrict dst_buffer, size_t dst_size,
 	const size_t BLOCK_SIZE_2G = 0x7ffff000;
 
 	while (src_size > 0) {
-		for (int i = 0; i < LZ4_COMPRESS_HASH_ENTRIES;) {
+		int i = 0;
+		for (; i < LZ4_COMPRESS_HASH_ENTRIES;) {
 			hashTable[i++] = HASH_FILL;
 			hashTable[i++] = HASH_FILL;
 			hashTable[i++] = HASH_FILL;
@@ -585,6 +586,7 @@ static int LZ4P_compress_fast_extState(
 				maxOutputSize, limitedOutput, tableType, noDict,
 				noDictIssue, acceleration);
 	}
+	return 0;
 }
 
 static int LZ4P_compress_fast(const char *source, char *dest, int inputSize,
