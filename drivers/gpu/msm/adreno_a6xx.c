@@ -2546,6 +2546,11 @@ int a6xx_perfcounter_update(struct adreno_device *adreno_dev,
 		return -EBUSY;
 	}
 
+	/* Ensure there is enough space in the reglist buffer for new pairs */
+	if ((offset + (pending_pairs * 2)) >=
+		(adreno_dev->pwrup_reglist->size / sizeof(u32)))
+		return -ENOSPC;
+
 	/*
 	 * If the perfcounter select register is already present in reglist
 	 * update it, otherwise append the <select register, value> pair to
