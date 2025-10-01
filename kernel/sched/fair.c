@@ -561,9 +561,9 @@ find_matching_se(struct sched_entity **se, struct sched_entity **pse)
 #define MAX_BURST_PENALTY (39U <<2)
 
 static inline u32 log2plus1_u64_u32f8(u64 v) {
-	if (v == 0) return 0;
 	u32 msb = fls64(v);
 	u8 fractional = (u8)(v << (64 - msb) >> 55);
+	if (v == 0) return 0;
 	return msb << 8 | fractional;
 }
 
