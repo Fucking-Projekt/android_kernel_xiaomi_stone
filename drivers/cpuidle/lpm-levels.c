@@ -207,9 +207,9 @@ static int lpm_online_cpu(unsigned int cpu)
  *
  * Returns an s32 latency value
  */
-s32 msm_cpuidle_get_deep_idle_latency(void)
+inline s32 msm_cpuidle_get_deep_idle_latency(void)
 {
-	return 10;
+	return 100;
 }
 EXPORT_SYMBOL(msm_cpuidle_get_deep_idle_latency);
 
