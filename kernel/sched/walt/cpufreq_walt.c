@@ -433,16 +433,16 @@ static inline bool waltgov_cpu_is_busy(struct waltgov_cpu *sg_cpu) { return fals
 
 /* {RizkyMaulana58}: Tune for SM6375 aka Snapdragon 695 */
 #define NL_RATIO 68
-#define DEFAULT_CPU0_UP_RATE_LIMIT_US 1000
-#define DEFAULT_CPU6_UP_RATE_LIMIT_US 500
-#define DEFAULT_CPU0_DOWN_RATE_LIMIT_US 40000
-#define DEFAULT_CPU6_DOWN_RATE_LIMIT_US 20000
+#define DEFAULT_CPU0_UP_RATE_LIMIT_US 2000
+#define DEFAULT_CPU6_UP_RATE_LIMIT_US 1000
+#define DEFAULT_CPU0_DOWN_RATE_LIMIT_US 2000
+#define DEFAULT_CPU6_DOWN_RATE_LIMIT_US 1000
 #define DEFAULT_CPU0_HISPEED_FREQ 1113600
 #define DEFAULT_CPU6_HISPEED_FREQ 1516800
-#define DEFAULT_CPU0_HISPEED_LOAD 90
+#define DEFAULT_CPU0_HISPEED_LOAD 95
 #define DEFAULT_CPU6_HISPEED_LOAD 80
-#define DEFAULT_CPU0_RTG_BOOST_FREQ 940800
-#define DEFAULT_CPU6_RTG_BOOST_FREQ 1228800
+#define DEFAULT_CPU0_RTG_BOOST_FREQ 0
+#define DEFAULT_CPU6_RTG_BOOST_FREQ 0
 static void waltgov_walt_adjust(struct waltgov_cpu *sg_cpu, unsigned long *util,
 			      unsigned long *max)
 {
