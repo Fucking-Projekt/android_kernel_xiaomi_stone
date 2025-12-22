@@ -104,14 +104,9 @@ static bool _hwcg_show(struct adreno_device *adreno_dev)
 	return adreno_dev->hwcg_enabled;
 }
 
-static int _throttling_store(struct adreno_device *adreno_dev, bool val)
+static int __maybe_unused _throttling_store(struct adreno_device *adreno_dev, bool val)
 {
-	if (!adreno_is_a540(adreno_dev) ||
-		adreno_dev->throttling_enabled == val)
-		return 0;
-
-	return adreno_power_cycle_bool(adreno_dev,
-		&adreno_dev->throttling_enabled, val);
+	return 0;
 }
 
 static bool _throttling_show(struct adreno_device *adreno_dev)
@@ -274,7 +269,7 @@ static DEVICE_INT_ATTR(wake_nice, 0644, adreno_wake_nice);
 static ADRENO_SYSFS_BOOL(sptp_pc);
 static ADRENO_SYSFS_BOOL(lm);
 static ADRENO_SYSFS_BOOL(hwcg);
-static ADRENO_SYSFS_BOOL(throttling);
+static ADRENO_SYSFS_RO_BOOL(throttling);
 static ADRENO_SYSFS_BOOL(ifpc);
 static ADRENO_SYSFS_RO_U32(ifpc_count);
 static ADRENO_SYSFS_BOOL(acd);
