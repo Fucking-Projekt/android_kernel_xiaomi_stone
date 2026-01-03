@@ -791,6 +791,10 @@ static ssize_t store_scaling_governor(struct cpufreq_policy *policy,
 	char str_governor[16];
 	int ret;
 
+	/* Forbid init from changing CPU Governor by default */
+	if (!strncmp(current->comm, "init", sizeof("init")))
+		return count;
+
 	ret = sscanf(buf, "%15s", str_governor);
 	if (ret != 1)
 		return -EINVAL;
