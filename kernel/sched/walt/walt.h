@@ -12,6 +12,10 @@
 #include <linux/sched/core_ctl.h>
 
 #define EXITING_TASK_MARKER	0xdeaddead
+#define WALT_CPUFREQ_CONTINUE		(1U << 1)
+#define WALT_CPUFREQ_IC_MIGRATION	(1U << 2)
+#define WALT_CPUFREQ_PL			(1U << 3)
+#define WALT_CPUFREQ_BOOST_UPDATE	(1U << 5)
 
 extern unsigned int walt_rotation_enabled;
 extern int __read_mostly num_sched_clusters;
@@ -19,6 +23,10 @@ extern cpumask_t __read_mostly **cpu_array;
 extern void
 walt_update_task_ravg(struct task_struct *p, struct rq *rq, int event,
 						u64 wallclock, u64 irqtime);
+
+struct waltgov_callback {
+	void (*func)(struct waltgov_callback *cb, u64 time, unsigned int flags);
+};
 
 static inline void
 fixup_cumulative_runnable_avg(struct walt_sched_stats *stats,
