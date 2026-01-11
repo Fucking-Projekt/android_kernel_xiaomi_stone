@@ -47,7 +47,7 @@ static DEFINE_SPINLOCK(uprobes_treelock);	/* serialize rbtree access */
 static struct mutex uprobes_mmap_mutex[UPROBES_HASH_SZ];
 #define uprobes_mmap_hash(v)	(&uprobes_mmap_mutex[((unsigned long)(v)) % UPROBES_HASH_SZ])
 
-DEFINE_STATIC_PERCPU_RWSEM(dup_mmap_sem);
+DEFINE_STATIC_PERCPU_RWSEM(dup_mmap_lock);
 
 /* Have a copy of original instruction */
 #define UPROBE_COPY_INSN	0
@@ -463,7 +463,7 @@ static int update_ref_ctr(struct uprobe *uprobe, struct mm_struct *mm,
  * @vaddr: the virtual address to store the opcode.
  * @opcode: opcode to be written at @vaddr.
  *
- * Called with mm->mmap_sem held for write.
+ * Called with mm->mmap_lock held for write.
  * Return 0 (success) or a negative errno.
  */
 int uprobe_write_opcode(struct arch_uprobe *auprobe, struct mm_struct *mm,
@@ -1045,7 +1045,7 @@ register_for_each_vma(struct uprobe *uprobe, struct uprobe_consumer *new)
 	struct map_info *info;
 	int err = 0;
 
-	percpu_down_write(&dup_mmap_sem);
+	percpu_down_write(&dup_mmap_lock);
 	info = build_map_info(uprobe->inode->i_mapping,
 					uprobe->offset, is_register);
 	if (IS_ERR(info)) {
@@ -1060,7 +1060,7 @@ register_for_each_vma(struct uprobe *uprobe, struct uprobe_consumer *new)
 		if (err && is_register)
 			goto free;
 
-		down_write(&mm->mmap_sem);
+		mmap_write_lock(mm);
 		vma = find_vma(mm, info->vaddr);
 		if (!vma || !valid_vma(vma, is_register) ||
 		    file_inode(vma->vm_file) != uprobe->inode)
@@ -1082,13 +1082,13 @@ register_for_each_vma(struct uprobe *uprobe, struct uprobe_consumer *new)
 		}
 
  unlock:
-		up_write(&mm->mmap_sem);
+		mmap_write_unlock(mm);
  free:
 		mmput(mm);
 		info = free_map_info(info);
 	}
  out:
-	percpu_up_write(&dup_mmap_sem);
+	percpu_up_write(&dup_mmap_lock);
 	return err;
 }
 
@@ -1246,7 +1246,7 @@ static int unapply_uprobe(struct uprobe *uprobe, struct mm_struct *mm)
 	struct vm_area_struct *vma;
 	int err = 0;
 
-	down_read(&mm->mmap_sem);
+	mmap_read_lock(mm);
 	for (vma = mm->mmap; vma; vma = vma->vm_next) {
 		unsigned long vaddr;
 		loff_t offset;
@@ -1263,7 +1263,7 @@ static int unapply_uprobe(struct uprobe *uprobe, struct mm_struct *mm)
 		vaddr = offset_to_vaddr(vma, uprobe->offset);
 		err |= remove_breakpoint(uprobe, mm, vaddr);
 	}
-	up_read(&mm->mmap_sem);
+	mmap_read_unlock(mm);
 
 	return err;
 }
@@ -1360,7 +1360,7 @@ static int delayed_ref_ctr_inc(struct vm_area_struct *vma)
 }
 
 /*
- * Called from mmap_region/vma_adjust with mm->mmap_sem acquired.
+ * Called from mmap_region/vma_adjust with mm->mmap_lock acquired.
  *
  * Currently we ignore all errors and always return 0, the callers
  * can't handle the failure anyway.
@@ -1450,7 +1450,7 @@ static int xol_add_vma(struct mm_struct *mm, struct xol_area *area)
 	struct vm_area_struct *vma;
 	int ret;
 
-	if (down_write_killable(&mm->mmap_sem))
+	if (mmap_write_lock_killable(mm))
 		return -EINTR;
 
 	if (mm->uprobes_state.xol_area) {
@@ -1480,7 +1480,7 @@ static int xol_add_vma(struct mm_struct *mm, struct xol_area *area)
 	/* pairs with get_xol_area() */
 	smp_store_release(&mm->uprobes_state.xol_area, area); /* ^^^ */
  fail:
-	up_write(&mm->mmap_sem);
+	mmap_write_unlock(mm);
 
 	return ret;
 }
@@ -1566,12 +1566,12 @@ void uprobe_clear_state(struct mm_struct *mm)
 
 void uprobe_start_dup_mmap(void)
 {
-	percpu_down_read(&dup_mmap_sem);
+	percpu_down_read(&dup_mmap_lock);
 }
 
 void uprobe_end_dup_mmap(void)
 {
-	percpu_up_read(&dup_mmap_sem);
+	percpu_up_read(&dup_mmap_lock);
 }
 
 void uprobe_dup_mmap(struct mm_struct *oldmm, struct mm_struct *newmm)
@@ -2052,7 +2052,7 @@ static struct uprobe *find_active_uprobe(unsigned long bp_vaddr, int *is_swbp)
 	struct uprobe *uprobe = NULL;
 	struct vm_area_struct *vma;
 
-	down_read(&mm->mmap_sem);
+	mmap_read_lock(mm);
 	vma = find_vma(mm, bp_vaddr);
 	if (vma && vma->vm_start <= bp_vaddr) {
 		if (valid_vma(vma, false)) {
@@ -2070,7 +2070,7 @@ static struct uprobe *find_active_uprobe(unsigned long bp_vaddr, int *is_swbp)
 
 	if (!uprobe && test_and_clear_bit(MMF_RECALC_UPROBES, &mm->flags))
 		mmf_recalc_uprobes(mm);
-	up_read(&mm->mmap_sem);
+	mmap_read_unlock(mm);
 
 	return uprobe;
 }
