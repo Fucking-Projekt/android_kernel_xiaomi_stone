@@ -263,20 +263,6 @@ static void waltgov_deferred_update(struct waltgov_policy *sg_policy, u64 time,
 	irq_work_queue(&sg_policy->irq_work);
 }
 
-#if IS_ENABLED(CONFIG_PACKAGE_RUNTIME_INFO)
-__weak unsigned int glk_freq_limit(struct cpufreq_policy *policy,
-		unsigned int *target_freq)
-{
-	return 0;
-}
-
-__weak unsigned long glk_cal_freq(struct cpufreq_policy *policy,
-		unsigned long util, unsigned long max)
-{
-	return 0;
-}
-#endif
-
 #define TARGET_LOAD 80
 /**
  * get_next_freq - Compute a new frequency for a given cpufreq policy.
@@ -1094,7 +1080,7 @@ static int waltgov_init(struct cpufreq_policy *policy)
 	switch (policy->cpu) {
 	default:
 	case 0:
-		tunables->pl = 1;
+		tunables->pl = 0;
 		tunables->up_rate_limit_us = DEFAULT_CPU0_UP_RATE_LIMIT_US;
 		tunables->down_rate_limit_us = DEFAULT_CPU0_DOWN_RATE_LIMIT_US;
 		tunables->hispeed_freq = DEFAULT_CPU0_HISPEED_FREQ;
@@ -1102,7 +1088,7 @@ static int waltgov_init(struct cpufreq_policy *policy)
 		tunables->rtg_boost_freq = DEFAULT_CPU0_RTG_BOOST_FREQ;
 		break;
 	case 6:
-		tunables->pl = 1;
+		tunables->pl = 0;
 		tunables->up_rate_limit_us = DEFAULT_CPU6_UP_RATE_LIMIT_US;
 		tunables->down_rate_limit_us = DEFAULT_CPU6_DOWN_RATE_LIMIT_US;
 		tunables->hispeed_freq = DEFAULT_CPU6_HISPEED_FREQ;
