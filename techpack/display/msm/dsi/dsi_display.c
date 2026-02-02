@@ -5717,6 +5717,11 @@ static ssize_t sysfs_dimlayer_exposure_write(struct device *dev,
 	}
 
 	panel = display->panel;
+	connector = display->drm_conn;
+	if (!connector) {
+		pr_warn("%s: connector not found\n", __func__);
+		return -EINVAL;
+	}
 
 	panel->dimlayer_exposure = status;
 	dsi_display_set_backlight(connector, display, panel->bl_config.bl_level);
