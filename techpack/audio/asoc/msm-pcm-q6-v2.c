@@ -185,31 +185,25 @@ static int msm_pcm_soft_volume_ctl_get(struct snd_kcontrol *kcontrol,
 	pr_debug("%s\n", __func__);
 
 	if (!soft_vol || !soft_vol->pcm) {
-		pr_err("%s: soft vol is NULL\n", __func__);
 		return -ENODEV;
 	}
 
 	substream = soft_vol->pcm->streams[soft_vol->stream].substream;
 	if (!substream) {
-		pr_err("%s substream not found\n", __func__);
 		return -ENODEV;
 	}
 	soc_prtd = substream->private_data;
 	if (!soc_prtd) {
-		pr_err("%s substream runtime or private_data not found\n",
-				 __func__);
 		return -ENODEV;
 	}
 
 	component = snd_soc_rtdcom_lookup(soc_prtd, DRV_NAME);
 	if (!component || !component->dev) {
-		pr_err("%s: component is NULL\n", __func__);
 		return -ENODEV;
 	}
 
 	pdata = (struct msm_plat_data *) dev_get_drvdata(component->dev);
 	if (!pdata) {
-		pr_err("%s: pdata not found\n", __func__);
 		return -ENODEV;
 	}
 
@@ -218,10 +212,6 @@ static int msm_pcm_soft_volume_ctl_get(struct snd_kcontrol *kcontrol,
 	ucontrol->value.integer.value[0] = soft_params.period;
 	ucontrol->value.integer.value[1] = soft_params.step;
 	ucontrol->value.integer.value[2] = soft_params.rampingcurve;
-	pr_debug("%s: period = %d, step = %d , ramping curve: %d",__func__,
-				ucontrol->value.integer.value[0],
-				ucontrol->value.integer.value[1],
-				ucontrol->value.integer.value[2]);
 
 	mutex_unlock(&pdata->lock);
 	return 0;
@@ -1868,36 +1858,29 @@ static int msm_pcm_volume_ctl_get(struct snd_kcontrol *kcontrol,
 
 	pr_debug("%s\n", __func__);
 	if (!vol) {
-		pr_err("%s: vol is NULL\n", __func__);
 		return -ENODEV;
 	}
 
 	if (!vol->pcm) {
-		pr_err("%s: vol->pcm is NULL\n", __func__);
 		return -ENODEV;
 	}
 
 	substream = vol->pcm->streams[vol->stream].substream;
 	if (!substream) {
-		pr_err("%s substream not found\n", __func__);
 		return -ENODEV;
 	}
 	soc_prtd = substream->private_data;
 	if (!substream->runtime || !soc_prtd) {
-		pr_debug("%s substream runtime or private_data not found\n",
-				 __func__);
 		return 0;
 	}
 
 	component = snd_soc_rtdcom_lookup(soc_prtd, DRV_NAME);
 	if (!component) {
-		pr_err("%s: component is NULL\n", __func__);
 		return -EINVAL;
 	}
 
 	pdata = (struct msm_plat_data *) dev_get_drvdata(component->dev);
 	if (!pdata) {
-		pr_err("%s: pdata not found\n", __func__);
 		return -ENODEV;
 	}
 

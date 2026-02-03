@@ -590,9 +590,6 @@ static void gsi_process_chan(struct gsi_xfer_compl_evt *evt,
 	notify->bytes_xfered = evt->len;
 
 	if (callback) {
-		if (atomic_read(&ch_ctx->poll_mode)) {
-			GSIERR("Calling client callback in polling mode\n");
-		}
 		ch_ctx->props.xfer_cb(notify);
 	}
 }
@@ -3300,7 +3297,6 @@ int gsi_stop_channel(unsigned long chan_hdl)
 	}
 
 	if (ctx->state == GSI_CHAN_STATE_STOP_IN_PROC) {
-		GSIERR("chan=%lu busy try again\n", chan_hdl);
 		res = -GSI_STATUS_AGAIN;
 		goto free_lock;
 	}
@@ -3378,7 +3374,6 @@ int gsi_stop_db_channel(unsigned long chan_hdl)
 	}
 
 	if (ctx->state == GSI_CHAN_STATE_STOP_IN_PROC) {
-		GSIERR("chan=%lu busy try again\n", chan_hdl);
 		res = -GSI_STATUS_AGAIN;
 		goto free_lock;
 	}
@@ -4159,8 +4154,6 @@ int gsi_config_channel_mode(unsigned long chan_hdl, enum gsi_chan_mode mode)
 		curr = GSI_CHAN_MODE_CALLBACK;
 
 	if (mode == curr) {
-		GSIERR("already in requested mode %u chan_hdl=%lu\n",
-				curr, chan_hdl);
 		spin_unlock_irqrestore(&gsi_ctx->slock, flags);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
@@ -4615,7 +4608,6 @@ int gsi_halt_channel_ee(unsigned int chan_idx, unsigned int ee, int *code)
 		GSI_EE_n_CNTXT_SCRATCH_0_OFFS(gsi_ctx->per.ee));
 	if (gsi_ctx->scratch.word0.s.generic_ee_cmd_return_code ==
 		GSI_GEN_EE_CMD_RETURN_CODE_RETRY) {
-		GSIDBG("chan_idx=%u ee=%u busy try again\n", chan_idx, ee);
 		*code = GSI_GEN_EE_CMD_RETURN_CODE_RETRY;
 		res = -GSI_STATUS_AGAIN;
 		goto free_lock;

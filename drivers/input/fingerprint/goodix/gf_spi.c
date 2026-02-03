@@ -448,7 +448,6 @@ static irqreturn_t gf_irq(int irq, void *handle)
 	temp[0] = GF_NET_EVENT_IRQ;
 	__pm_wakeup_event(&fp_wakelock, WAKELOCK_HOLD_TIME);
 	sendnlmsg(temp);
-	pr_debug("%s start \n", __func__);
 
 #elif defined (GF_FASYNC)
 	struct gf_dev *gf_dev = &gf;
