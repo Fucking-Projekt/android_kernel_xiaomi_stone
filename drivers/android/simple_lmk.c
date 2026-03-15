@@ -15,6 +15,11 @@
 #include <linux/sort.h>
 #include <linux/vmpressure.h>
 #include <uapi/linux/sched/types.h>
+#include <linux/sched/mm.h>
+#include <linux/sort.h>
+#include <linux/vmpressure.h>
+#include <linux/swap.h>
+#include <uapi/linux/sched/types.h>
 
 /* The minimum number of pages to free per reclaim */
 static unsigned short slmk_minfree __read_mostly = CONFIG_ANDROID_SIMPLE_LMK_MINFREE;
@@ -28,6 +33,27 @@ module_param(slmk_minfree, short, 0644);
 static unsigned short slmk_timeout __read_mostly = CONFIG_ANDROID_SIMPLE_LMK_TIMEOUT_MSEC;
 module_param(slmk_timeout, short, 0644);
 #define RECLAIM_EXPIRES msecs_to_jiffies(slmk_timeout)
+
+/* Configurable minimum oom_score_adj threshold */
+static short slmk_min_adj __read_mostly = 0;
+module_param(slmk_min_adj, short, 0644);
+
+/* Configurable oom_score_adj to protect specific background states */
+static short slmk_protect_adj __read_mostly = 700;
+module_param(slmk_protect_adj, short, 0644);
+
+/* Protect processes larger than this size (in MB) from being killed */
+static short slmk_protect_size_mb __read_mostly = 1536;
+module_param(slmk_protect_size_mb, short, 0644);
+#define PROTECT_SIZE_PAGES (slmk_protect_size_mb * SZ_1M / PAGE_SIZE)
+
+/* Exclude multiple tasks from being killed by name (comma separated, max 1024 chars, can include up to 100+ process), */
+static char slmk_excl_tasks[1024] __read_mostly = "";
+module_param_string(slmk_excl_tasks, slmk_excl_tasks, sizeof(slmk_excl_tasks), 0644);
+
+/* Trigger SLMK based on ZRAM/Swap usage percentage */
+static short slmk_zram_crit_rat __read_mostly = 90;
+module_param(slmk_zram_crit_rat, short, 0644);
 
 struct victim_info {
 	struct task_struct *tsk;
@@ -95,7 +121,7 @@ static unsigned long find_victims(int *vindex)
 		 */
 		sig = tsk->signal;
 		adj = READ_ONCE(sig->oom_score_adj);
-		if (adj < 0 ||
+		if (adj < slmk_min_adj || adj == slmk_protect_adj ||
 		    sig->flags & (SIGNAL_GROUP_EXIT | SIGNAL_GROUP_COREDUMP) ||
 		    (thread_group_empty(tsk) && tsk->flags & PF_EXITING))
 			continue;
@@ -130,6 +156,26 @@ static unsigned long find_victims(int *vindex)
 			vtsk = find_lock_task_mm(tsk);
 			if (!vtsk)
 				continue;
+
+			/* Prevent core GMS processes (adj < 300) from being killed to avoid cascading Fcs.
+			 * GMS background processes (adj >= 300) are safe to kill to free up RAM. */
+			if (i < 300 && strnstr(vtsk->comm, "gms", 16)) {
+				task_unlock(vtsk);
+				continue;
+			}
+
+			/* Prevent user input custom app from being killed by it (you may need to check dmesg for
+			   name app because var comm is limited to 15 chars) */
+			if (slmk_excl_tasks[0] != '\0' && strnstr(slmk_excl_tasks, vtsk->comm, sizeof(slmk_excl_tasks))) {
+				task_unlock(vtsk);
+				continue;
+			}
+
+			/* Protect huge ram usage like heavy games from being killed by it */
+			if (get_total_mm_pages(vtsk->mm) >= PROTECT_SIZE_PAGES) {
+				task_unlock(vtsk);
+				continue;
+			}
 
 			/* Store this potential victim away for later */
 			victims[*vindex].tsk = vtsk;
@@ -334,14 +380,25 @@ static void scan_and_kill(void)
 
 static int simple_lmk_reclaim_thread(void *data)
 {
+	struct sysinfo val;
+	unsigned long swap_used, swap_pct;
+
 	/* Use maximum RT priority */
 	set_task_rt_prio(current, MAX_RT_PRIO - 1);
 	set_freezable();
 
 	while (1) {
-		wait_event_freezable(oom_waitq, atomic_read(&needs_reclaim));
-		scan_and_kill();
+		wait_event_freezable_timeout(oom_waitq, atomic_read(&needs_reclaim), HZ);
 		atomic_set(&needs_reclaim, 0);
+		si_swapinfo(&val);
+		if (val.totalswap > 0) {
+			swap_used = val.totalswap - val.freeswap;
+			swap_pct = (swap_used * 100) / val.totalswap;
+
+			if (swap_pct >= slmk_zram_crit_rat) {
+				scan_and_kill();
+			}
+		}
 	}
 
 	return 0;
@@ -466,27 +523,6 @@ void simple_lmk_mm_freed(struct mm_struct *mm)
 	read_unlock(&mm_free_lock);
 }
 
-static unsigned short slmk_vmpressure __read_mostly = 95;
-module_param(slmk_vmpressure, short, 0644);
-
-static int simple_lmk_vmpressure_cb(struct notifier_block *nb,
-				    unsigned long pressure, void *data)
-{
-	if (pressure >= slmk_vmpressure) {
-		atomic_set(&needs_reclaim, 1);
-		smp_mb__after_atomic();
-		if (waitqueue_active(&oom_waitq))
-			wake_up(&oom_waitq);
-	}
-
-	return NOTIFY_OK;
-}
-
-static struct notifier_block vmpressure_notif = {
-	.notifier_call = simple_lmk_vmpressure_cb,
-	.priority = INT_MAX
-};
-
 /* Initialize Simple LMK when lmkd in Android writes to the minfree parameter */
 static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
 {
@@ -500,7 +536,6 @@ static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
 		thread = kthread_run(simple_lmk_reclaim_thread, NULL,
 				     "simple_lmkd");
 		BUG_ON(IS_ERR(thread));
-		BUG_ON(vmpressure_notifier_register(&vmpressure_notif));
 	}
 
 	return 0;
