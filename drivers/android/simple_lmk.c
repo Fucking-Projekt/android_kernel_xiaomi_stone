@@ -52,7 +52,7 @@ static char slmk_excl_tasks[1024] __read_mostly = "";
 module_param_string(slmk_excl_tasks, slmk_excl_tasks, sizeof(slmk_excl_tasks), 0644);
 
 /* Trigger SLMK based on ZRAM/Swap usage percentage */
-static short slmk_zram_crit_rat __read_mostly = 90;
+static short slmk_zram_crit_rat __read_mostly = 75;
 module_param(slmk_zram_crit_rat, short, 0644);
 
 struct victim_info {
