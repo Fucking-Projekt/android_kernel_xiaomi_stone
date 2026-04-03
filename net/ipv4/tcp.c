@@ -4111,12 +4111,12 @@ void __init tcp_init(void)
 	max_rshare = min(16UL*1024*1024, limit);
 
 	init_net.ipv4.sysctl_tcp_wmem[0] = SK_MEM_QUANTUM;
-	init_net.ipv4.sysctl_tcp_wmem[1] = 20*1024;
-	init_net.ipv4.sysctl_tcp_wmem[2] = max(64*1024, max_wshare);
+	init_net.ipv4.sysctl_tcp_wmem[1] = 131072;
+	init_net.ipv4.sysctl_tcp_wmem[2] = max(16777216, max_wshare);
 
 	init_net.ipv4.sysctl_tcp_rmem[0] = SK_MEM_QUANTUM;
 	init_net.ipv4.sysctl_tcp_rmem[1] = 131072;
-	init_net.ipv4.sysctl_tcp_rmem[2] = max(131072, max_rshare);
+	init_net.ipv4.sysctl_tcp_rmem[2] = max(16777216, max_rshare);
 
 	pr_info("Hash tables configured (established %u bind %u)\n",
 		tcp_hashinfo.ehash_mask + 1, tcp_hashinfo.bhash_size);
