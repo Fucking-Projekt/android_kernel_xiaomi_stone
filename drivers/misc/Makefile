@@ -70,4 +70,3 @@ obj-$(CONFIG_HQ_SYSFS_SUPPORT) 	+= hqsysfs/
 obj-$(CONFIG_MI_FS)		+= xiaomi_fs/
 obj-$(CONFIG_SIMTRAY_STATUS)    += simtray.o
 obj-y				+= fastchg.o
-obj-y				+= fastchgtoggle.o
