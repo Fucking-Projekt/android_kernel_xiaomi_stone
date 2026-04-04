@@ -17,7 +17,6 @@
 #include <linux/iio/consumer.h>
 #include "hq_charger_manager.h"
 
-#include <misc/fastchg.h>
 
 #include <linux/quiet_logs.h>
 
@@ -728,13 +727,8 @@ static void sw_get_charger_type_current_limit(struct batt_chg *chg,int type)
 	switch (type)
 	{
 		case POWER_SUPPLY_TYPE_USB:
-			if (force_fast_charge > 0) {
-				chg->charge_limit_cur = 900000;
-				chg->input_limit_cur = 900000;
-			} else {
-				chg->charge_limit_cur = 500000;
-				chg->input_limit_cur = 500000;
-			}
+			chg->charge_limit_cur = 500000;
+			chg->input_limit_cur = 500000;
 			break;
 		case POWER_SUPPLY_TYPE_USB_FLOAT:
 			chg->charge_limit_cur = 1000000;
