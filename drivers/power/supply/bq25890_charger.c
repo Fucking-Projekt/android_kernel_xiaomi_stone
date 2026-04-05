@@ -1275,7 +1275,7 @@ static int  bq25890_get_chg_type(struct bq25890_device *bq)
 	else if (type == BQ2589X_VBUS_USB_CDP)
 		real_type = POWER_SUPPLY_TYPE_USB_CDP;
 	else if (type == BQ2589X_VBUS_USB_DCP)
-		real_type = POWER_SUPPLY_TYPE_USB_DCP;
+		real_type = POWER_SUPPLY_TYPE_USB_PD;
 	else if (type == BQ2589X_VBUS_NONSTAND || type == BQ2589X_VBUS_UNKNOWN)
 		real_type = POWER_SUPPLY_TYPE_USB_FLOAT;
 	else if (type == BQ2589X_VBUS_MAXC)
@@ -1387,10 +1387,10 @@ static int bq25890_usb_get_property(struct power_supply *psy,
 				val->intval = POWER_SUPPLY_USB_TYPE_CDP;
 				break;
 			case 0x03:
-				val->intval = POWER_SUPPLY_USB_TYPE_DCP;
+				val->intval = POWER_SUPPLY_USB_TYPE_PD;
 				break;
 			case 0x04:
-				val->intval = POWER_SUPPLY_USB_TYPE_DCP;
+				val->intval = POWER_SUPPLY_USB_TYPE_PD;
 				break;
 			case 0x05:
 			case 0x06:

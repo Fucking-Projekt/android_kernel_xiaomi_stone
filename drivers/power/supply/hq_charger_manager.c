@@ -395,6 +395,9 @@ static int get_usb_charger_type(struct batt_chg *chg, int *type)
 	ret = power_supply_get_property(chg->usb_psy, POWER_SUPPLY_PROP_USB_TYPE, &val);
 	if (ret == 0) {
 		usb_type = val.intval;
+		if (usb_type == POWER_SUPPLY_TYPE_USB_DCP) {
+			usb_type = POWER_SUPPLY_TYPE_USB_PD;
+		}
 	}
 
 	while (charger_type[i].type != 0) {
