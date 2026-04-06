@@ -1349,7 +1349,7 @@ static int wireless_fw_update(struct battery_chg_dev *bcdev, bool force)
 	u16 maj_ver, min_ver;
 	int rc;
 
-	pm_stay_awake(bcdev->dev);
+	pm_wakeup_event(bcdev->dev, 0);
 
 	/*
 	 * Check for USB presence. If nothing is connected, check whether

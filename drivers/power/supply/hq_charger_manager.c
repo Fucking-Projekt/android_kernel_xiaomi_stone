@@ -1099,7 +1099,7 @@ static void batt_chg_main(struct work_struct *work)
 
 	if(chg->real_type) {
 		if(!chg->wakeup_flag) {
-			__pm_stay_awake(chg->wt_ws);
+			__pm_wakeup_event(chg->wt_ws, 0);
 			chg->wakeup_flag = 1;
 			pr_err("wt workup\n");
 		}
@@ -1261,7 +1261,7 @@ static int batt_chg_probe(struct platform_device *pdev)
 	mutex_init(&batt_chg->charger_type_mtx);
 
 	//INIT_DELAYED_WORK(&batt_chg->lower_poweroff_work, lower_poweroff_work);
-	INIT_DELAYED_WORK(&batt_chg->batt_chg_work, batt_chg_main);
+	INIT_DEFERRABLE_WORK(&batt_chg->batt_chg_work, batt_chg_main);
 //	INIT_DELAYED_WORK(&batt_chg->usb_type_work, batt_usb_type);
 
 	platform_set_drvdata(pdev, batt_chg);

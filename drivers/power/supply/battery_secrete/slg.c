@@ -293,7 +293,7 @@ static int slg_probe(struct platform_device *pdev)
 	slg_data->dev = &pdev->dev;
 	slg_data->pdev = pdev;
 	platform_set_drvdata(pdev, slg_data);
-	INIT_DELAYED_WORK(&slg_data->authentic_work, authentic_work);
+	INIT_DEFERRABLE_WORK(&slg_data->authentic_work, authentic_work);
 
 	retval = verify_psy_register(slg_data);
 	if (retval) {

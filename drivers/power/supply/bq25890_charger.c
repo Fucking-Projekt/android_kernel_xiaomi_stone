@@ -2514,11 +2514,11 @@ static int bq25890_probe(struct i2c_client *client,
 		return client->irq;
 	}
 
-	INIT_DELAYED_WORK(&bq->dumpic_work, bq25890_dumpic_work);
+	INIT_DEFERRABLE_WORK(&bq->dumpic_work, bq25890_dumpic_work);
 	schedule_delayed_work(&bq->dumpic_work, msecs_to_jiffies(10000));
 
-	INIT_DELAYED_WORK(&bq->detect_vbat_set_vindpm_work, bq25890_detect_vbat_set_vindpm_work);
-	INIT_DELAYED_WORK(&bq->detect_float_work, bq25890_detect_float_work);
+	INIT_DEFERRABLE_WORK(&bq->detect_vbat_set_vindpm_work, bq25890_detect_vbat_set_vindpm_work);
+	INIT_DEFERRABLE_WORK(&bq->detect_float_work, bq25890_detect_float_work);
 	/* OTG reporting */
 	bq->usb_phy = devm_usb_get_phy(dev, USB_PHY_TYPE_USB2);
 	if (!IS_ERR_OR_NULL(bq->usb_phy)) {
@@ -2572,9 +2572,9 @@ static int bq25890_probe(struct i2c_client *client,
 		//goto psy_fail;
 	}
 
-	// INIT_DELAYED_WORK(&bq->board_therm_work, board_therm);
+	// INIT_DEFERRABLE_WORK(&bq->board_therm_work, board_therm);
 	// schedule_delayed_work(&bq->board_therm_work, msecs_to_jiffies(10000));
-	INIT_DELAYED_WORK(&bq->xm_prop_change_work, generate_xm_charge_uvent);
+	INIT_DEFERRABLE_WORK(&bq->xm_prop_change_work, generate_xm_charge_uvent);
 	schedule_delayed_work(&bq->xm_prop_change_work, msecs_to_jiffies(30000));
 
 	dev_err(dev, "bq25890 probe power_supply init success\n");

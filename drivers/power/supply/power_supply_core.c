@@ -117,7 +117,7 @@ void power_supply_changed(struct power_supply *psy)
 
 	spin_lock_irqsave(&psy->changed_lock, flags);
 	psy->changed = true;
-	pm_stay_awake(&psy->dev);
+	pm_wakeup_event(&psy->dev, 0);
 	spin_unlock_irqrestore(&psy->changed_lock, flags);
 	schedule_work(&psy->changed_work);
 }
@@ -1128,8 +1128,8 @@ __power_supply_register(struct device *parent,
 		goto dev_set_name_failed;
 
 	INIT_WORK(&psy->changed_work, power_supply_changed_work);
-	INIT_DELAYED_WORK(&psy->deferred_register_work,
-			  power_supply_deferred_register_work);
+	INIT_DEFERRABLE_WORK(&psy->deferred_register_work,
+			     power_supply_deferred_register_work);
 
 	rc = power_supply_check_supplies(psy);
 	if (rc) {

@@ -1776,7 +1776,7 @@ static int ds28e16_probe(struct platform_device *pdev)
 	ds28e16_data->dev = &pdev->dev;
 	ds28e16_data->pdev = pdev;
 	platform_set_drvdata(pdev, ds28e16_data);
-	INIT_DELAYED_WORK(&ds28e16_data->authentic_work, authentic_work);
+	INIT_DEFERRABLE_WORK(&ds28e16_data->authentic_work, authentic_work);
 
 	retval = verify_psy_register(ds28e16_data);
 	if (retval) {
