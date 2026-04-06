@@ -3976,7 +3976,7 @@ static int sm_fg_probe(struct i2c_client *client,
 	mutex_init(&sm->data_lock);
 
 #ifdef ENABLE_INIT_DELAY_TEMP
-	INIT_DELAYED_WORK(&sm->init_delay_temp_work, fg_init_delay_temp_workfunc);
+	INIT_DEFERRABLE_WORK(&sm->init_delay_temp_work, fg_init_delay_temp_workfunc);
 #endif
 
 	if (hal_fg_init(client) == false) {
@@ -3998,7 +3998,7 @@ static int sm_fg_probe(struct i2c_client *client,
 	sm->temp_param.batt_temp = -EINVAL;
 	sm->temp_param.update_now = true;
 #endif
-	INIT_DELAYED_WORK(&sm->monitor_work, fg_monitor_workfunc);	
+	INIT_DEFERRABLE_WORK(&sm->monitor_work, fg_monitor_workfunc);	
 
 	fg_psy_register(sm);
 
