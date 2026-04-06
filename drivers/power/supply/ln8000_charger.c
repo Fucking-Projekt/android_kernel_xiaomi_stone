@@ -1657,18 +1657,18 @@ static int ln8000_probe(struct i2c_client *client, const struct i2c_device_id *i
 		}
 		enable_irq_wake(client->irq);
 #if defined(LN8000_VAC_OV_PATCH)
-		INIT_DELAYED_WORK(&info->vac_ov_work, vac_ov_control_work);
+		INIT_DEFERRABLE_WORK(&info->vac_ov_work, vac_ov_control_work);
 #endif
 	} else {
 		ln_info("don't support isr(irq=%d)\n", info->client->irq);
 	}
 #if defined(LN8000_RCP_PATCH)
-	INIT_DELAYED_WORK(&info->rcp_work, rcp_control_work);
+	INIT_DEFERRABLE_WORK(&info->rcp_work, rcp_control_work);
 #endif
 
-	INIT_DELAYED_WORK(&info->ovp_detect_work, ovp_detect_work);
+	INIT_DEFERRABLE_WORK(&info->ovp_detect_work, ovp_detect_work);
 
-	INIT_DELAYED_WORK(&info->vcell_work, get_vcell_work);
+	INIT_DEFERRABLE_WORK(&info->vcell_work, get_vcell_work);
 	schedule_delayed_work(&info->vcell_work, msecs_to_jiffies(1000));
 
 	device_init_wakeup(info->dev, 1);
