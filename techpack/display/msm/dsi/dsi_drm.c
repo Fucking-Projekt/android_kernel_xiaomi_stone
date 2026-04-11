@@ -258,18 +258,21 @@ static void dsi_bridge_pre_enable(struct drm_bridge *bridge)
 		DSI_ERR("Continuous splash pipeline cleanup failed, rc=%d\n",
 									rc);
 }
+
 static int dsi_bridge_get_panel_info(struct drm_bridge *bridge, char *buf)
 {
 	int rc = 0;
 	struct dsi_bridge *c_bridge = to_dsi_bridge(bridge);
+	struct dsi_display *display;
 
 	if (!c_bridge) {
 		pr_err("Invalid params\n");
 		return rc;
 	}
+	display = c_bridge->display;
 
-	if (c_bridge->display->name)
-		return snprintf(buf, PAGE_SIZE, c_bridge->display->name);
+	if (display && display->name)
+		return snprintf(buf, PAGE_SIZE, display->name);
 
 	return rc;
 }
