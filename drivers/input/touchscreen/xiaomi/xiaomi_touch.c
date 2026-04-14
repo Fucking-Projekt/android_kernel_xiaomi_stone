@@ -162,11 +162,10 @@ struct device *get_xiaomi_touch_dev(void)
 
 int xiaomitouch_register_modedata(struct xiaomi_touch_interface *data)
 {
-	int ret = 0;
 	struct xiaomi_touch_interface *touch_data = NULL;
 
 	if (IS_ERR_OR_NULL(touch_pdata))
-		ret = -ENOMEM;
+		return -ENOMEM;
 
 	touch_data = touch_pdata->touch_data;
 	pr_info("%s\n", __func__);
@@ -188,8 +187,7 @@ int xiaomitouch_register_modedata(struct xiaomi_touch_interface *data)
 	touch_data->setModeLongValue = data->setModeLongValue;
 
 	mutex_unlock(&xiaomi_touch_dev.mutex);
-
-	return ret;
+	return 0;
 }
 EXPORT_SYMBOL(xiaomitouch_register_modedata);
 
