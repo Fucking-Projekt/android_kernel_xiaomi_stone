@@ -230,4 +230,7 @@ source "drivers/interconnect/Kconfig"
 
 source "drivers/counter/Kconfig"
 
+source "drivers/nfc/st21nfc/Kconfig"
+
+source "drivers/switch/Kconfig"
 endmenu
