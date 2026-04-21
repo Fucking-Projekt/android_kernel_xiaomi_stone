@@ -113,7 +113,8 @@ static bool sugov_should_update_freq(struct sugov_policy *sg_policy, u64 time)
 
 	if (unlikely(READ_ONCE(sg_policy->limits_changed))) {
 		WRITE_ONCE(sg_policy->limits_changed, false);
-		sg_policy->need_freq_update = true;
+		sg_policy->need_freq_update =
+			cpufreq_driver_test_flags(CPUFREQ_NEED_UPDATE_LIMITS);
 
 		/*
 		 * The above limits_changed update must occur before the reads
@@ -394,7 +395,6 @@ unsigned long schedutil_cpu_util(int cpu, unsigned long util_cfs,
 	 */
 	if (util + dl_util >= max)
 		return max;
-
 	/*
 	 * OTOH, for energy computation we need the estimated running time, so
 	 * include util_dl and ignore dl_bw.
@@ -1066,6 +1066,19 @@ static struct kobj_type sugov_tunables_ktype = {
 /********************** cpufreq governor interface *********************/
 
 static struct cpufreq_governor schedutil_gov;
+
+static unsigned int sugov_default_rate_limit_us(struct cpufreq_policy *policy)
+{
+	unsigned int rate_limit_us = cpufreq_policy_transition_delay_us(policy);
+
+	/*
+	 * Use a tighter default update pacing while keeping a lower/upper
+	 * bound to avoid excess churn on slow-switch paths.
+	 */
+	rate_limit_us = clamp(rate_limit_us, 100U, 400U);
+
+	return rate_limit_us;
+}
 
 static struct sugov_policy *sugov_policy_alloc(struct cpufreq_policy *policy)
 {
