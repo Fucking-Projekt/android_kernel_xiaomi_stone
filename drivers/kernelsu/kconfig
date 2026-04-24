@@ -1,0 +1,3 @@
+config KSU
+    bool "KernelSU support"
+    default y
