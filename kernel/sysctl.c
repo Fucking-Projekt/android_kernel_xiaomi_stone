@@ -178,13 +178,16 @@ static int ngroups_max = NGROUPS_MAX;
 static const int cap_last_cap = CAP_LAST_CAP;
 
 #ifdef CONFIG_SCHED_BORE
-extern uint sched_bore;
-extern uint sched_burst_smoothness_long;
-extern uint sched_burst_smoothness_short;
-extern uint sched_burst_fork_atavistic;
-extern uint sched_burst_penalty_offset;
+extern u8   sched_bore;
+extern u8   sched_burst_exclude_kthreads;
+extern u8   sched_burst_smoothness_long;
+extern u8   sched_burst_smoothness_short;
+extern u8   sched_burst_fork_atavistic;
+extern u8   sched_burst_penalty_offset;
 extern uint sched_burst_penalty_scale;
 extern uint sched_burst_cache_lifetime;
+extern int sched_bore_update_handler(struct ctl_table *table, int write,
+		void __user *buffer, size_t *lenp, loff_t *ppos);
 static int __maybe_unused sixty_four     = 64;
 static int __maybe_unused maxval_12_bits = 4095;
 #endif // CONFIG_SCHED_BORE
@@ -1648,45 +1651,54 @@ static struct ctl_table kern_table[] = {
 	{
 		.procname	= "sched_bore",
 		.data		= &sched_bore,
-		.maxlen		= sizeof(int),
+		.maxlen		= sizeof(u8),
 		.mode		= 0644,
-		.proc_handler = proc_douintvec_minmax,
-		.extra1		= SYSCTL_ONE,
+		.proc_handler = sched_bore_update_handler,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_ONE,
+	},
+	{
+		.procname	= "sched_burst_exclude_kthreads",
+		.data		= &sched_burst_exclude_kthreads,
+		.maxlen		= sizeof(u8),
+		.mode		= 0644,
+		.proc_handler = proc_dou8vec_minmax,
+		.extra1		= SYSCTL_ZERO,
 		.extra2		= SYSCTL_ONE,
 	},
 	{
 		.procname	= "sched_burst_smoothness_long",
 		.data		= &sched_burst_smoothness_long,
-		.maxlen		= sizeof(int),
+		.maxlen		= sizeof(u8),
 		.mode		= 0644,
-		.proc_handler = proc_douintvec_minmax,
+		.proc_handler = proc_dou8vec_minmax,
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= SYSCTL_ONE,
 	},
 	{
 		.procname	= "sched_burst_smoothness_short",
 		.data		= &sched_burst_smoothness_short,
-		.maxlen		= sizeof(int),
+		.maxlen		= sizeof(u8),
 		.mode		= 0644,
-		.proc_handler = proc_douintvec_minmax,
+		.proc_handler = proc_dou8vec_minmax,
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= SYSCTL_ONE,
 	},
 	{
 		.procname	= "sched_burst_fork_atavistic",
 		.data		= &sched_burst_fork_atavistic,
-		.maxlen		= sizeof(int),
+		.maxlen		= sizeof(u8),
 		.mode		= 0644,
-		.proc_handler = proc_douintvec_minmax,
+		.proc_handler = proc_dou8vec_minmax,
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= &three,
 	},
 	{
 		.procname	= "sched_burst_penalty_offset",
 		.data		= &sched_burst_penalty_offset,
-		.maxlen		= sizeof(int),
+		.maxlen		= sizeof(u8),
 		.mode		= 0644,
-		.proc_handler = proc_douintvec_minmax,
+		.proc_handler = proc_dou8vec_minmax,
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= &sixty_four,
 	},
