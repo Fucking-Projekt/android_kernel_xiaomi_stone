@@ -10,3 +10,4 @@
 #include "stone-pmic.dts"
 #include "stone-regulator.dts"
 #include "stone-thermal.dts"
+#include "stone-touchscreen.dts"
