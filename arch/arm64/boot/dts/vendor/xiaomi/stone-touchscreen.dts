@@ -15,3 +15,11 @@
 		focaltech,display-coords = <0 0 10800 24000>;
 	};
 };
+
+&soc {
+	xiaomi_touch {
+		compatible = "xiaomi-touch";
+		status = "ok";
+		touch,name = "xiaomi-touch";
+	};
+};
