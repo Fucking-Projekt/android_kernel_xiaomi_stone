@@ -6,3 +6,4 @@
 #include "stone-fingerprint.dts"
 #include "stone-memory.dts"
 #include "stone-nfc.dts"
+#include "stone-pinctrl.dts"
