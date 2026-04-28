@@ -8,3 +8,4 @@
 #include "stone-nfc.dts"
 #include "stone-pinctrl.dts"
 #include "stone-pmic.dts"
+#include "stone-regulator.dts"
