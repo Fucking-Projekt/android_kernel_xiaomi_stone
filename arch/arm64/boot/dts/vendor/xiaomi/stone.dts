@@ -4,3 +4,4 @@
 #include "stone-consumerir.dts"
 #include "stone-display.dts"
 #include "stone-fingerprint.dts"
+#include "stone-memory.dts"
