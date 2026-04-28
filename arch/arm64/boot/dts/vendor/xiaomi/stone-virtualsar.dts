@@ -1,0 +1,10 @@
+&qupv3_se8_i2c {
+	virtualsar@33 {
+		compatible = "virtualsar,sar";
+		reg = <0x33>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <85 2>;
+		virtualsar,irq-gpio = <&tlmm 85 0x2008>;
+		status = "ok";
+	};
+};
