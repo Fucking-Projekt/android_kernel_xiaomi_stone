@@ -12,3 +12,9 @@
 #include "stone-thermal.dts"
 #include "stone-touchscreen.dts"
 #include "stone-vibrator.dts"
+
+&qcom {
+	/delete-property/ mem-type;
+	pmsg-size = <0x100000>;
+	console-size = <0x100000>;
+};
