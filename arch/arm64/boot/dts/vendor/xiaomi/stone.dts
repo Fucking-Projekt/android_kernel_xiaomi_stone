@@ -12,6 +12,7 @@
 #include "stone-thermal.dts"
 #include "stone-touchscreen.dts"
 #include "stone-vibrator.dts"
+#include "stone-virtualsar.dts"
 
 &qcom {
 	/delete-property/ mem-type;
