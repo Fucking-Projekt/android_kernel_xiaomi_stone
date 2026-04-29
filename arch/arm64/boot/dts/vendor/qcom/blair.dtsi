@@ -1672,6 +1672,7 @@
 
 	dcc: dcc_v2@16db000 {
 		compatible = "qcom,dcc-v2";
+		status = "disabled";
 		reg = <0x16db000 0x1000>,
 		      <0x1662000 0x2000>;
 
