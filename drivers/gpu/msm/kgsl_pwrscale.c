@@ -13,7 +13,7 @@
 
 static struct devfreq_msm_adreno_tz_data adreno_tz_data = {
 	.bus = {
-		.max = 700,
+		.max = 350,
 		.floating = true,
 	},
 	.mod_percent = 100,
