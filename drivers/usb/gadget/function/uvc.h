@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0+ */
+// SPDX-License-Identifier: GPL-2.0+
 /*
  *	uvc_gadget.h  --  USB Video Class Gadget driver
  *
@@ -14,7 +14,6 @@
 #include <linux/spinlock.h>
 #include <linux/usb/composite.h>
 #include <linux/videodev2.h>
-#include <linux/wait.h>
 
 #include <media/v4l2-device.h>
 #include <media/v4l2-dev.h>
@@ -66,30 +65,17 @@ extern unsigned int uvc_gadget_trace_param;
  * Driver specific constants
  */
 
+#define UVC_NUM_REQUESTS			4
 #define UVC_MAX_REQUEST_SIZE			64
 #define UVC_MAX_EVENTS				4
-
-#define UVCG_REQUEST_HEADER_LEN			12
 
 /* ------------------------------------------------------------------------
  * Structures
  */
-struct uvc_request {
-	struct usb_request *req;
-	u8 *req_buffer;
-	struct uvc_video *video;
-	struct sg_table sgt;
-	u8 header[UVCG_REQUEST_HEADER_LEN];
-	struct uvc_buffer *last_buf;
-	struct list_head list;
-};
 
 struct uvc_video {
 	struct uvc_device *uvc;
 	struct usb_ep *ep;
-
-	struct work_struct pump;
-	struct workqueue_struct *async_wq;
 
 	/* Frame parameters */
 	u8 bpp;
@@ -99,24 +85,12 @@ struct uvc_video {
 	unsigned int imagesize;
 	struct mutex mutex;	/* protects frame parameters */
 
-	unsigned int uvc_num_requests;
-
 	/* Requests */
-	bool is_enabled; /* tracks whether video stream is enabled */
 	unsigned int req_size;
-	struct list_head ureqs; /* all uvc_requests allocated by uvc_video */
-
-	/* USB requests that the video pump thread can encode into */
+	struct usb_request *req[UVC_NUM_REQUESTS];
+	__u8 *req_buffer[UVC_NUM_REQUESTS];
 	struct list_head req_free;
-
-	/*
-	 * USB requests video pump thread has already encoded into. These are
-	 * ready to be queued to the endpoint.
-	 */
-	struct list_head req_ready;
 	spinlock_t req_lock;
-
-	unsigned int req_int_count;
 
 	void (*encode) (struct usb_request *req, struct uvc_video *video,
 			struct uvc_buffer *buf);
@@ -141,10 +115,6 @@ struct uvc_device {
 	enum uvc_state state;
 	struct usb_function func;
 	struct uvc_video video;
-	bool func_connected;
-	wait_queue_head_t func_connected_queue;
-
-	struct uvcg_streaming_header *header;
 
 	/* Descriptors */
 	struct {
@@ -175,7 +145,6 @@ static inline struct uvc_device *to_uvc(struct usb_function *f)
 struct uvc_file_handle {
 	struct v4l2_fh vfh;
 	struct uvc_video *device;
-	bool is_uvc_app_handle;
 };
 
 #define to_uvc_file_handle(handle) \
@@ -185,7 +154,9 @@ struct uvc_file_handle {
  * Functions
  */
 
-extern void uvc_function_setup_continue(struct uvc_device *uvc, int disable_ep);
+extern void uvc_function_setup_continue(struct uvc_device *uvc);
+extern void uvc_endpoint_stream(struct uvc_device *dev);
+
 extern void uvc_function_connect(struct uvc_device *uvc);
 extern void uvc_function_disconnect(struct uvc_device *uvc);
 
