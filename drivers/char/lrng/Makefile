@@ -9,7 +9,6 @@ obj-$(CONFIG_LRNG_SHA256)		+= lrng_sha256.o
 obj-$(CONFIG_LRNG_SHA1)			+= lrng_sha1.o
 
 obj-$(CONFIG_SYSCTL)			+= lrng_proc.o
-obj-$(CONFIG_LRNG_SYSCTL)		+= lrng_sysctl.o
 obj-$(CONFIG_NUMA)			+= lrng_numa.o
 
 obj-$(CONFIG_LRNG_SWITCH)		+= lrng_switch.o
