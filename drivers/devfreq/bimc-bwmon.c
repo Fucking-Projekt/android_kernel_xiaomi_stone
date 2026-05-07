@@ -908,7 +908,6 @@ static __always_inline
 int __resume_bw_hwmon(struct bw_hwmon *hw, enum mon_reg_type type)
 {
 	struct bwmon *m = to_bwmon(hw);
-	int ret;
 	irq_handler_t handler;
 
 	switch (type) {
