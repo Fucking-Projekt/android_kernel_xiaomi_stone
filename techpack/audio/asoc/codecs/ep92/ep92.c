@@ -1939,7 +1939,7 @@ static int ep92_i2c_probe(struct i2c_client *client,
 err_sysfs:
 	snd_soc_unregister_component(&client->dev);
 err_reg:
-	del_timer(&ep92->timer);
+	del_timer_sync(&ep92->timer);
 
 	return ret;
 }
@@ -1950,7 +1950,7 @@ static int ep92_i2c_remove(struct i2c_client *client)
 
 	ep92 = i2c_get_clientdata(client);
 	if (ep92) {
-		del_timer(&ep92->timer);
+		del_timer_sync(&ep92->timer);
 
 #if IS_ENABLED(CONFIG_DEBUG_FS)
 		debugfs_remove_recursive(ep92->debugfs_dir);
