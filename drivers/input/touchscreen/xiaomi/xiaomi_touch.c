@@ -478,10 +478,20 @@ static int xiaomi_touch_remove(struct platform_device *pdev)
 	device_destroy(xiaomi_touch_dev.class, 0);
 	class_destroy(xiaomi_touch_dev.class);
 	misc_deregister(&xiaomi_touch_dev.misc_dev);
+
+	mutex_lock(&xiaomi_touch_dev.mutex);
+	mutex_lock(&xiaomi_touch_dev.palm_mutex);
+	mutex_lock(&xiaomi_touch_dev.psensor_mutex);
+
 	if (touch_pdata->touch_data) {
 		kfree(touch_pdata->touch_data);
 		touch_pdata->touch_data = NULL;
 	}
+	touch_pdata = NULL;
+
+	mutex_unlock(&xiaomi_touch_dev.psensor_mutex);
+	mutex_unlock(&xiaomi_touch_dev.palm_mutex);
+	mutex_unlock(&xiaomi_touch_dev.mutex);
 
 	return 0;
 }

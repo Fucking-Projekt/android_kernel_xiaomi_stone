@@ -535,22 +535,13 @@ static unsigned int idletimer_tg_target(struct sk_buff *skb,
 					 const struct xt_action_param *par)
 {
 	const struct idletimer_tg_info *info = par->targinfo;
-	unsigned long now = jiffies;
 
 	pr_debug("resetting timer %s, timeout period %u\n",
 		 info->label, info->timeout);
 
 	BUG_ON(!info->timer);
 
-	info->timer->active = true;
-
-	if (time_before(info->timer->timer.expires, now)) {
-		schedule_work(&info->timer->work);
-		pr_debug("Starting timer %s (Expired, Jiffies): %lu, %lu\n",
-			 info->label, info->timer->timer.expires, now);
-	}
-
-	/* TODO: Avoid modifying timers on each packet */
+	/* reset_timer takes timestamp_lock and handles active flag properly */
 	reset_timer(info, skb);
 	return XT_CONTINUE;
 }

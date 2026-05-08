@@ -1900,9 +1900,9 @@ void ipa3_qmi_stop_workqueues(void)
 	/* Stopping all workqueues so new work won't be scheduled */
 	workqueues_stopped = true;
 
-	/* Making sure that the current scheduled work won't be executed */
-	cancel_delayed_work(&ipa3_work_svc_arrive);
-	cancel_delayed_work(&ipa3_work_svc_exit);
+	/* Ensure currently scheduled/running work completes before exit */
+	cancel_delayed_work_sync(&ipa3_work_svc_arrive);
+	cancel_delayed_work_sync(&ipa3_work_svc_exit);
 }
 
 /* voting for bus BW to ipa_rm*/

@@ -393,6 +393,8 @@ static int vblank_ctrl_queue_work(struct msm_drm_private *priv,
 	return 0;
 }
 
+static const struct attribute *msm_idle_attrs[];
+
 static int msm_drm_uninit(struct device *dev)
 {
 	struct platform_device *pdev = to_platform_device(dev);
@@ -452,6 +454,10 @@ static int msm_drm_uninit(struct device *dev)
 	}
 
 	component_unbind_all(dev, ddev);
+
+	sysfs_remove_files(&ddev->dev->kobj, msm_idle_attrs);
+	cancel_delayed_work_sync(&priv->idle.work);
+
 	pm_runtime_put_sync(dev);
 
 	sde_power_resource_deinit(pdev, &priv->phandle);

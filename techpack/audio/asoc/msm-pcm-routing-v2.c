@@ -43477,9 +43477,9 @@ static void asrc_drift_deinit(void)
 	struct list_head *ptr, *next;
 
 	for (; i < DRIFT_SRC_MAX; ++i) {
-		mutex_lock(&asrc_cfg[i].lock);
+		cancel_delayed_work_sync(&asrc_cfg[i].drift_work);
 
-		cancel_delayed_work(&asrc_cfg[i].drift_work);
+		mutex_lock(&asrc_cfg[i].lock);
 
 		list_for_each_safe(ptr, next, &asrc_cfg[i].modules) {
 			config_node = list_entry(ptr,

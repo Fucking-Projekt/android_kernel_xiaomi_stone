@@ -1750,15 +1750,13 @@ static void l2cap_conn_del(struct hci_conn *hcon, int err)
 
 	skb_queue_purge(&conn->pending_rx);
 
-	/* We can not call flush_work(&conn->pending_rx_work) here since we
-	 * might block if we are running on a worker from the same workqueue
-	 * pending_rx_work is waiting on.
+	/* Cancel pending work items to prevent UAF on conn.
+	 * cancel_work_sync is safe here: this is called from the ordered
+	 * hdev->workqueue, so pending_rx_work cannot be currently running
+	 * (only pending). cancel_work_sync on pending work does not block.
 	 */
-	if (work_pending(&conn->pending_rx_work))
-		cancel_work_sync(&conn->pending_rx_work);
-
-	if (work_pending(&conn->id_addr_update_work))
-		cancel_work_sync(&conn->id_addr_update_work);
+	cancel_work_sync(&conn->pending_rx_work);
+	cancel_work_sync(&conn->id_addr_update_work);
 
 	l2cap_unregister_all_users(conn);
 

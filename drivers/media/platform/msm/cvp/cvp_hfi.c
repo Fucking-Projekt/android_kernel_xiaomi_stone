@@ -4398,7 +4398,7 @@ static void __unload_fw(struct iris_hfi_device *device)
 	if (!device->resources.fw.cookie)
 		return;
 
-	cancel_delayed_work(&iris_hfi_pm_work);
+	cancel_delayed_work_sync(&iris_hfi_pm_work);
 	if (device->state != IRIS_STATE_DEINIT)
 		flush_workqueue(device->iris_pm_workq);
 

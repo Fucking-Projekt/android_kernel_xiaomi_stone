@@ -2787,7 +2787,7 @@ static int ipa3_wwan_remove(struct platform_device *pdev)
 	IPAWANDBG("rmnet_ipa unregister_netdev completed\n");
 	ipa3_wwan_deregister_netdev_pm_client();
 	cancel_work_sync(&ipa3_tx_wakequeue_work);
-	cancel_delayed_work(&ipa_tether_stats_poll_wakequeue_work);
+	cancel_delayed_work_sync(&ipa_tether_stats_poll_wakequeue_work);
 	if (IPA_NETDEV())
 		free_netdev(IPA_NETDEV());
 	rmnet_ipa3_ctx->wwan_priv = NULL;
