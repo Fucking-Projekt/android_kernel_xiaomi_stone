@@ -151,7 +151,7 @@
 #define CMUX_SHIFT_PHASE_SHIFT	24
 #define CMUX_SHIFT_PHASE_MASK	(7 << CMUX_SHIFT_PHASE_SHIFT)
 
-#define MSM_MMC_AUTOSUSPEND_DELAY_MS	10
+#define MSM_MMC_AUTOSUSPEND_DELAY_MS	500
 #define MSM_CLK_GATING_DELAY_MS		200 /* msec */
 
 /* Timeout value to avoid infinite waiting for pwr_irq */
@@ -2278,8 +2278,10 @@ static int sdhci_msm_setup_vreg(struct sdhci_msm_host *msm_host,
 		 */
 
 		val = msm_spare_read(TLMM_NORTH_SPARE);
-		val &= ~TLMM_NORTH_SPARE_CORE_IE;
-		msm_spare_write(TLMM_NORTH_SPARE, val);
+		if (val >= 0) {
+			val &= ~TLMM_NORTH_SPARE_CORE_IE;
+			msm_spare_write(TLMM_NORTH_SPARE, val);
+		}
 	}
 
 	for (i = 0; i < ARRAY_SIZE(vreg_table); i++) {
@@ -2303,8 +2305,10 @@ static int sdhci_msm_setup_vreg(struct sdhci_msm_host *msm_host,
 		 */
 
 		val = msm_spare_read(TLMM_NORTH_SPARE);
-		val |= TLMM_NORTH_SPARE_CORE_IE;
-		msm_spare_write(TLMM_NORTH_SPARE, val);
+		if (val >= 0) {
+			val |= TLMM_NORTH_SPARE_CORE_IE;
+			msm_spare_write(TLMM_NORTH_SPARE, val);
+		}
 	}
 out:
 	return ret;
@@ -4296,7 +4300,8 @@ static int sdhci_msm_init_sysfs(struct platform_device *pdev)
 
 static void sdhci_msm_set_caps(struct sdhci_msm_host *msm_host)
 {
-	msm_host->mmc->caps |= MMC_CAP_AGGRESSIVE_PM;
+	if (msm_host->mmc->caps & MMC_CAP_NONREMOVABLE)
+		msm_host->mmc->caps |= MMC_CAP_AGGRESSIVE_PM;
 	msm_host->mmc->caps |= MMC_CAP_WAIT_WHILE_BUSY | MMC_CAP_NEED_RSP_BUSY;
 	msm_host->mmc->caps |= MMC_CAP_CD_WAKE;
 

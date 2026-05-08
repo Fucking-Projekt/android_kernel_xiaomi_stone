@@ -3198,8 +3198,11 @@ void mmc_rescan(struct work_struct *work)
 	mmc_bus_put(host);
 
 #if defined(CONFIG_SDC_QTI)
-	if (host->corrupted_card)
-		goto out;
+	if (host->corrupted_card) {
+		if (!mmc_card_is_removable(host))
+			goto out;
+		host->corrupted_card = false;
+	}
 #endif
 
 	mmc_claim_host(host);
