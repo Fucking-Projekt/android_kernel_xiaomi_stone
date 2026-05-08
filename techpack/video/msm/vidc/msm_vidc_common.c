@@ -4941,7 +4941,7 @@ int cancel_batch_work(struct msm_vidc_inst *inst)
 		d_vpr_e("%s: Invalid arguments\n", __func__);
 		return -EINVAL;
 	}
-	cancel_delayed_work(&inst->batch_work);
+	cancel_delayed_work_sync(&inst->batch_work);
 
 	return 0;
 }
