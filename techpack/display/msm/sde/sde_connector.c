@@ -21,7 +21,10 @@
 #include "sde_rm.h"
 #include "sde_vm.h"
 #include <drm/drm_probe_helper.h>
-
+#ifdef OPLUS_BUG_STABILITY
+#include "oplus_display_private_api.h"
+#include "oplus_dc_diming.h"
+#endif
 #define BL_NODE_NAME_SIZE 32
 #define HDR10_PLUS_VSIF_TYPE_CODE      0x81
 #define MAX_BRIGHTNESS_LEVEL 255
@@ -75,6 +78,13 @@ static const struct drm_prop_enum_list e_frame_trigger_mode[] = {
 	{FRAME_DONE_WAIT_POSTED_START, "posted_start"},
 };
 
+#ifdef OPLUS_BUG_STABILITY
+extern int oplus_debug_max_brightness;
+extern int oplus_seed_backlight;
+#endif
+
+int skip_backlight = 2;
+
 static inline struct sde_kms *_sde_connector_get_kms(struct drm_connector *conn)
 {
 	struct msm_drm_private *priv;
@@ -91,6 +101,13 @@ static inline struct sde_kms *_sde_connector_get_kms(struct drm_connector *conn)
 
 	return to_sde_kms(priv->kms);
 }
+
+#ifdef OPLUS_BUG_STABILITY
+/* PSW.MM.Display.LCD.Feature,2021-12-22 open platform dither */
+static u32 dither_matrix[DITHER_MATRIX_SZ] = {
+	15, 7, 13, 5, 3, 11, 1, 9, 12, 4, 14, 6, 0, 8, 2, 10
+};
+#endif
 
 static int sde_backlight_device_update_status(struct backlight_device *bd)
 {
@@ -137,9 +154,51 @@ static int sde_backlight_device_update_status(struct backlight_device *bd)
 		brightness = bl_max_level;
 	if (brightness > c_conn->thermal_max_brightness)
 		brightness = c_conn->thermal_max_brightness;
+#ifdef OPLUS_BUG_STABILITY
+	if (brightness > 0 && brightness < dsi_display->panel->bl_config.bl_min_level)
+		brightness = dsi_display->panel->bl_config.bl_min_level;
+#endif
 
+
+#ifndef OPLUS_BUG_STABILITY
 	/* map UI brightness into driver backlight level with rounding */
 	bl_lvl = mult_frac(brightness, bl_max_level, brightness_max_level);
+#else
+	if (oplus_debug_max_brightness) {
+		bl_lvl = mult_frac(brightness, oplus_debug_max_brightness,
+			brightness_max_level);
+	}else {
+		if (dsi_display->panel->oplus_priv.bl_remap && dsi_display->panel->oplus_priv.bl_remap_count) {
+			int i = 0;
+			int count = dsi_display->panel->oplus_priv.bl_remap_count;
+			struct oplus_brightness_alpha *lut = dsi_display->panel->oplus_priv.bl_remap;
+
+			for (i = 0; i < dsi_display->panel->oplus_priv.bl_remap_count; i++) {
+			if (dsi_display->panel->oplus_priv.bl_remap[i].brightness >= brightness)
+				break;
+			}
+
+			if (i == 0)
+				bl_lvl = lut[0].alpha;
+			else if (i == count)
+				bl_lvl = lut[count - 1].alpha;
+			else
+				bl_lvl = interpolate(brightness, lut[i-1].brightness,
+						lut[i].brightness, lut[i-1].alpha,
+						lut[i].alpha);
+			SDE_INFO("original_bl_lvl is %d,  remapped_bl_lvl is %d\n", brightness, bl_lvl);
+		} else if (brightness > dsi_display->panel->bl_config.brightness_normal_max_level) {
+			bl_lvl = interpolate(brightness,
+					dsi_display->panel->bl_config.brightness_normal_max_level,
+					dsi_display->panel->bl_config.brightness_max_level,
+					dsi_display->panel->bl_config.bl_normal_max_level,
+					dsi_display->panel->bl_config.bl_max_level);
+		} else {
+			bl_lvl = mult_frac(brightness, dsi_display->panel->bl_config.bl_normal_max_level,
+					dsi_display->panel->bl_config.brightness_normal_max_level);
+		}
+	}
+#endif
 
 	if (!bl_lvl && brightness)
 		bl_lvl = 1;
@@ -244,7 +303,11 @@ static int sde_backlight_setup(struct sde_connector *c_conn,
 	props.type = BACKLIGHT_RAW;
 	props.power = FB_BLANK_UNBLANK;
 	props.max_brightness = brightness_max_level;
+#ifndef OPLUS_BUG_STABILITY
 	props.brightness = brightness_max_level;
+#else
+	props.brightness = dsi_bl_config->brightness_default_level;
+#endif  /*VENDOR_EDIT*/
 	snprintf(bl_node_name, BL_NODE_NAME_SIZE, "panel%u-backlight",
 							display_count);
 	c_conn->bl_device = backlight_device_register(bl_node_name, dev->dev,
@@ -358,12 +421,67 @@ void sde_connector_unregister_event(struct drm_connector *connector,
 	(void)sde_connector_register_event(connector, event_idx, 0, 0);
 }
 
+#ifdef OPLUS_BUG_STABILITY
+/* PSW.MM.Display.LCD.Feature,2021-12-22 open platform dither */
+static int _sde_connector_get_default_dither_cfg_v1(
+		struct sde_connector *c_conn, void *cfg)
+{
+	struct drm_msm_dither *dither_cfg = (struct drm_msm_dither *)cfg;
+	enum dsi_pixel_format dst_format = DSI_PIXEL_FORMAT_MAX;
+
+	if (!c_conn || !cfg) {
+		SDE_ERROR("invalid argument(s), c_conn %pK, cfg %pK\n",
+				c_conn, cfg);
+		return -EINVAL;
+	}
+
+	if (!c_conn->ops.get_dst_format) {
+		SDE_DEBUG("get_dst_format is unavailable\n");
+		return 0;
+	}
+
+	dst_format = c_conn->ops.get_dst_format(&c_conn->base, c_conn->display);
+	switch (dst_format) {
+	case DSI_PIXEL_FORMAT_RGB888:
+		dither_cfg->c0_bitdepth = 8;
+		dither_cfg->c1_bitdepth = 8;
+		dither_cfg->c2_bitdepth = 8;
+		dither_cfg->c3_bitdepth = 8;
+		break;
+	case DSI_PIXEL_FORMAT_RGB666:
+	case DSI_PIXEL_FORMAT_RGB666_LOOSE:
+		dither_cfg->c0_bitdepth = 6;
+		dither_cfg->c1_bitdepth = 6;
+		dither_cfg->c2_bitdepth = 6;
+		dither_cfg->c3_bitdepth = 6;
+		break;
+	default:
+		SDE_DEBUG("no default dither config for dst_format %d\n",
+			dst_format);
+		return -ENODATA;
+	}
+
+	memcpy(&dither_cfg->matrix, dither_matrix,
+			sizeof(u32) * DITHER_MATRIX_SZ);
+	dither_cfg->temporal_en = 0;
+	return 0;
+}
+#endif
+
 static void _sde_connector_install_dither_property(struct drm_device *dev,
 		struct sde_kms *sde_kms, struct sde_connector *c_conn)
 {
 	char prop_name[DRM_PROP_NAME_LEN];
 	struct sde_mdss_cfg *catalog = NULL;
 	u32 version = 0;
+#ifdef OPLUS_BUG_STABILITY
+/* PSW.MM.Display.LCD.Feature,2021-12-22 open platform dither */
+	void *cfg;
+	struct drm_property_blob *blob_ptr;
+	int ret = 0;
+	u32 len = 0;
+	bool defalut_dither_needed = false;
+#endif
 
 	if (!dev || !sde_kms || !c_conn) {
 		SDE_ERROR("invld args (s), dev %pK, sde_kms %pK, c_conn %pK\n",
@@ -382,11 +500,33 @@ static void _sde_connector_install_dither_property(struct drm_device *dev,
 		msm_property_install_blob(&c_conn->property_info, prop_name,
 			DRM_MODE_PROP_BLOB,
 			CONNECTOR_PROP_PP_DITHER);
+#ifdef OPLUS_BUG_STABILITY
+/* PSW.MM.Display.LCD.Feature,2021-12-22 open platform dither */
+		len = sizeof(struct drm_msm_dither);
+		cfg = kzalloc(len, GFP_KERNEL);
+		if (!cfg)
+			return;
+
+		ret = _sde_connector_get_default_dither_cfg_v1(c_conn, cfg);
+		if (!ret)
+			defalut_dither_needed = true;
+#endif
 		break;
 	default:
 		SDE_ERROR("unsupported dither version %d\n", version);
 		return;
 	}
+#ifdef OPLUS_BUG_STABILITY
+/* PSW.MM.Display.LCD.Feature,2021-12-22 open platform dither */
+	if (defalut_dither_needed) {
+		blob_ptr = drm_property_create_blob(dev, len, cfg);
+		if (IS_ERR_OR_NULL(blob_ptr))
+			goto exit;
+		c_conn->blob_dither = blob_ptr;
+	}
+exit:
+	kfree(cfg);
+#endif
 }
 
 int sde_connector_get_dither_cfg(struct drm_connector *conn,
@@ -396,7 +536,10 @@ int sde_connector_get_dither_cfg(struct drm_connector *conn,
 	struct sde_connector *c_conn = NULL;
 	struct sde_connector_state *c_state = NULL;
 	size_t dither_sz = 0;
+#ifndef OPLUS_BUG_STABILITY
+/* PSW.MM.Display.LCD.Feature,2021-12-22 open platform dither */
 	bool is_dirty;
+#endif
 	u32 *p = (u32 *)cfg;
 
 	if (!conn || !state || !p) {
@@ -407,6 +550,8 @@ int sde_connector_get_dither_cfg(struct drm_connector *conn,
 	c_conn = to_sde_connector(conn);
 	c_state = to_sde_connector_state(state);
 
+#ifndef OPLUS_BUG_STABILITY
+/* PSW.MM.Display.LCD.Feature,2021-12-22 open platform dither */
 	is_dirty = msm_property_is_dirty(&c_conn->property_info,
 			&c_state->property_state,
 			CONNECTOR_PROP_PP_DITHER);
@@ -429,6 +574,19 @@ int sde_connector_get_dither_cfg(struct drm_connector *conn,
 			return 0;
 	}
 	*len = dither_sz;
+#else
+	/* try to get user config data first */
+	*cfg = msm_property_get_blob(&c_conn->property_info,
+			&c_state->property_state,
+			&dither_sz,
+			CONNECTOR_PROP_PP_DITHER);
+	/* if user config data doesn't exist, use default dither blob */
+	if (*cfg == NULL && c_conn->blob_dither) {
+		*cfg = c_conn->blob_dither->data;
+		dither_sz = c_conn->blob_dither->length;
+	}
+	*len = dither_sz;
+#endif
 	return 0;
 }
 
@@ -678,6 +836,10 @@ static int _sde_connector_update_bl_scale(struct sde_connector *c_conn)
 	int rc = 0;
 	u32 bl_scale, bl_scale_sv;
 
+#ifdef OPLUS_BUG_STABILITY
+	struct backlight_device *bd;
+#endif /* OPLUS_BUG_STABILITY */
+
 	if (!c_conn) {
 		SDE_ERROR("Invalid params sde_connector null\n");
 		return -EINVAL;
@@ -696,9 +858,21 @@ static int _sde_connector_update_bl_scale(struct sde_connector *c_conn)
 				((dsi_display) ? dsi_display->panel : NULL));
 			return -EINVAL;
 		}
+#ifdef OPLUS_BUG_STABILITY
+		bd = c_conn->bl_device;
+		if (!bd) {
+			SDE_ERROR("Invalid params backlight_device null\n");
+			return -EINVAL;
+		}
+
+		mutex_lock(&bd->update_lock);
+#endif /* OPLUS_BUG_STABILITY */
 		dsi_bl_config = &dsi_display->panel->bl_config;
 		if (!c_conn->allow_bl_update) {
 			c_conn->unset_bl_level = dsi_bl_config->bl_level;
+#ifdef OPLUS_BUG_STABILITY
+			mutex_unlock(&bd->update_lock);
+#endif /* OPLUS_BUG_STABILITY */
 			return 0;
 		}
 		dsi_bl_config->bl_scale = bl_scale;
@@ -729,8 +903,19 @@ static int _sde_connector_update_bl_scale(struct sde_connector *c_conn)
 
 	c_conn->unset_bl_level = 0;
 
+#ifdef OPLUS_BUG_STABILITY
+	mutex_unlock(&bd->update_lock);
+#endif /* OPLUS_BUG_STABILITY */
+
 	return rc;
 }
+#ifdef OPLUS_BUG_STABILITY
+int _sde_connector_update_bl_scale_(struct sde_connector *c_conn)
+{
+	return _sde_connector_update_bl_scale(c_conn);
+}
+EXPORT_SYMBOL(_sde_connector_update_bl_scale_);
+#endif
 
 void sde_connector_set_colorspace(struct sde_connector *c_conn)
 {
@@ -837,6 +1022,10 @@ static int _sde_connector_update_dirty_properties(
 			_sde_connector_update_power_locked(c_conn);
 			mutex_unlock(&c_conn->lock);
 			break;
+		case CONNECTOR_PROP_BL_SCALE:
+		case CONNECTOR_PROP_SV_BL_SCALE:
+			_sde_connector_update_bl_scale(c_conn);
+			break;
 		case CONNECTOR_PROP_HDR_METADATA:
 			_sde_connector_update_hdr_metadata(c_conn, c_state);
 			break;
@@ -909,6 +1098,15 @@ int sde_connector_pre_kickoff(struct drm_connector *connector)
 	}
 
 	rc = _sde_connector_update_dirty_properties(connector);
+#ifdef OPLUS_BUG_STABILITY
+	if (c_conn->connector_type == DRM_MODE_CONNECTOR_DSI) {
+		display = (struct dsi_display *)c_conn->display;
+		if (display && display->panel &&
+			is_nonsupport_ramless(display->panel->oplus_priv.vendor_name)) {
+			rc = sde_connector_update_hbm(connector);
+		}
+	}
+#endif /* OPLUS_BUG_STABILITY */
 	if (rc) {
 		SDE_EVT32(connector->base.id, SDE_EVTLOG_ERROR);
 		goto end;
@@ -1682,11 +1880,37 @@ void sde_connector_prepare_fence(struct drm_connector *connector)
 void sde_connector_complete_commit(struct drm_connector *connector,
 		ktime_t ts, enum sde_fence_event fence_event)
 {
+#ifdef OPLUS_FEATURE_AOD_RAMLESS
+	struct sde_connector *c_conn = NULL;
+	struct dsi_display *dsi_display = NULL;
+#endif
 	if (!connector) {
 		SDE_ERROR("invalid connector\n");
 		return;
 	}
+#ifdef OPLUS_FEATURE_AOD_RAMLESS
+	c_conn = to_sde_connector(connector);
 
+	if (!c_conn) {
+		SDE_ERROR("Invalid params sde_connector null\n");
+		return;
+	}
+
+	dsi_display = c_conn->display;
+
+	if (!dsi_display || !dsi_display->panel) {
+		SDE_ERROR("Invalid params dsi_display or panel null\n");
+		return;
+	}
+
+	if (dsi_display->panel->oplus_priv.is_aod_ramless) {
+		if (skip_backlight > 0) {
+			skip_backlight--;
+		} else if (skip_backlight == 0) {
+			sde_backlight_device_update_status(c_conn->bl_device);
+		}
+	}
+#endif
 	/* signal connector's retire fence */
 	sde_fence_signal(to_sde_connector(connector)->retire_fence,
 			ts, fence_event);
@@ -2887,6 +3111,11 @@ static int _sde_connector_install_properties(struct drm_device *dev,
 			      CONNECTOR_PROP_DEMURA_PANEL_ID);
 		}
 	}
+
+#ifdef OPLUS_BUG_STABILITY
+	msm_property_install_range(&c_conn->property_info,"CONNECTOR_CUST",
+		0x0, 0, INT_MAX, 0, CONNECTOR_PROP_CUSTOM);
+#endif
 
 	msm_property_install_range(&c_conn->property_info, "bl_scale",
 		0x0, 0, MAX_BL_SCALE_LEVEL, MAX_BL_SCALE_LEVEL,

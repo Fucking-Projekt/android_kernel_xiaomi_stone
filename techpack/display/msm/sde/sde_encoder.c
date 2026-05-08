@@ -45,6 +45,12 @@
 #include "sde_vm.h"
 #include "dsi_display.h"
 
+#ifdef OPLUS_BUG_STABILITY
+#include "oplus_display_private_api.h"
+#include "oplus_onscreenfingerprint.h"
+#include "oplus_dc_diming.h"
+#endif
+
 #define SDE_DEBUG_ENC(e, fmt, ...) SDE_DEBUG("enc%d " fmt,\
 		(e) ? (e)->base.base.id : -1, ##__VA_ARGS__)
 
@@ -1284,9 +1290,12 @@ static int _sde_encoder_update_rsc_client(
 	 * secondary command mode panel.
 	 * Clone mode encoder can request CLK STATE only.
 	 */
-	if (sde_enc->cur_master)
+	if (sde_enc->cur_master) {
 		qsync_mode = sde_connector_get_qsync_mode(
 				sde_enc->cur_master->connector);
+		sde_enc->autorefresh_solver_disable =
+			_sde_encoder_is_autorefresh_enabled(sde_enc) ? true : false;
+	}
 
 	/* left primary encoder keep vote */
 	if (sde_encoder_in_clone_mode(drm_enc)) {
@@ -1295,7 +1304,8 @@ static int _sde_encoder_update_rsc_client(
 	}
 
 	if ((disp_info->display_type != SDE_CONNECTOR_PRIMARY) ||
-			(disp_info->display_type && qsync_mode))
+			(disp_info->display_type && qsync_mode) ||
+			sde_enc->autorefresh_solver_disable)
 		rsc_state = enable ? SDE_RSC_CLK_STATE : SDE_RSC_IDLE_STATE;
 	else if (sde_encoder_check_curr_mode(drm_enc, MSM_DISPLAY_CMD_MODE))
 		rsc_state = enable ? SDE_RSC_CMD_STATE : SDE_RSC_IDLE_STATE;
@@ -2610,6 +2620,10 @@ static void _sde_encoder_setup_dither(struct sde_encoder_phys *phys)
 	struct msm_display_dsc_info *dsc = NULL;
 	struct sde_encoder_virt *sde_enc;
 	struct sde_hw_pingpong *hw_pp;
+#ifdef OPLUS_BUG_STABILITY
+/* PSW.MM.Display.LCD.Feature,2021-12-22 open platform dither */
+	struct drm_msm_dither dither;
+#endif
 	u32 bpp, bpc;
 	int num_lm;
 
@@ -2651,8 +2665,23 @@ static void _sde_encoder_setup_dither(struct sde_encoder_phys *phys)
 	num_lm = sde_rm_topology_get_num_lm(&sde_kms->rm, topology);
 	for (i = 0; i < num_lm; i++) {
 		hw_pp = sde_enc->hw_pp[i];
+#ifndef OPLUS_BUG_STABILITY
+/* PSW.MM.Display.LCD.Feature,2021-12-22 open platform dither */
 		phys->hw_pp->ops.setup_dither(hw_pp,
 				dither_cfg, len);
+#else
+		if (hw_pp) {
+			if (len == sizeof(dither)) {
+				memcpy(&dither, dither_cfg, len);
+				dither.c0_bitdepth = 6;
+				dither.c1_bitdepth = 6;
+				dither.c2_bitdepth = 6;
+				dither.c3_bitdepth = 6;
+				dither.temporal_en = 1;
+				phys->hw_pp->ops.setup_dither(hw_pp, &dither, len);
+			}
+		}
+#endif
 	}
 }
 
@@ -2913,9 +2942,18 @@ static void sde_encoder_virt_disable(struct drm_encoder *drm_enc)
 
 	SDE_EVT32(DRMID(drm_enc));
 
-	/* wait for idle */
-	if (!sde_encoder_in_clone_mode(drm_enc))
+	if (!sde_encoder_in_clone_mode(drm_enc)) {
+		/* disable autorefresh */
+		for (i = 0; i < sde_enc->num_phys_encs; i++) {
+			struct sde_encoder_phys *phys = sde_enc->phys_encs[i];
+
+			if (phys && phys->ops.disable_autorefresh)
+				phys->ops.disable_autorefresh(phys);
+		}
+
+		/* wait for idle */
 		sde_encoder_wait_for_event(drm_enc, MSM_ENC_TX_COMPLETE);
+	}
 
 	if (sde_enc->input_handler && sde_enc->input_handler_registered &&
 		sde_encoder_check_curr_mode(drm_enc, MSM_DISPLAY_CMD_MODE)) {
@@ -4120,6 +4158,10 @@ int sde_encoder_prepare_for_kickoff(struct drm_encoder *drm_enc,
 	bool needs_hw_reset = false, is_cmd_mode;
 	int i, rc, ret = 0;
 	struct msm_display_info *disp_info;
+#ifdef OPLUS_BUG_STABILITY
+	struct dsi_display *display = NULL;
+	struct sde_connector *c_conn = NULL;
+#endif /* OPLUS_BUG_STABILITY */
 
 	if (!drm_enc || !params || !drm_enc->dev ||
 		!drm_enc->dev->dev_private) {
@@ -4136,6 +4178,21 @@ int sde_encoder_prepare_for_kickoff(struct drm_encoder *drm_enc,
 
 	SDE_DEBUG_ENC(sde_enc, "\n");
 	SDE_EVT32(DRMID(drm_enc));
+
+#ifdef OPLUS_BUG_STABILITY
+	if (sde_enc->cur_master) {
+		sde_connector_update_backlight(sde_enc->cur_master->connector, false);
+
+		c_conn = to_sde_connector(sde_enc->cur_master->connector);
+		if (c_conn) {
+			display = c_conn->display;
+			if (display && display->panel &&
+				(!is_nonsupport_ramless(display->panel->oplus_priv.vendor_name))) {
+				sde_connector_update_hbm(sde_enc->cur_master->connector);
+			}
+		}
+	}
+#endif /* OPLUS_BUG_STABILITY */
 
 	is_cmd_mode = sde_encoder_check_curr_mode(drm_enc,
 				MSM_DISPLAY_CMD_MODE);
@@ -4167,15 +4224,15 @@ int sde_encoder_prepare_for_kickoff(struct drm_encoder *drm_enc,
 
 			if (sde_enc->cur_master &&
 					sde_connector_is_qsync_updated(
-					sde_enc->cur_master->connector)) {
+					sde_enc->cur_master->connector))
 				_helper_flush_qsync(phys);
-
-				if (is_cmd_mode)
-					_sde_encoder_update_rsc_client(drm_enc,
-							true);
-			}
 		}
 	}
+
+	if (is_cmd_mode && sde_enc->cur_master &&
+			 (sde_connector_is_qsync_updated(sde_enc->cur_master->connector) ||
+			 _sde_encoder_is_autorefresh_enabled(sde_enc)))
+		_sde_encoder_update_rsc_client(drm_enc, true);
 
 	rc = sde_encoder_resource_control(drm_enc, SDE_ENC_RC_EVENT_KICKOFF);
 	if (rc) {
@@ -4318,7 +4375,14 @@ void sde_encoder_kickoff(struct drm_encoder *drm_enc, bool is_error,
 		_sde_connector_report_panel_dead(sde_conn, false);
 	}
 
+	if (sde_enc->autorefresh_solver_disable &&
+			!_sde_encoder_is_autorefresh_enabled(sde_enc))
+		_sde_encoder_update_rsc_client(drm_enc, true);
+
 	SDE_ATRACE_END("encoder_kickoff");
+#ifdef OPLUS_BUG_STABILITY
+	sde_connector_update_backlight(sde_enc->cur_master->connector, true);
+#endif /* OPLUS_BUG_STABILITY */
 }
 
 void sde_encoder_helper_get_pp_line_count(struct drm_encoder *drm_enc,

@@ -136,6 +136,7 @@ struct sde_encoder_virt_ops {
  * @setup_vsync_source:		Configure vsync source selection for cmd mode.
  * @get_underrun_line_count:	Obtain and log current internal vertical line
  *                              count and underrun line count
+ * @disable_autorefresh:	Disable autorefresh
  */
 
 struct sde_encoder_phys_ops {
@@ -189,6 +190,7 @@ struct sde_encoder_phys_ops {
 	void (*setup_vsync_source)(struct sde_encoder_phys *phys,
 			u32 vsync_source, bool is_dummy);
 	u32 (*get_underrun_line_count)(struct sde_encoder_phys *phys);
+	void (*disable_autorefresh)(struct sde_encoder_phys *phys);
 };
 
 /**
@@ -276,6 +278,7 @@ struct sde_encoder_irq {
  * @enc_spinlock:	Virtual-Encoder-Wide Spin Lock for IRQ purposes
  * @enable_state:	Enable state tracking
  * @vblank_refcount:	Reference count of vblank request
+ * @vblank_cached_refcount:	Reference count of vblank cached request
  * @wbirq_refcount:	Reference count of wb irq request
  * @vsync_cnt:		Vsync count for the physical encoder
  * @underrun_cnt:	Underrun count for the physical encoder
@@ -325,6 +328,7 @@ struct sde_encoder_phys {
 	enum sde_enc_enable_state enable_state;
 	struct mutex *vblank_ctl_lock;
 	atomic_t vblank_refcount;
+	atomic_t vblank_cached_refcount;
 	atomic_t wbirq_refcount;
 	atomic_t vsync_cnt;
 	atomic_t underrun_cnt;

@@ -11,6 +11,12 @@
 
 struct sde_rot_mgr;
 
+//#ifdef OPLUS_BUG_STABILITY
+#ifndef CONFIG_DEBUG_FS
+#define CONFIG_DEBUG_FS
+#endif
+//#endif /* OPLUS_BUG_STABILITY */
+
 #if defined(CONFIG_DEBUG_FS)
 int sde_rotator_r3_create_debugfs(struct sde_rot_mgr *mgr,
 		struct dentry *debugfs_root);

@@ -18,6 +18,15 @@
 #include "msm_drv.h"
 #include "msm_mmu.h"
 
+#ifdef OPLUS_BUG_STABILITY
+#ifdef CONFIG_OPLUS_FEATURE_MM_FEEDBACK
+#include <soc/oplus/system/oplus_mm_kevent_fb.h>
+#endif /* CONFIG_OPLUS_FEATURE_MM_FEEDBACK */
+#endif /* OPLUS_BUG_STABILITY */
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_THEIA)
+#include <soc/oplus/system/theia_send_event.h>
+#endif
+
 struct msm_iommu {
 	struct msm_mmu base;
 	struct iommu_domain *domain;
@@ -31,6 +40,16 @@ static int msm_fault_handler(struct iommu_domain *domain, struct device *dev,
 	if (iommu->base.handler)
 		return iommu->base.handler(iommu->base.arg, iova, flags);
 	pr_warn_ratelimited("*** fault: iova=%08lx, flags=%d\n", iova, flags);
+
+#ifdef OPLUS_BUG_STABILITY
+#ifdef CONFIG_OPLUS_FEATURE_MM_FEEDBACK
+	mm_fb_display_kevent("DisplayDriverID@@404$$", MM_FB_KEY_RATELIMIT_1H, "SMMU msm fault iova=%08lx flags=%d", iova, flags);
+#endif /* CONFIG_OPLUS_FEATURE_MM_FEEDBACK */
+ #endif /*OPLUS_BUG_STABILITY*/
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_THEIA)
+	theia_send_event(THEIA_EVENT_PTR_TIMEOUT_HANG, THEIA_LOGINFO_KERNEL_LOG, current->pid, "SMMU msm fault");
+#endif
+
 	return 0;
 }
 

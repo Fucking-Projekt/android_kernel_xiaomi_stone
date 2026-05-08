@@ -4059,6 +4059,10 @@ static void _dspp_igcv4_off(struct sde_hw_dspp *ctx, void *cfg)
 	_perform_sbdma_kickoff(ctx, hw_cfg, dma_ops, blk, IGC);
 }
 
+#ifdef OPLUS_BUG_STABILITY
+extern oplus_dither_enable;
+#endif
+
 void reg_dmav2_setup_dspp_igcv4(struct sde_hw_dspp *ctx, void *cfg)
 {
 	struct drm_msm_igc_lut *lut_cfg;
@@ -4150,10 +4154,25 @@ void reg_dmav2_setup_dspp_igcv4(struct sde_hw_dspp *ctx, void *cfg)
 	}
 
 	reg = BIT(8);
+
+#ifdef OPLUS_BUG_STABILITY
+	if(oplus_dither_enable) {
+		lut_cfg->strength = 4;
+		reg |= BIT(4);
+		reg |= (lut_cfg->strength & IGC_DITHER_DATA_MASK);
+	} else {
+		if (lut_cfg->flags & IGC_DITHER_ENABLE) {
+			reg |= BIT(4);
+			reg |= (lut_cfg->strength & IGC_DITHER_DATA_MASK);
+		}
+	}
+#else
 	if (lut_cfg->flags & IGC_DITHER_ENABLE) {
 		reg |= BIT(4);
 		reg |= (lut_cfg->strength & IGC_DITHER_DATA_MASK);
 	}
+#endif
+
 
 	REG_DMA_SETUP_OPS(dma_write_cfg, ctx->cap->sblk->igc.base + 0x4,
 			&reg, sizeof(reg), REG_SINGLE_WRITE, 0, 0, 0);

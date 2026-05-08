@@ -3,8 +3,13 @@ ccflags-y := -I$(srctree)/include/drm -I$(srctree)/techpack/display/msm -I$(srct
 ccflags-y += -I$(srctree)/techpack/display/msm/sde
 ccflags-y += -I$(srctree)/techpack/display/rotator
 ccflags-y += -I$(srctree)/techpack/display/hdcp
+ccflags-y += -I$(srctree)/techpack/display/oplus
 ccflags-y += -I$(srctree)/drivers/clk/qcom/
 ccflags-y += -I$(srctree)/techpack/display/msm/mi_disp
+ccflags-y += -DOPLUS_BUG_STABILITY
+ccflags-y += -DOPLUS_BUG_COMPATIBILITY
+ccflags-y += -DOPLUS_FEATURE_TP_BASIC
+ccflags-y += -DOPLUS_FEATURE_AOD_RAMLESS
 
 msm_drm-$(CONFIG_DRM_MSM_DP) += dp/dp_altmode.o \
 	dp/dp_parser.o \
@@ -143,6 +148,24 @@ msm_drm-$(CONFIG_DRM_MSM) += \
 	msm_cooling_device.o \
 	msm_prop.o
 
+#ifdef OPLUS_BUG_STABILITY
+###########################################################################################
+#build oplus so
+msm_drm-$(CONFIG_DRM_OPLUS) += ../oplus/oplus_dsi_support.o \
+	../oplus/oplus_display_private_api.o \
+	../oplus/oplus_dc_diming.o \
+	../oplus/oplus_onscreenfingerprint.o \
+	../oplus/oplus_aod.o \
+	../oplus/oplus_ffl.o \
+	../oplus/oplus_display_panel.o \
+	../oplus/oplus_display_panel_power.o \
+	../oplus/oplus_display_panel_seed.o \
+	../oplus/oplus_display_panel_cabc.o \
+	../oplus/oplus_display_panel_common.o \
+	../oplus/oplus_display_panel_hbm.o \
+	../oplus/leds-sm5109c.o
+#endif /*OPLUS_BUG_STABILITY*/
+
 msm_drm-$(CONFIG_HDCP_QSEECOM) += ../hdcp/msm_hdcp.o \
 
 msm_drm-$(CONFIG_MSM_SDE_ROTATOR) += ../rotator/sde_rotator_dev.o \
@@ -165,6 +188,14 @@ msm_drm-$(CONFIG_MSM_SDE_ROTATOR) += ../rotator/sde_rotator_dev.o \
 msm_drm-$(CONFIG_DRM_MSM) += \
 	mi_disp/mi_dsi_display.o \
 
+#ifdef OPLUS_BUG_STABILITY
+oplus_notify-$(CONFIG_DRM_OPLUS_NOTIFY) += ../oplus/oplus_notify.o
+#endif /*OPLUS_BUG_STABILITY*/
+
 obj-$(CONFIG_DISPLAY_BUILD)	+= msm_drm.o
+
+#ifdef OPLUS_BUG_STABILITY
+obj-$(CONFIG_DRM_OPLUS_NOTIFY) += oplus_notify.o
+#endif /*OPLUS_BUG_STABILITY*/
 
 obj-$(CONFIG_DRM_FBDEV_EMULATION) += msm_fbdev.o

@@ -52,6 +52,15 @@
 #include "sde_wb.h"
 #include "sde_dbg.h"
 #include "sde/sde_encoder.h"
+#ifdef OPLUS_BUG_STABILITY
+#include <soc/oplus/system/oplus_project.h>
+#endif
+
+#if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_SCHED_ASSIST)
+#ifdef CONFIG_OPLUS_CRTC_COMMIT_MUTEX_OPT
+#include <linux/sched_assist/sched_assist_common.h>
+#endif
+#endif /* defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_SCHED_ASSIST) */
 
 /*
  * MSM driver version:
@@ -89,6 +98,12 @@
 	} while (0)
 
 static DEFINE_MUTEX(msm_release_lock);
+
+
+#ifdef OPLUS_BUG_STABILITY
+extern int __init lcd_bias_init(void);
+extern void __exit lcd_bias_exit(void);
+#endif
 
 static void msm_fb_output_poll_changed(struct drm_device *dev)
 {
@@ -636,6 +651,20 @@ static int msm_drm_display_thread_create(struct sched_param param,
 			dev_err(dev, "failed to create crtc_commit kthread\n");
 			priv->disp_thread[i].thread = NULL;
 		}
+
+#if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_SCHED_ASSIST)
+#ifdef CONFIG_OPLUS_CRTC_COMMIT_MUTEX_OPT
+		/*
+		 * These crtc_commit core RT threads compete with CFS
+		 * thread for mutex lock and is blocked by CFS thread.
+		 * Which is a wrong usage from the scheduling point of
+		 * view, but driver side cannot be optimized in time.
+		 * So, it is optimized by using UX's mutex inheritance.
+		 */
+		if (priv->disp_thread[i].thread)
+			set_heavy_ux(priv->disp_thread[i].thread);
+#endif
+#endif /* defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_SCHED_ASSIST) */
 
 		/* initialize event thread */
 		priv->event_thread[i].crtc_id = priv->crtcs[i]->base.id;
@@ -2437,6 +2466,16 @@ static int __init msm_drm_register(void)
 	msm_edp_register();
 	msm_hdmi_register();
 	sde_wb_register();
+#ifdef OPLUS_BUG_STABILITY
+	if(is_project(22667) || is_project(22668) || is_project(22601) || is_project(22602) \
+	|| is_project(21653) || is_project(21654) || is_project(21746) || is_project(0x2174A) \
+	|| is_project(21707) || is_project(21708) || is_project(0x216E9) || is_project(0x216EA) \
+	|| is_project(21629) || is_project(0x2162B) || is_project(21341) || is_project(21141) || is_project(21039) \
+	|| is_project(22821) || is_project(22871) || is_project(22872) || is_project(22873) \
+	|| is_project(22874) || is_project(22045) || is_project(22247) || is_project(22248)) {
+		lcd_bias_init();
+	}
+#endif
 	return platform_driver_register(&msm_platform_driver);
 }
 
@@ -2444,6 +2483,16 @@ static void __exit msm_drm_unregister(void)
 {
 	DBG("fini");
 	platform_driver_unregister(&msm_platform_driver);
+#ifdef OPLUS_BUG_STABILITY
+	if(is_project(22667) || is_project(22668) || is_project(22601) || is_project(22602) \
+	|| is_project(21653) || is_project(21654) || is_project(21746) || is_project(0x2174A) \
+	|| is_project(21707) || is_project(21708) || is_project(0x216E9) || is_project(0x216EA) \
+	|| is_project(21629) || is_project(0x2162B) || is_project(21341) || is_project(21141) || is_project(21039) \
+	|| is_project(22821) || is_project(22871) || is_project(22872) || is_project(22873) \
+	|| is_project(22874) || is_project(22045) || is_project(22247) || is_project(22248)) {
+		lcd_bias_exit();
+	}
+#endif
 	sde_wb_unregister();
 	msm_hdmi_unregister();
 	msm_edp_unregister();

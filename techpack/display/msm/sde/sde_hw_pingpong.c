@@ -12,6 +12,10 @@
 #include "sde_dbg.h"
 #include "sde_kms.h"
 
+#ifdef OPLUS_BUG_STABILITY
+#include "oplus_dsi_support.h"
+#endif /* OPLUS_BUG_STABILITY */
+
 #define PP_TEAR_CHECK_EN                0x000
 #define PP_SYNC_CONFIG_VSYNC            0x004
 #define PP_SYNC_CONFIG_HEIGHT           0x008
@@ -160,6 +164,9 @@ static struct sde_pingpong_cfg *_pingpong_offset(enum sde_pingpong pp,
 	return ERR_PTR(-EINVAL);
 }
 
+#ifdef OPLUS_BUG_STABILITY
+extern int oplus_request_power_status;
+#endif /*OPLUS_BUG_STABILITY*/
 static int sde_hw_pp_setup_te_config(struct sde_hw_pingpong *pp,
 		struct sde_hw_tear_check *te)
 {
@@ -174,7 +181,18 @@ static int sde_hw_pp_setup_te_config(struct sde_hw_pingpong *pp,
 	if (te->hw_vsync_mode)
 		cfg |= BIT(20);
 
+#ifdef OPLUS_BUG_STABILITY
+	{
+		int temp_vclks_line = te->vsync_count;
+
+		if((oplus_request_power_status == OPLUS_DISPLAY_POWER_DOZE) || (oplus_request_power_status == OPLUS_DISPLAY_POWER_DOZE_SUSPEND)) {
+			temp_vclks_line = temp_vclks_line * 60 * 100 / 3000;
+		}
+		cfg |= temp_vclks_line;
+	}
+#else /*OPLUS_BUG_STABILITY*/
 	cfg |= te->vsync_count;
+#endif /*OPLUS_BUG_STABILITY*/
 
 	SDE_REG_WRITE(c, PP_SYNC_CONFIG_VSYNC, cfg);
 	SDE_REG_WRITE(c, PP_SYNC_CONFIG_HEIGHT, te->sync_cfg_height);
@@ -362,11 +380,16 @@ static int sde_hw_pp_setup_dither(struct sde_hw_pingpong *pp,
 		SDE_REG_WRITE(c, base + offset, data);
 	}
 
+#ifndef OPLUS_BUG_STABILITY
+/* PSW.MM.Display.LCD.Feature,2021-12-22 open platform dither */
 	if (test_bit(SDE_PINGPONG_DITHER_LUMA, &pp->caps->features)
 				&& (dither->flags & DITHER_LUMA_MODE))
 		SDE_REG_WRITE(c, base, 0x11);
 	else
 		SDE_REG_WRITE(c, base, 1);
+#else
+	SDE_REG_WRITE(c, base, 0x11);
+#endif
 
 	return 0;
 }

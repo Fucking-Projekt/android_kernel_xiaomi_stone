@@ -469,6 +469,12 @@ struct sde_crtc_state {
 #ifdef CONFIG_DRM_SDE_EXPO
 	struct sde_hw_dim_layer *exposure_dim_layer;
 #endif
+#ifdef OPLUS_BUG_STABILITY
+	bool fingerprint_mode;
+	bool fingerprint_pressed;
+	bool fingerprint_defer_sync;
+	struct sde_hw_dim_layer *fingerprint_dim_layer;
+#endif
 };
 
 enum sde_crtc_irq_state {
@@ -920,6 +926,10 @@ void sde_crtc_misr_setup(struct drm_crtc *crtc, bool enable, u32 frame_count);
  */
 void sde_crtc_get_misr_info(struct drm_crtc *crtc,
 		struct sde_crtc_misr_info *crtc_misr_info);
+
+#ifdef OPLUS_BUG_STABILITY
+struct sde_kms *_sde_crtc_get_kms_(struct drm_crtc *crtc);
+#endif
 
 /**
  * sde_crtc_set_bpp - set src and target bpp values

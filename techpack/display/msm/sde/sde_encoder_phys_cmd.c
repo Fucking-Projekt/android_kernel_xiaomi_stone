@@ -10,6 +10,14 @@
 #include "sde_core_irq.h"
 #include "sde_formats.h"
 #include "sde_trace.h"
+#ifdef OPLUS_BUG_STABILITY
+#ifdef CONFIG_OPLUS_FEATURE_MM_FEEDBACK
+#include <soc/oplus/system/oplus_mm_kevent_fb.h>
+#endif /* CONFIG_OPLUS_FEATURE_MM_FEEDBACK */
+#endif /*OPLUS_BUG_STABILITY*/
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_THEIA)
+#include <soc/oplus/system/theia_send_event.h> /* for theia_send_event etc */
+#endif
 
 #define SDE_DEBUG_CMDENC(e, fmt, ...) SDE_DEBUG("enc%d intf%d " fmt, \
 		(e) && (e)->base.parent ? \
@@ -517,6 +525,14 @@ static int _sde_encoder_phys_cmd_handle_ppdone_timeout(
 				phys_enc->hw_ctl->idx - CTL_0,
 				pending_kickoff_cnt);
 
+#ifdef OPLUS_BUG_STABILITY
+#ifdef CONFIG_OPLUS_FEATURE_MM_FEEDBACK
+		mm_fb_display_kevent("DisplayDriverID@@409$$", MM_FB_KEY_RATELIMIT_NONE, "ppdone timeout failed pp:%d kickoff timeout", phys_enc->hw_pp->idx - PINGPONG_0);
+#endif /*CONFIG_OPLUS_FEATURE_MM_FEEDBACK*/
+#endif /* OPLUS_BUG_STABILITY */
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_THEIA)
+		theia_send_event(THEIA_EVENT_PTR_TIMEOUT_HANG, THEIA_LOGINFO_KERNEL_LOG, current->pid, "wr_ptr_irq timeout failed");
+#endif
 		SDE_EVT32(DRMID(phys_enc->parent), SDE_EVTLOG_FATAL);
 		mutex_lock(phys_enc->vblank_ctl_lock);
 		sde_encoder_helper_unregister_irq(phys_enc, INTR_IDX_RDPTR);
@@ -1200,10 +1216,7 @@ static bool sde_encoder_phys_cmd_is_autorefresh_enabled(
 		ret = hw_pp->ops.get_autorefresh(hw_pp, &cfg);
 	}
 
-	if (ret)
-		return false;
-
-	return cfg.enable;
+	return ret ? false : cfg.enable;
 }
 
 static void sde_encoder_phys_cmd_connect_te(
@@ -1321,7 +1334,7 @@ static void sde_encoder_phys_cmd_disable(struct sde_encoder_phys *phys_enc)
 		if (sde_encoder_phys_cmd_is_master(phys_enc))
 			sde_encoder_helper_phys_disable(phys_enc, NULL);
 	}
-
+	memset(&cmd_enc->autorefresh.cfg, 0, sizeof(struct sde_hw_autorefresh));
 	phys_enc->enable_state = SDE_ENC_DISABLED;
 }
 
@@ -1610,6 +1623,12 @@ static int _sde_encoder_phys_cmd_handle_wr_ptr_timeout(
 			"wr_ptr_irq wait failed, switch_te:%d\n", switch_te);
 		SDE_EVT32(DRMID(phys_enc->parent), switch_te, SDE_EVTLOG_ERROR);
 
+#ifdef OPLUS_BUG_STABILITY
+#ifdef CONFIG_OPLUS_FEATURE_MM_FEEDBACK
+		mm_fb_display_kevent("DisplayDriverID@@418$$", MM_FB_KEY_RATELIMIT_30MIN, "wr_ptr_irq timeout failed switch_te:%d", switch_te);
+#endif /*CONFIG_OPLUS_FEATURE_MM_FEEDBACK*/
+#endif
+
 		if (sde_encoder_phys_cmd_is_master(phys_enc) &&
 			atomic_add_unless(
 			&phys_enc->pending_retire_fence_cnt, -1, 0)) {
@@ -1864,23 +1883,19 @@ static void _sde_encoder_autorefresh_disable_seq2(
 	}
 }
 
-static void sde_encoder_phys_cmd_prepare_commit(
-		struct sde_encoder_phys *phys_enc)
+static void _sde_encoder_phys_disable_autorefresh(struct sde_encoder_phys *phys_enc)
 {
 	struct sde_encoder_phys_cmd *cmd_enc =
 		to_sde_encoder_phys_cmd(phys_enc);
 
-	if (!phys_enc)
+	if (!phys_enc || !sde_encoder_phys_cmd_is_master(phys_enc))
 		return;
 
-	if (!sde_encoder_phys_cmd_is_master(phys_enc))
+	if (!sde_encoder_phys_cmd_is_autorefresh_enabled(phys_enc))
 		return;
 
 	SDE_EVT32(DRMID(phys_enc->parent), phys_enc->intf_idx - INTF_0,
 			cmd_enc->autorefresh.cfg.enable);
-
-	if (!sde_encoder_phys_cmd_is_autorefresh_enabled(phys_enc))
-		return;
 
 	sde_encoder_phys_cmd_connect_te(phys_enc, false);
 	_sde_encoder_autorefresh_disable_seq1(phys_enc);
@@ -1888,6 +1903,11 @@ static void sde_encoder_phys_cmd_prepare_commit(
 	sde_encoder_phys_cmd_connect_te(phys_enc, true);
 
 	SDE_DEBUG_CMDENC(cmd_enc, "autorefresh disabled successfully\n");
+}
+
+static void sde_encoder_phys_cmd_prepare_commit(struct sde_encoder_phys *phys_enc)
+{
+	return _sde_encoder_phys_disable_autorefresh(phys_enc);
 }
 
 static void sde_encoder_phys_cmd_trigger_start(
@@ -1983,6 +2003,7 @@ static void sde_encoder_phys_cmd_init_ops(struct sde_encoder_phys_ops *ops)
 	ops->setup_vsync_source = sde_encoder_phys_cmd_setup_vsync_source;
 	ops->setup_misr = sde_encoder_helper_setup_misr;
 	ops->collect_misr = sde_encoder_helper_collect_misr;
+	ops->disable_autorefresh = _sde_encoder_phys_disable_autorefresh;
 }
 
 static inline bool sde_encoder_phys_cmd_intf_te_supported(
