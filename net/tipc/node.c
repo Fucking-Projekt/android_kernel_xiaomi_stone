@@ -725,9 +725,9 @@ static void tipc_node_timeout(struct timer_list *t)
 	/* Initial node interval to value larger (10 seconds), then it will be
 	 * recalculated with link lowest tolerance
 	 */
-	tipc_node_read_lock(n);
+	tipc_node_write_lock(n);
 	n->keepalive_intv = 10000;
-	tipc_node_read_unlock(n);
+	tipc_node_write_unlock_fast(n);
 	for (bearer_id = 0; remains && (bearer_id < MAX_BEARERS); bearer_id++) {
 		tipc_node_read_lock(n);
 		le = &n->links[bearer_id];
