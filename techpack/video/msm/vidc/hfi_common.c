@@ -4018,7 +4018,7 @@ static void __unload_fw(struct venus_hfi_device *device)
 	if (!device->resources.fw.cookie)
 		return;
 
-	cancel_delayed_work(&venus_hfi_pm_work);
+	cancel_delayed_work_sync(&venus_hfi_pm_work);
 	if (device->state != VENUS_STATE_DEINIT)
 		flush_workqueue(device->venus_pm_workq);
 
