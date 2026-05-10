@@ -933,14 +933,14 @@ wakeup:
 	 * the fault_*wqh.
 	 */
 	spin_lock_irq(&ctx->fault_pending_wqh.lock);
-	__wake_up_locked_key(&ctx->fault_pending_wqh, TASK_NORMAL, &range);
-	__wake_up(&ctx->fault_wqh, TASK_NORMAL, 1, &range);
+	wake_up_all_locked(&ctx->fault_pending_wqh);
+	__wake_up(&ctx->fault_wqh, TASK_NORMAL, 0, &range);
 	spin_unlock_irq(&ctx->fault_pending_wqh.lock);
 
 	/* Flush pending events that may still wait on event_wqh */
 	wake_up_all(&ctx->event_wqh);
 
-	wake_up_poll(&ctx->fd_wqh, EPOLLHUP);
+	__wake_up(&ctx->fd_wqh, TASK_NORMAL, 0, poll_to_key(EPOLLHUP));
 	userfaultfd_ctx_put(ctx);
 	return 0;
 }
@@ -1020,8 +1020,9 @@ static int resolve_userfault_fork(struct userfaultfd_ctx *new,
 {
 	int fd;
 
-	fd = anon_inode_getfd_secure("[userfaultfd]", &userfaultfd_fops, new,
-			O_RDONLY | (new->flags & UFFD_SHARED_FCNTL_FLAGS), inode);
+	fd = anon_inode_getfd("[userfaultfd]", &userfaultfd_fops, new,
+			O_RDONLY | (new->flags & UFFD_SHARED_FCNTL_FLAGS));
+
 	if (fd < 0)
 		return fd;
 
@@ -1232,10 +1233,9 @@ static void __wake_userfault(struct userfaultfd_ctx *ctx,
 	spin_lock_irq(&ctx->fault_pending_wqh.lock);
 	/* wake all in the range and autoremove */
 	if (waitqueue_active(&ctx->fault_pending_wqh))
-		__wake_up_locked_key(&ctx->fault_pending_wqh, TASK_NORMAL,
-				     range);
+		wake_up_all_locked(&ctx->fault_pending_wqh);
 	if (waitqueue_active(&ctx->fault_wqh))
-		__wake_up(&ctx->fault_wqh, TASK_NORMAL, 1, range);
+		__wake_up(&ctx->fault_wqh, TASK_NORMAL, 0, range);
 	spin_unlock_irq(&ctx->fault_pending_wqh.lock);
 }
 
@@ -2069,8 +2069,8 @@ SYSCALL_DEFINE1(userfaultfd, int, flags)
 	/* prevent the mm struct to be freed */
 	mmgrab(ctx->mm);
 
-	fd = anon_inode_getfd_secure("[userfaultfd]", &userfaultfd_fops, ctx,
-			O_RDONLY | (flags & UFFD_SHARED_FCNTL_FLAGS), NULL);
+	fd = anon_inode_getfd("[userfaultfd]", &userfaultfd_fops, ctx,
+			O_RDONLY | (flags & UFFD_SHARED_FCNTL_FLAGS));
 	if (fd < 0) {
 		mmdrop(ctx->mm);
 		kmem_cache_free(userfaultfd_ctx_cachep, ctx);
