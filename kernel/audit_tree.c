@@ -702,9 +702,11 @@ void audit_trim_trees(void)
 		spin_lock(&hash_lock);
 		list_for_each_entry(node, &tree->chunks, list) {
 			struct audit_chunk *chunk = find_chunk(node);
+			struct path *p;
+
 			/* this could be NULL if the watch is dying else where... */
 			node->index |= 1U<<31;
-			for (struct path *p = paths; p->dentry; p++) {
+			for (p = paths; p->dentry; p++) {
 				struct inode *inode = p->dentry->d_inode;
 				if (inode_to_key(inode) == chunk->key) {
 					node->index &= ~(1U<<31);
@@ -744,7 +746,8 @@ void audit_put_tree(struct audit_tree *tree)
 
 static int tag_mounts(struct path *paths, struct audit_tree *tree)
 {
-	for (struct path *p = paths; p->dentry; p++) {
+	struct path *p;
+	for (p = paths; p->dentry; p++) {
 		int err = tag_chunk(p->dentry->d_inode, tree);
 		if (err)
 			return err;
