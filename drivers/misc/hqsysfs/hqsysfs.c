@@ -22,26 +22,26 @@
 
 static HW_INFO(HWID_VER, ver);
 static HW_INFO(HWID_SUMMARY, hw_summary);
-static HW_INFO(HWID_DDR, ram);
-static HW_INFO(HWID_EMMC, emmc);
+// static HW_INFO(HWID_DDR, ram);
+// static HW_INFO(HWID_EMMC, emmc);
 static HW_INFO(HWID_LCM, lcm);
 //static HW_INFO(HWID_BIAS_IC,lcm_bias_ic);
-static HW_INFO(HWID_CTP, ctp);
-static HW_INFO(HWID_SUB_CAM, sub_cam);      //sub
-static HW_INFO(HWID_SUB_CAM_2, main0_cam);  //main0
-static HW_INFO(HWID_MAIN_CAM, main1_cam);  //main1
-static HW_INFO(HWID_MAIN_CAM_2, main2_cam);  //main2
-static HW_INFO(HWID_MAIN_CAM_3, main3_cam);  //main3
-static HW_INFO(HWID_MAIN_LENS, main_cam_len);
-static HW_INFO(HWID_FLASHLIGHT, flashlight);
-static HW_INFO(HWID_GSENSOR, gsensor);
-static HW_INFO(HWID_ALSPS, alsps);
-static HW_INFO(HWID_MSENSOR, msensor);
-static HW_INFO(HWID_GYRO, gyro);
-static HW_INFO(HWID_IRDA, irda);
-static HW_INFO(HWID_FUEL_GAUGE_IC, fuel_gauge_ic);
-static HW_INFO(HWID_NFC, nfc);
-static HW_INFO(HWID_FP, fingerprint);
+// static HW_INFO(HWID_CTP, ctp);
+// static HW_INFO(HWID_SUB_CAM, sub_cam);      //sub
+// static HW_INFO(HWID_SUB_CAM_2, main0_cam);  //main0
+// static HW_INFO(HWID_MAIN_CAM, main1_cam);  //main1
+// static HW_INFO(HWID_MAIN_CAM_2, main2_cam);  //main2
+// static HW_INFO(HWID_MAIN_CAM_3, main3_cam);  //main3
+// static HW_INFO(HWID_MAIN_LENS, main_cam_len);
+// static HW_INFO(HWID_FLASHLIGHT, flashlight);
+// static HW_INFO(HWID_GSENSOR, gsensor);
+// static HW_INFO(HWID_ALSPS, alsps);
+// static HW_INFO(HWID_MSENSOR, msensor);
+// static HW_INFO(HWID_GYRO, gyro);
+// static HW_INFO(HWID_IRDA, irda);
+// static HW_INFO(HWID_FUEL_GAUGE_IC, fuel_gauge_ic);
+// static HW_INFO(HWID_NFC, nfc);
+// static HW_INFO(HWID_FP, fingerprint);
 //static HW_INFO(HWID_TEE,tee);
 static HW_INFO(HWID_PCBA, pcba_config);
 
@@ -93,26 +93,26 @@ struct pcba_info pcba[] = {
 static struct attribute *huaqin_attrs[] = {
 	&hw_info_ver.attr,
 	&hw_info_hw_summary.attr,
-	&hw_info_ram.attr,
-	&hw_info_emmc.attr,
+	// &hw_info_ram.attr,
+	// &hw_info_emmc.attr,
 	&hw_info_lcm.attr,
 //	&hw_info_lcm_bias_ic.attr,
-	&hw_info_ctp.attr,
-	&hw_info_sub_cam.attr,
-	&hw_info_main0_cam.attr,
-	&hw_info_main1_cam.attr,
-	&hw_info_main2_cam.attr,
-	&hw_info_main3_cam.attr,
-	&hw_info_main_cam_len.attr,
-	&hw_info_flashlight.attr,
-	&hw_info_gsensor.attr,
-	&hw_info_alsps.attr,
-	&hw_info_msensor.attr,
-	&hw_info_gyro.attr,
-	&hw_info_irda.attr,
-	&hw_info_fuel_gauge_ic.attr,
-	&hw_info_nfc.attr,
-	&hw_info_fingerprint.attr,
+	// &hw_info_ctp.attr,
+	// &hw_info_sub_cam.attr,
+	// &hw_info_main0_cam.attr,
+	// &hw_info_main1_cam.attr,
+	// &hw_info_main2_cam.attr,
+	// &hw_info_main3_cam.attr,
+	// &hw_info_main_cam_len.attr,
+	// &hw_info_flashlight.attr,
+	// &hw_info_gsensor.attr,
+	// &hw_info_alsps.attr,
+	// &hw_info_msensor.attr,
+	// &hw_info_gyro.attr,
+	// &hw_info_irda.attr,
+	// &hw_info_fuel_gauge_ic.attr,
+	// &hw_info_nfc.attr,
+	// &hw_info_fingerprint.attr,
 	&hw_info_pcba_config.attr,
 //	&hw_info_tee.attr,
 	NULL
