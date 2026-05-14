@@ -122,7 +122,6 @@ int wl2866d_camera_power_up(int out_iotype)
 	case OUT_DVDD1:
 		//main ov48b2q
 		mutex_lock(&wl2866d_mutex);
-		pr_err("wl2866d main: wl2866 out put type is [%d]", out_iotype);
 		ret = wl2866d_i2c_write(camera_chip, wl2866d_on_config[OUT_DVDD1].reg, wl2866d_on_config[OUT_DVDD1].value);//bit0
 		if (ret < 0) {
 			mutex_unlock(&wl2866d_mutex);
@@ -137,9 +136,7 @@ int wl2866d_camera_power_up(int out_iotype)
 			break;
 		}
 
-		pr_err("wl2866d before set enable value = 0x%x\n", reg_val);
 		reg_val |= 0b0001;//bit 0
-		pr_err("wl2866d after  set enable value = 0x%x\n", reg_val);
 
 		ret = wl2866d_i2c_write(camera_chip, wl2866d_on_config[VOL_ENABLE].reg, reg_val);//bit0
 		if (ret < 0) {
@@ -147,14 +144,12 @@ int wl2866d_camera_power_up(int out_iotype)
 			pr_err("wl2866d set enable failed\n");
 			break;
 		}
-		pr_err("wl2866d set OUT_DVDD1 success!");
 		mutex_unlock(&wl2866d_mutex);
 		break;
 
 	case OUT_DVDD2:
 		//front ov8856
 		mutex_lock(&wl2866d_mutex);
-		pr_err("wl2866d ov8856: wl2866 out put type is [%d]", out_iotype);
 		ret = wl2866d_i2c_write(camera_chip, wl2866d_on_config[OUT_DVDD2].reg, wl2866d_on_config[OUT_DVDD2].value);//bit1
 		if (ret < 0) {
 			mutex_unlock(&wl2866d_mutex);
@@ -168,9 +163,7 @@ int wl2866d_camera_power_up(int out_iotype)
 			pr_err("xyz wl2866d read enable failed\n");
 			break;
 		}
-		pr_err("wl2866d before set enable value = 0x%x\n", reg_val);
 		reg_val |= 0b0010;//bit1
-		pr_err("wl2866d after  set enable value = 0x%x\n", reg_val);
 
 		ret = wl2866d_i2c_write(camera_chip, wl2866d_on_config[VOL_ENABLE].reg, reg_val);//bit1
 		if (ret < 0) {
@@ -178,14 +171,12 @@ int wl2866d_camera_power_up(int out_iotype)
 			pr_err("wl2866d set enable failed\n");
 			break;
 		}
-		pr_err("wl2866d set OUT_DVDD2 success!");
 		mutex_unlock(&wl2866d_mutex);
 		break;
 
 	case OUT_AVDD1:
 		//main ov48b2q
 		mutex_lock(&wl2866d_mutex);
-		pr_err("wl2866d main: wl2866 out put type is [%d]", out_iotype);
 		ret = wl2866d_i2c_write(camera_chip, wl2866d_on_config[OUT_AVDD1].reg, wl2866d_on_config[OUT_AVDD1].value);//bit2
 		if (ret < 0) {
 			mutex_unlock(&wl2866d_mutex);
@@ -200,9 +191,7 @@ int wl2866d_camera_power_up(int out_iotype)
 			break;
 		}
 
-		pr_err("wl2866d before set enable value = 0x%x\n", reg_val);
 		reg_val |= 0b0100;//bit2
-		pr_err("wl2866d after  set enable value = 0x%x\n", reg_val);
 
 		ret = wl2866d_i2c_write(camera_chip, wl2866d_on_config[VOL_ENABLE].reg, reg_val);//bit2
 		if (ret < 0) {
@@ -210,14 +199,12 @@ int wl2866d_camera_power_up(int out_iotype)
 			pr_err("wl2866d set enable failed\n");
 			break;
 		}
-		pr_err("wl2866d set OUT_AVDD1 success!");
 		mutex_unlock(&wl2866d_mutex);
 		break;
 
 	case OUT_AVDD2:
 		//macro depth front
 		mutex_lock(&wl2866d_mutex);
-		pr_err("wl2866d avdd2 : wl2866 out put type is [%d]", out_iotype);
 		ret = wl2866d_i2c_write(camera_chip, wl2866d_on_config[OUT_AVDD2].reg, wl2866d_on_config[OUT_AVDD2].value);//bit3
 		if (ret < 0) {
 			mutex_unlock(&wl2866d_mutex);
@@ -232,9 +219,7 @@ int wl2866d_camera_power_up(int out_iotype)
 			break;
 		}
 
-		pr_err("wl2866d before set enable value = 0x%x\n", reg_val);
 		reg_val |= 0b1000;//bit3
-		pr_err("wl2866d after  set enable value = 0x%x\n", reg_val);
 
 		ret = wl2866d_i2c_write(camera_chip, wl2866d_on_config[VOL_ENABLE].reg, reg_val);//bit3
 		if (ret < 0) {
@@ -242,14 +227,12 @@ int wl2866d_camera_power_up(int out_iotype)
 			pr_err("wl2866d set enable failed\n");
 			break;
 		}
-		pr_err("wl2866d set OUT_AVDD2 success!");
 		mutex_unlock(&wl2866d_mutex);
 		break;
 	default:
 		pr_err("wl2866d unknown port!!!\n");
 		break;
 	}
-	pr_err("wl2866d ljh 123 result = %d\n", ret);
 	return ret;
 }
 EXPORT_SYMBOL(wl2866d_camera_power_up);
@@ -268,16 +251,13 @@ int wl2866d_camera_power_down(int out_iotype)
 	case OUT_DVDD1:
 		//main ov48b2q
 		mutex_lock(&wl2866d_mutex);
-		pr_err("wl2866d dvdd1: wl2866 out put type is [%d]", out_iotype);
 		ret = wl2866d_i2c_read(camera_chip, wl2866d_on_config[VOL_ENABLE].reg, &reg_val);
 		if (ret < 0) {
 			mutex_unlock(&wl2866d_mutex);
 			pr_err("wl2866d read enable failed\n");
 			break;
 		}
-		pr_err("wl2866d before set enable value = 0x%x\n", reg_val);
 		reg_val &= 0b1110;//bit0
-		pr_err("wl2866d after  set enable value = 0x%x\n", reg_val);
 
 		ret = wl2866d_i2c_write(camera_chip, wl2866d_on_config[VOL_ENABLE].reg, reg_val);//bit1
 		if (ret < 0) {
@@ -285,14 +265,12 @@ int wl2866d_camera_power_down(int out_iotype)
 			pr_err("wl2866d set enable failed\n");
 			break;
 		}
-		pr_err("wl2866d disable dvdd1 success!");
 		mutex_unlock(&wl2866d_mutex);
 		break;
 
 	case OUT_DVDD2:
 		//front ov8856
 		mutex_lock(&wl2866d_mutex);
-		pr_err("wl2866d dvdd2: wl2866 out put type is [%d]", out_iotype);
 		ret = wl2866d_i2c_read(camera_chip, wl2866d_on_config[VOL_ENABLE].reg, &reg_val);
 		if (ret < 0) {
 			mutex_unlock(&wl2866d_mutex);
@@ -300,9 +278,7 @@ int wl2866d_camera_power_down(int out_iotype)
 			break;
 		}
 
-		pr_err("wl2866d before set enable value = 0x%x\n", reg_val);
 		reg_val &= 0b1101;//bit1
-		pr_err("wl2866d after  set enable value = 0x%x\n", reg_val);
 
 		ret = wl2866d_i2c_write(camera_chip, wl2866d_on_config[VOL_ENABLE].reg, reg_val);//bit1
 		if (ret < 0) {
@@ -310,14 +286,12 @@ int wl2866d_camera_power_down(int out_iotype)
 			pr_err("wl2866d set enable failed\n");
 			break;
 		}
-		pr_err("wl2866d disable dvdd2 success!");
 		mutex_unlock(&wl2866d_mutex);
 		break;
 
 	case OUT_AVDD1:
 		//main ov48b2q
 		mutex_lock(&wl2866d_mutex);
-		pr_err("wl2866d avdd1: wl2866 out put type is [%d]", out_iotype);
 		ret = wl2866d_i2c_read(camera_chip, wl2866d_on_config[VOL_ENABLE].reg, &reg_val);
 		if (ret < 0) {
 			mutex_unlock(&wl2866d_mutex);
@@ -325,9 +299,7 @@ int wl2866d_camera_power_down(int out_iotype)
 			break;
 		}
 
-		pr_err("wl2866d before set enable value = 0x%x\n", reg_val);
 		reg_val &= 0b1011;//bit2
-		pr_err("wl2866d after  set enable value = 0x%x\n", reg_val);
 
 		ret = wl2866d_i2c_write(camera_chip, wl2866d_on_config[VOL_ENABLE].reg, reg_val);//bit2
 		if (ret < 0) {
@@ -335,14 +307,12 @@ int wl2866d_camera_power_down(int out_iotype)
 			pr_err("wl2866d set enable failed\n");
 			break;
 		}
-		pr_err("wl2866d disable AVDD1 success!");
 		mutex_unlock(&wl2866d_mutex);
 		break;
 
 	case OUT_AVDD2:
 		//macro depth front
 		mutex_lock(&wl2866d_mutex);
-		pr_err("wl2866d avdd2: wl2866 output iotype is [%d]", out_iotype);
 		ret = wl2866d_i2c_read(camera_chip, wl2866d_on_config[VOL_ENABLE].reg, &reg_val);
 		if (ret < 0) {
 			mutex_unlock(&wl2866d_mutex);
@@ -350,9 +320,7 @@ int wl2866d_camera_power_down(int out_iotype)
 			break;
 		}
 
-		pr_err("wl2866d before set enable value = 0x%x\n", reg_val);
 		reg_val &= 0b0111;//bit3
-		pr_err("wl2866d after  set enable value = 0x%x\n", reg_val);
 
 		ret = wl2866d_i2c_write(camera_chip, wl2866d_on_config[VOL_ENABLE].reg, reg_val);//bit1
 		if (ret < 0) {
@@ -360,14 +328,11 @@ int wl2866d_camera_power_down(int out_iotype)
 			pr_err("wl2866d set enable failed\n");
 			break;
 		}
-		pr_err("wl2866d disable AVDD2 success!");
 		mutex_unlock(&wl2866d_mutex);
 		break;
 	default:
-		pr_err("wl2866d unknown camera!!!\n");
 		break;
 	}
-	pr_err("wl2866d result = %d\n", ret);
 	return ret;
 }
 EXPORT_SYMBOL(wl2866d_camera_power_down);
@@ -562,7 +527,6 @@ static int wl2866d_software_reset(struct  wl2866d_chip *chip)
 	int i ;
 	for(i=0; i<WL2866D_RESET_CONFIG_NUM; i++){
 		wl2866d_i2c_read(chip, wl2866d_reset_config[i].reg, &reg_val);
-		pr_err("%s:before reseting wl2866d registor %x is %x\n", __func__, wl2866d_reset_config[i].reg, reg_val);
 	}
 	for(i=0; i<WL2866D_RESET_CONFIG_NUM; i++){
 		ret = wl2866d_i2c_write(chip, wl2866d_reset_config[i].reg, wl2866d_reset_config[i].value);
@@ -573,7 +537,6 @@ static int wl2866d_software_reset(struct  wl2866d_chip *chip)
 	}
 	for(i=0; i<WL2866D_RESET_CONFIG_NUM; i++){
 		wl2866d_i2c_read(chip, wl2866d_reset_config[i].reg, &reg_val);
-		pr_err("%s:after reseting wl2866d registor %x is %x\n", __func__, wl2866d_reset_config[i].reg, reg_val);
 	}
 	return 0;
 }
@@ -584,7 +547,6 @@ static int wl2866d_get_id(struct  wl2866d_chip *chip)
 	int ret = 0;
 
 	wl2866d_i2c_read(chip, wl2866d_on_config[OUT_DVDD1].reg, &reg_val);
-	pr_err("%s:wl2866d id is %d\n", __func__, reg_val);
 
 	if ((reg_val != WL2866D_ID) && (reg_val != WL2866D_ID1)) {
 		ret = -1;
@@ -653,7 +615,6 @@ void wl2866d_print_reg(struct  wl2866d_chip *chip)
 
 	for (i = 0 ; i < ARRAY_SIZE(wl2866d_on_config); i++) {
 		wl2866d_i2c_read(chip, wl2866d_on_config[i].reg, &reg_val);
-		pr_err("%s:wl2866d info is reg %d, value %d\n", __func__, wl2866d_on_config[i].reg, reg_val);
 	}
 
 }
