@@ -529,11 +529,6 @@ config LDO_WL2866D
 	help
 	  This option enables multi ldo wl2866d
 
-config SIMTRAY_STATUS
-	tristate "Xiaomi SIM tray status"
-	default n
-	help
-	  Say 'y' here to support SIM tray GPIO detection
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
