@@ -1438,9 +1438,13 @@ static int fts_tp_lock_down_info_show(struct seq_file *m, void *data)
 {
 	struct fts_ts_data *ts_data = fts_data;
 	//read lockdown info
+#if FTS_ESDCHECK_EN
 	fts_esdcheck_switch(ts_data, DISABLE);
+#endif
 	lct_get_lockdown_info();
+#if FTS_ESDCHECK_EN
 	fts_esdcheck_switch(ts_data, ENABLE);
+#endif
 	seq_printf(m, "%s\n", fts_data->fts_lockdowninfo);
 	return 0;
 }
