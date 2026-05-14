@@ -27,10 +27,3 @@
 &sdhc_2 {
 	cd-gpios = <&tlmm 94 GPIO_ACTIVE_HIGH>;
 };
-
-&soc {
-	simtray {
-		compatible = "xiaomi,simtray-status";
-		status-gpio = <&tlmm 94 GPIO_ACTIVE_HIGH>;
-	};
-};
