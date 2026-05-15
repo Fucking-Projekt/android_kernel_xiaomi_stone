@@ -513,21 +513,7 @@ static int bq25890_read(struct bq25890_device *bq, u8 reg, u8 *data)
 
 static void bq25890_dump_register(struct bq25890_device *bq)
 {
-	int i, ret, len, idx = 0;
-	u8 reg_val;
-	char buf[512];
-
-	memset(buf, '\0', sizeof(buf));
-	for (i = 0; i < BQ25890_REG_NUM; i++) {
-		ret = bq25890_read(bq, i, &reg_val);
-		if (ret == 0) {
-			len = snprintf(buf + idx, sizeof(buf) - idx,
-				       "[REG_0x%.2x]=0x%.2x; ", i, reg_val);
-			idx += len;
-		}
-	}
-
-	dev_err(bq->dev, "%s: %s", __func__, buf);
+	
 }
 
 int bq25890_charging_term_en(int val)
