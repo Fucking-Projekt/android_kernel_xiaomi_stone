@@ -59,7 +59,7 @@
 		"VA DMIC2", "VA MIC BIAS3",
 		"VA DMIC3", "VA MIC BIAS3";
 	si,sia81xx-max-num = <1>;
-	si,sia81xx-aux-devs = <988>;
+	si,sia81xx-aux-devs = <&si_pa_L>;
 	si,sia81xx-aux-devs-prefix = "SpkrLeft";
 };
 
