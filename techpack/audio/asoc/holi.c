@@ -38,6 +38,7 @@
 #include "codecs/wcd938x/wcd938x-mbhc.h"
 #include "codecs/wcd938x/wcd938x.h"
 #include "codecs/bolero/bolero-cdc.h"
+#include "codecs/sipa/sipa_aux_dev_if.h"
 #include <dt-bindings/sound/audio-codec-port-types.h>
 #include "holi-port-config.h"
 #include "msm_holi_dailink.h"
@@ -6768,9 +6769,9 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 		goto err;
 	}
 
-	#ifdef CONFIG_SND_SOC_SIPA
+#ifdef CONFIG_SND_SOC_SIPA
 	soc_aux_init_only_sia81xx(pdev, card);
-	#endif /*CONFIG_SND_SOC_SIPA*/
+#endif /*CONFIG_SND_SOC_SIPA*/
 
 	ret = devm_snd_soc_register_card(&pdev->dev, card);
 	if (ret == -EPROBE_DEFER) {
@@ -6900,9 +6901,9 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 
 	return 0;
 err:
-	#ifdef CONFIG_SND_SOC_SIPA
+#ifdef CONFIG_SND_SOC_SIPA
 	soc_aux_deinit_only_sia81xx(pdev, card);
-	#endif /*CONFIG_SND_SOC_SIPA*/
+#endif /*CONFIG_SND_SOC_SIPA*/
 
 	devm_kfree(&pdev->dev, pdata);
 	return ret;
