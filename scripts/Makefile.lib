@@ -323,10 +323,9 @@ dtc-tmp = $(subst $(comma),_,$(dot-target).dts.tmp)
 # mkdtimg
 #----------------------------------------------------------------------------
 quiet_cmd_mkdtimg = DTBOIMG $@
-cmd_mkdtimg = python3 $(srctree)/scripts/mkdtboimg.py create $@ --page_size=4096 $(filter-out FORCE,$^)
+cmd_mkdtimg = $(srctree)/scripts/mkdtboimg create $@ --page_size=4096 $(filter-out FORCE,$^) && \
+              $(srctree)/scripts/avbtool add_hash_footer --image $@ --partition_size 8388608 --partition_name dtbo
 
-# cat
-# ---------------------------------------------------------------------------
 # Concatentate multiple files together
 quiet_cmd_cat = CAT $@
 cmd_cat = (cat $(filter-out FORCE,$^) > $@) || (rm -f $@; false)
