@@ -16,7 +16,7 @@
 
 OBJCOPYFLAGS_Image :=-O binary -R .note -R .note.gnu.build-id -R .comment -S
 
-targets := Image Image.bz2 Image.gz Image.lz4 Image.lzma Image.lzo dtbo.img
+targets := Image Image.bz2 Image.gz Image.lz4 Image.lzma Image.lzo dtbo.img dtb.img
 
 DTBO_OBJS := $(shell find -L $(obj)/dts/ -name \*.dtbo)
 
@@ -35,8 +35,14 @@ rtic_mp.dtb: vmlinux FORCE
 
 endif
 
+DTBO_OBJS := $(shell find $(obj)/dts/ -name \*.dtbo)
+DTB_OBJS := $(shell find $(obj)/dts/ -name \*.dtb)
+
 $(obj)/Image: vmlinux FORCE
 	$(call if_changed,objcopy)
+
+$(obj)/dtb.img: $(DTB_OBJS) FORCE
+	$(call if_changed,cat)
 
 $(obj)/Image.bz2: $(obj)/Image FORCE
 	$(call if_changed,bzip2)
