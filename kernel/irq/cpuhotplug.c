@@ -109,6 +109,9 @@ static bool migrate_one_irq(struct irq_desc *desc)
 	else
 		affinity = irq_data_get_affinity_mask(d);
 
+	if (!affinity)
+		affinity = irq_data_get_effective_affinity_mask(d);
+
 	/* Mask the chip for interrupts which cannot move in process context */
 	if (maskchip && chip->irq_mask)
 		chip->irq_mask(d);
@@ -161,6 +164,9 @@ static bool migrate_one_irq(struct irq_desc *desc)
 		 * to only one CPU. So pick only one CPU from the
 		 * prepared mask while overriding the user affinity.
 		 */
+		if (cpumask_empty(affinity))
+			affinity = cpu_online_mask;
+
 		affinity = cpumask_of(cpumask_any(affinity));
 #else
 		affinity = cpu_online_mask;
