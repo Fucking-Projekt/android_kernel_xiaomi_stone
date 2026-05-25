@@ -1344,6 +1344,9 @@ int dsi_display_set_power(struct drm_connector *connector,
 		}
 		break;
 	case SDE_MODE_DPMS_OFF:
+		drm_notifier_call_chain(DRM_EARLY_EVENT_BLANK, &g_notify_data);
+		drm_notifier_call_chain(DRM_EVENT_BLANK, &g_notify_data);
+		break;
 	default:
 		return rc;
 	}
