@@ -1793,17 +1793,17 @@ static int drm_notifier_callback(struct notifier_block *self,
 	FTS_INFO("DRM event:%lu,blank:%d", event, *blank);
 	switch (*blank) {
 	case DRM_PANEL_BLANK_UNBLANK:
-		if (DRM_PANEL_EARLY_EVENT_BLANK == event) {
+		if (DRM_PANEL_EVENT_BLANK == event) {
 			FTS_INFO("resume: event = %lu, not care\n", event);
-		} else if (DRM_PANEL_EVENT_BLANK == event) {
+		} else if (DRM_PANEL_EARLY_EVENT_BLANK == event) {
 			queue_work(fts_data->ts_workqueue, &fts_data->resume_work);
 		}
 		break;
 	case DRM_PANEL_BLANK_POWERDOWN:
 	case DRM_PANEL_BLANK_LP:
-		if (DRM_PANEL_EVENT_BLANK == event) {
+		if (DRM_PANEL_EARLY_EVENT_BLANK == event) {
 			FTS_INFO("suspend: event = %lu, not care\n", event);
-		} else if (DRM_PANEL_EARLY_EVENT_BLANK == event) {
+		} else if (DRM_PANEL_EVENT_BLANK == event) {
 			cancel_work_sync(&fts_data->resume_work);
 			fts_ts_suspend(ts_data->dev);
 		}
