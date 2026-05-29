@@ -136,7 +136,7 @@ void tcp_time_wait(struct sock *sk, int state, int timeo);
 #define TCP_ATO_MIN	4U
 #endif
 #define TCP_RTO_MAX	((unsigned)(120*HZ))
-#define TCP_RTO_MIN	((unsigned)(HZ/5))
+#define TCP_RTO_MIN	((unsigned)(HZ/10))
 #define TCP_TIMEOUT_MIN	(2U) /* Min timeout for TCP timers in jiffies */
 
 #define TCP_TIMEOUT_MIN_US (2*USEC_PER_MSEC) /* Min TCP timeout in microsecs */

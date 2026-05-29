@@ -1216,7 +1216,7 @@ int rmnet_map_process_next_hdr_packet(struct sk_buff *skb,
 }
 
 long rmnet_agg_time_limit __read_mostly = 1000000L;
-long rmnet_agg_bypass_time __read_mostly = 10000000L;
+long rmnet_agg_bypass_time __read_mostly = 2000000L;
 
 int rmnet_map_tx_agg_skip(struct sk_buff *skb, int offset)
 {
@@ -1566,7 +1566,7 @@ void rmnet_map_tx_aggregate_init(struct rmnet_port *port)
 	 * UL aggregation is disabled.
 	 * Additionally, the features flag is also set to 0.
 	 */
-	rmnet_map_update_ul_agg_config(port, PAGE_SIZE - 1, 20, 0, 3000000);
+	rmnet_map_update_ul_agg_config(port, PAGE_SIZE - 1, 10, 0, 1500000);
 
 	INIT_WORK(&port->agg_wq, rmnet_map_flush_tx_packet_work);
 }
