@@ -817,6 +817,10 @@ int enter_palm_mode(struct fts_ts_data *data)
 {
 	u8 mode0 = 0;
 	u8 mode1 = 0;
+
+	if (!data->palm_sensor_switch)
+		return 0;
+
 	fts_read_reg(0x9A, &mode0);
 	fts_read_reg(0x9B, &mode1);
 
@@ -1036,6 +1040,7 @@ static int fts_irq_read_report(struct fts_ts_data *ts_data)
 		FTS_INFO("unknown touch event(%d)", touch_etype);
 		break;
 	}
+
 
 
 	return 0;
