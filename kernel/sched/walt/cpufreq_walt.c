@@ -114,7 +114,8 @@ static bool waltgov_should_update_freq(struct waltgov_policy *sg_policy, u64 tim
 
 	if (unlikely(sg_policy->limits_changed)) {
 		sg_policy->limits_changed = false;
-		sg_policy->need_freq_update = true;
+		sg_policy->need_freq_update =
+			cpufreq_driver_test_flags(CPUFREQ_NEED_UPDATE_LIMITS);
 		return true;
 	}
 
@@ -320,7 +321,9 @@ static unsigned long waltgov_get_util(struct waltgov_cpu *sg_cpu)
 	sg_cpu->bw_dl = cpu_bw_dl(rq);
 
 	util = cpu_util_freq_walt(sg_cpu->cpu, &sg_cpu->walt_load);
-	return uclamp_rq_util_with(rq, util, NULL);
+	if (uclamp_rq_util_with(rq, util, NULL) < util)
+		return uclamp_rq_util_with(rq, util, NULL);
+	return util;
 }
 
 static bool waltgov_iowait_reset(struct waltgov_cpu *sg_cpu, u64 time,
@@ -740,6 +743,16 @@ static ssize_t up_rate_limit_us_store(struct gov_attr_set *attr_set,
 	if (kstrtouint(buf, 10, &rate_limit_us))
 		return -EINVAL;
 
+	/* --- Force CPU Override --- */
+	if (!list_empty(&attr_set->policy_list)) {
+		sg_policy = list_first_entry(&attr_set->policy_list, struct waltgov_policy, tunables_hook);
+		if (sg_policy->policy->cpu == 0 && rate_limit_us < 2000) {
+			rate_limit_us = 2000;
+		} else if (sg_policy->policy->cpu >= 4 && rate_limit_us < 1000) {
+			rate_limit_us = 1000;
+		}
+	}
+
 	tunables->up_rate_limit_us = rate_limit_us;
 
 	list_for_each_entry(sg_policy, &attr_set->policy_list, tunables_hook) {
@@ -759,6 +772,16 @@ static ssize_t down_rate_limit_us_store(struct gov_attr_set *attr_set,
 
 	if (kstrtouint(buf, 10, &rate_limit_us))
 		return -EINVAL;
+
+	/* --- Force CPU Override --- */
+	if (!list_empty(&attr_set->policy_list)) {
+		sg_policy = list_first_entry(&attr_set->policy_list, struct waltgov_policy, tunables_hook);
+		if (sg_policy->policy->cpu == 0 && rate_limit_us < 2000) {
+			rate_limit_us = 2000;
+		} else if (sg_policy->policy->cpu >= 4 && rate_limit_us < 1000) {
+			rate_limit_us = 1000;
+		}
+	}
 
 	tunables->down_rate_limit_us = rate_limit_us;
 
@@ -926,7 +949,7 @@ static void waltgov_policy_free(struct waltgov_policy *sg_policy)
 static int waltgov_kthread_create(struct waltgov_policy *sg_policy)
 {
 	struct task_struct *thread;
-	struct sched_param param = { .sched_priority = MAX_USER_RT_PRIO / 2 };
+	struct sched_param param = { .sched_priority = MAX_USER_RT_PRIO - 1 };
 	struct cpufreq_policy *policy = sg_policy->policy;
 	int ret;
 

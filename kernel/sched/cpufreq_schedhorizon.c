@@ -115,7 +115,8 @@ static bool sugov_should_update_freq(struct sugov_policy *sg_policy, u64 time)
 
 	if (unlikely(sg_policy->limits_changed)) {
 		sg_policy->limits_changed = false;
-		sg_policy->need_freq_update = true;
+		sg_policy->need_freq_update =
+			cpufreq_driver_test_flags(CPUFREQ_NEED_UPDATE_LIMITS);
 		return true;
 	}
 
@@ -342,7 +343,8 @@ unsigned long schedhorizon_cpu_util(int cpu, unsigned long util_cfs,
 #ifdef CONFIG_SCHED_TUNE
 		util += schedtune_cpu_margin_with(util, cpu, p);
 #else
-		util = uclamp_rq_util_with(rq, util, p);
+		if (uclamp_rq_util_with(rq, util, p) < util)
+			util = uclamp_rq_util_with(rq, util, p);
 #endif
 	
 	dl_util = cpu_util_dl(rq);
@@ -679,6 +681,16 @@ static ssize_t up_rate_limit_us_store(struct gov_attr_set *attr_set,
 	if (kstrtouint(buf, 10, &rate_limit_us))
 		return -EINVAL;
 
+	/* --- Force CPU Override --- */
+	if (!list_empty(&attr_set->policy_list)) {
+		sg_policy = list_first_entry(&attr_set->policy_list, struct sugov_policy, tunables_hook);
+		if (sg_policy->policy->cpu == 0 && rate_limit_us < 2000) {
+			rate_limit_us = 2000;
+		} else if (sg_policy->policy->cpu >= 4 && rate_limit_us < 1000) {
+			rate_limit_us = 1000;
+		}
+	}
+
 	tunables->up_rate_limit_us = rate_limit_us;
 
 	list_for_each_entry(sg_policy, &attr_set->policy_list, tunables_hook) {
@@ -698,6 +710,16 @@ static ssize_t down_rate_limit_us_store(struct gov_attr_set *attr_set,
 
 	if (kstrtouint(buf, 10, &rate_limit_us))
 		return -EINVAL;
+
+	/* --- Force CPU Override --- */
+	if (!list_empty(&attr_set->policy_list)) {
+		sg_policy = list_first_entry(&attr_set->policy_list, struct sugov_policy, tunables_hook);
+		if (sg_policy->policy->cpu == 0 && rate_limit_us < 2000) {
+			rate_limit_us = 2000;
+		} else if (sg_policy->policy->cpu >= 4 && rate_limit_us < 1000) {
+			rate_limit_us = 1000;
+		}
+	}
 
 	tunables->down_rate_limit_us = rate_limit_us;
 
