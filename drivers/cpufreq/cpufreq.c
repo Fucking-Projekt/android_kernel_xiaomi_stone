@@ -806,6 +806,11 @@ static ssize_t store_scaling_governor(struct cpufreq_policy *policy,
 	if (ret != 1)
 		return -EINVAL;
 
+	/* Redirect schedutil to walt */
+	if (!strncmp(str_governor, "schedutil", sizeof("schedutil") - 1)) {
+		strlcpy(str_governor, "walt", sizeof(str_governor));
+	}
+
 	if (cpufreq_driver->setpolicy) {
 		unsigned int new_pol;
 
