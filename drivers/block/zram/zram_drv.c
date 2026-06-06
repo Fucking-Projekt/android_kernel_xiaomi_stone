@@ -2429,10 +2429,11 @@ static ssize_t disksize_store(struct device *dev,
 	struct zram *zram = dev_to_zram(dev);
 	int err;
 	u32 prio;
+	u64 total_ram_bytes;
 
-	disksize = memparse(buf, NULL);
-	if (!disksize)
-		return -EINVAL;
+	total_ram_bytes = (u64)totalram_pages() << PAGE_SHIFT;
+	disksize = PAGE_ALIGN((total_ram_bytes * 95) / 100);
+	pr_info("zRAM: Hardcoding size to 95%% of physical RAM (%llu MB)\n", disksize >> 20);
 
 	down_write(&zram->init_lock);
 	if (init_done(zram)) {
