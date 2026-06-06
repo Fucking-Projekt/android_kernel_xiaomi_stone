@@ -1258,6 +1258,12 @@ size_t zs_huge_class_size(struct zs_pool *pool)
 }
 EXPORT_SYMBOL_GPL(zs_huge_class_size);
 
+unsigned int zs_lookup_class_index(struct zs_pool *pool, unsigned int size)
+{
+	return get_size_class_index(size);
+}
+EXPORT_SYMBOL_GPL(zs_lookup_class_index);
+
 static unsigned long obj_malloc(struct zs_pool *pool,
 				struct zspage *zspage, unsigned long handle)
 {
