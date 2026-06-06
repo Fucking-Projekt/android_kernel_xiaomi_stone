@@ -233,6 +233,7 @@ int cam_req_mgr_workq_create(char *name, int32_t num_tasks,
 			CAM_WARN(CAM_CRM, "Insufficient memory %zu",
 				sizeof(struct crm_workq_task) *
 				crm_workq->task.num_task);
+			destroy_workqueue(crm_workq->job);
 			kfree(crm_workq);
 			return -ENOMEM;
 		}

@@ -829,8 +829,10 @@ static int dp_audio_create_notify_workqueue(struct dp_audio_private *audio)
 
 static void dp_audio_destroy_notify_workqueue(struct dp_audio_private *audio)
 {
-	if (audio->notify_workqueue)
+	if (audio->notify_workqueue) {
+		cancel_delayed_work_sync(&audio->notify_delayed_work);
 		destroy_workqueue(audio->notify_workqueue);
+	}
 }
 
 struct dp_audio *dp_audio_get(struct platform_device *pdev,

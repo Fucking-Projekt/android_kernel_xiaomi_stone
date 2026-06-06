@@ -1233,6 +1233,8 @@ static int cam_sync_component_bind(struct device *dev,
 	return rc;
 
 v4l2_fail:
+	if (sync_dev->work_queue)
+		destroy_workqueue(sync_dev->work_queue);
 	v4l2_device_unregister(sync_dev->vdev->v4l2_dev);
 register_fail:
 	cam_sync_media_controller_cleanup(sync_dev);
@@ -1262,6 +1264,11 @@ static void cam_sync_component_unbind(struct device *dev,
 
 	for (i = 0; i < CAM_SYNC_MAX_OBJS; i++)
 		spin_lock_init(&sync_dev->row_spinlocks[i]);
+
+	if (sync_dev->work_queue) {
+		destroy_workqueue(sync_dev->work_queue);
+		sync_dev->work_queue = NULL;
+	}
 
 	kfree(sync_dev);
 	sync_dev = NULL;

@@ -687,6 +687,13 @@ unlock_out:
 
 		cpu_grp->thread = NULL;
 		hrtimer_cancel(&cpu_grp->timer);
+
+		mutex_unlock(&cpu_grp->mons_lock);
+
+		if (thread)
+			kthread_stop(thread);
+
+		mutex_lock(&cpu_grp->mons_lock);
 		free_common_evs(cpu_grp);
 
 		mutex_lock(&notify_lock);
@@ -698,9 +705,6 @@ unlock_out:
 		mutex_unlock(&notify_lock);
 
 		mutex_unlock(&cpu_grp->mons_lock);
-
-		if (thread)
-			kthread_stop(thread);
 	} else {
 		mutex_unlock(&cpu_grp->mons_lock);
 	}
@@ -747,6 +751,13 @@ static void stop_hwmon(struct memlat_hwmon *hw)
 		hrtimer_cancel(&cpu_grp->timer);
 		thread = cpu_grp->thread;
 		cpu_grp->thread = NULL;
+
+		mutex_unlock(&cpu_grp->mons_lock);
+
+		if (thread)
+			kthread_stop(thread);
+
+		mutex_lock(&cpu_grp->mons_lock);
 		free_common_evs(cpu_grp);
 
 		mutex_lock(&notify_lock);
@@ -754,9 +765,6 @@ static void stop_hwmon(struct memlat_hwmon *hw)
 		mutex_unlock(&notify_lock);
 
 		mutex_unlock(&cpu_grp->mons_lock);
-
-		if (thread)
-			kthread_stop(thread);
 	} else {
 		mutex_unlock(&cpu_grp->mons_lock);
 	}

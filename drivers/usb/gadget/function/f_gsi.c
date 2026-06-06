@@ -4149,22 +4149,38 @@ static int fgsi_init(void)
 		ret = PTR_ERR(gsi_class);
 		gsi_class = NULL;
 		pr_err("%s: class_create() failed:%d\n", __func__, ret);
-		return ret;
+		goto err_destroy_wq;
 	}
 	gsi_class->dev_uevent = usb_gsi_uevent;
 
 	ret = alloc_chrdev_region(&dev, 0, MAX_CDEV_INSTANCES, "gsi_usb");
 	if (ret) {
 		pr_err("%s: alloc_chrdev_region() failed:%d\n", __func__, ret);
-		class_destroy(gsi_class);
-		gsi_class = NULL;
-		return ret;
+		goto err_destroy_class;
 	}
 
 	major = MAJOR(dev);
 
 	usb_gsi_debugfs_init();
-	return usb_function_register(&gsiusb_func);
+	
+	ret = usb_function_register(&gsiusb_func);
+	if (ret) {
+		pr_err("%s: usb_function_register() failed:%d\n", __func__, ret);
+		goto err_unregister_chrdev;
+	}
+
+	return 0;
+
+err_unregister_chrdev:
+	unregister_chrdev_region(MKDEV(major, 0), MAX_CDEV_INSTANCES);
+	major = 0;
+err_destroy_class:
+	class_destroy(gsi_class);
+	gsi_class = NULL;
+err_destroy_wq:
+	destroy_workqueue(ipa_usb_wq);
+	ipa_usb_wq = NULL;
+	return ret;
 }
 module_init(fgsi_init);
 

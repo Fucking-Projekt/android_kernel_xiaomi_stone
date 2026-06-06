@@ -302,6 +302,14 @@ int cam_virtual_cdm_probe(struct platform_device *pdev)
 	cdm_core->work_queue = alloc_workqueue(cdm_core->name,
 		WQ_UNBOUND | WQ_MEM_RECLAIM | WQ_SYSFS,
 		CAM_CDM_INFLIGHT_WORKS);
+	if (!cdm_core->work_queue) {
+		CAM_ERR(CAM_CDM, "Virtual CDM workqueue allocation failed");
+		rc = -ENOMEM;
+		kfree(cdm_hw->soc_info.soc_private);
+		mutex_unlock(&cdm_hw->hw_mutex);
+		mutex_destroy(&cdm_hw->hw_mutex);
+		goto soc_load_failed;
+	}
 	cdm_core->ops = NULL;
 
 	cpas_parms.cam_cpas_client_cb = cam_cdm_cpas_cb;

@@ -416,6 +416,14 @@ void dp_lphw_hpd_put(struct dp_hpd *dp_hpd)
 	lphw_hpd = container_of(dp_hpd, struct dp_lphw_hpd_private, base);
 
 	dp_lphw_hpd_deinit(lphw_hpd);
+
+	if (lphw_hpd->connect_wq) {
+		cancel_work_sync(&lphw_hpd->connect);
+		cancel_work_sync(&lphw_hpd->disconnect);
+		cancel_work_sync(&lphw_hpd->attention);
+		destroy_workqueue(lphw_hpd->connect_wq);
+	}
+
 	gpio_free(lphw_hpd->gpio_cfg.gpio);
 	devm_kfree(lphw_hpd->dev, lphw_hpd);
 }

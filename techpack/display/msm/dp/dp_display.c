@@ -4249,8 +4249,12 @@ static int dp_display_remove(struct platform_device *pdev)
 
 	dp_display_deinit_sub_modules(dp);
 
-	if (dp->wq)
+	if (dp->wq) {
+		cancel_work_sync(&dp->connect_work);
+		cancel_work_sync(&dp->attention_work);
+		cancel_delayed_work_sync(&dp->hdcp_cb_work);
 		destroy_workqueue(dp->wq);
+	}
 
 	platform_set_drvdata(pdev, NULL);
 	devm_kfree(&pdev->dev, dp);
