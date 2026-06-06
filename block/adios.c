@@ -121,8 +121,8 @@ static u64 default_latency_target[ADIOS_OPTYPES] = {
 
 // Maximum batch size limits for each operation type
 static u32 default_batch_limit[ADIOS_OPTYPES] = {
-	[ADIOS_READ]    = 36,
-	[ADIOS_WRITE]   = 72,
+	[ADIOS_READ]    = 16,
+	[ADIOS_WRITE]   = 16,
 	[ADIOS_DISCARD] =  1,
 	[ADIOS_OTHER]   =  1,
 };
@@ -1390,13 +1390,15 @@ static bool release_barrier_requests(struct adios_data *ad) {
 
 	if (!list_empty(&local_list)) {
 		struct request *trq, *next;
+		unsigned long flags2;
 
-		/* ad->lock is already held */
+		spin_lock_irqsave(&ad->lock, flags2);
 		list_for_each_entry_safe(trq, next, &local_list, queuelist) {
 			list_del_init(&trq->queuelist);
 			if (merge_or_insert_to_dl_tree(ad, trq, ad->queue))
 				continue;
 		}
+		spin_unlock_irqrestore(&ad->lock, flags2);
 	}
 
 	return true;
@@ -1406,7 +1408,6 @@ static bool release_barrier_requests(struct adios_data *ad) {
 static struct request *adios_dispatch_request(struct blk_mq_hw_ctx *hctx) {
 	struct adios_data *ad = hctx->queue->elevator->elevator_data;
 	struct request *rq;
-	unsigned long flags;
 
 retry:
 	rq = dispatch_from_pq(ad);
@@ -1423,11 +1424,7 @@ retry:
 	 * due to a REQ_OP_FLUSH barrier.
 	 */
 	if (eval_adios_state(ad, ADIOS_STATE_BP)) {
-		bool barrier_released = false;
-		spin_lock_irqsave(&ad->barrier_lock, flags);
-		barrier_released = release_barrier_requests(ad);
-		spin_unlock_irqrestore(&ad->lock, flags);
-		if (barrier_released)
+		if (release_barrier_requests(ad))
 			goto retry;
 	}
 
