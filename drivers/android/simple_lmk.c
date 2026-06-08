@@ -13,8 +13,10 @@
 #include <linux/oom.h>
 #include <linux/sched/mm.h>
 #include <linux/sort.h>
-#include <linux/vmpressure.h>
 #include <uapi/linux/sched/types.h>
+#include <linux/psi.h>
+#include <linux/sched/loadavg.h>
+#include <linux/swap.h>
 
 /* The minimum number of pages to free per reclaim */
 static unsigned short slmk_minfree __read_mostly = CONFIG_ANDROID_SIMPLE_LMK_MINFREE;
@@ -28,6 +30,18 @@ module_param(slmk_minfree, short, 0644);
 static unsigned short slmk_timeout __read_mostly = CONFIG_ANDROID_SIMPLE_LMK_TIMEOUT_MSEC;
 module_param(slmk_timeout, short, 0644);
 #define RECLAIM_EXPIRES msecs_to_jiffies(slmk_timeout)
+
+static short slmk_psi_some __read_mostly = 40;
+module_param(slmk_psi_some, short, 0644);
+
+static short slmk_zram_ratio __read_mostly = 50;
+module_param(slmk_zram_ratio, short, 0644);
+
+static short slmk_protect_libs __read_mostly = 1;
+module_param(slmk_protect_libs, short, 0644);
+
+static char slmk_lib_name[512] = "libunity.so,libUE4.so,libUnreal";
+module_param_string(slmk_lib_name, slmk_lib_name, sizeof(slmk_lib_name), 0644);
 
 struct victim_info {
 	struct task_struct *tsk;
@@ -72,6 +86,67 @@ static unsigned long get_total_mm_pages(struct mm_struct *mm)
 		pages += get_mm_counter(mm, i);
 
 	return pages;
+}
+
+static char *strncasestr(const char *s1, const char *s2, size_t n)
+{
+	size_t l2;
+
+	l2 = strlen(s2);
+	if (!l2)
+		return (char *)s1;
+	while (n >= l2 && *s1) {
+		if (strncasecmp(s1, s2, l2) == 0)
+			return (char *)s1;
+		s1++;
+		n--;
+	}
+	return NULL;
+}
+
+static bool match_protect_lib(const char *name)
+{
+	char lib_buf[512];
+	char *token, *next_token;
+
+	if (!name || !slmk_lib_name[0])
+		return false;
+
+	strlcpy(lib_buf, slmk_lib_name, sizeof(lib_buf));
+
+	next_token = lib_buf;
+	while ((token = strsep(&next_token, ",")) != NULL) {
+		token = skip_spaces(token);
+		if (*token && strncasestr(name, token, 32))
+			return true;
+	}
+
+	return false;
+}
+
+static bool is_protected_lib_process(struct mm_struct *mm)
+{
+	struct vm_area_struct *vma;
+	bool is_protected = false;
+
+	if (!mm)
+		return false;
+
+	if (!down_read_trylock(&mm->mmap_sem))
+		return false;
+
+	for (vma = mm->mmap; vma; vma = vma->vm_next) {
+		if (vma->vm_file && vma->vm_file->f_path.dentry) {
+			const char *name = vma->vm_file->f_path.dentry->d_name.name;
+			if (name && match_protect_lib(name)) {
+				is_protected = true;
+				break;
+			}
+		}
+	}
+	up_read(&mm->mmap_sem);
+
+	return is_protected;
 }
 
 static unsigned long find_victims(int *vindex)
@@ -130,6 +205,20 @@ static unsigned long find_victims(int *vindex)
 			vtsk = find_lock_task_mm(tsk);
 			if (!vtsk)
 				continue;
+
+			/* Prevent core GMS processes (adj < 500) from being killed to avoid game closures */
+			if (i < 500 && (strnstr(vtsk->comm, "gms", 16) ||
+					strnstr(vtsk->comm, "gservices", 16) ||
+					strcmp(vtsk->comm, "com.google.andr") == 0)) {
+				task_unlock(vtsk);
+				continue;
+			}
+
+			/* Protect processes loading essential libraries from being killed */
+			if (slmk_protect_libs && is_protected_lib_process(vtsk->mm)) {
+				task_unlock(vtsk);
+				continue;
+			}
 
 			/* Store this potential victim away for later */
 			victims[*vindex].tsk = vtsk;
@@ -334,14 +423,28 @@ static void scan_and_kill(void)
 
 static int simple_lmk_reclaim_thread(void *data)
 {
+	struct sysinfo val;
+	unsigned long swap_used, swap_pct;
+
 	/* Use maximum RT priority */
 	set_task_rt_prio(current, MAX_RT_PRIO - 1);
 	set_freezable();
 
 	while (1) {
-		wait_event_freezable(oom_waitq, atomic_read(&needs_reclaim));
-		scan_and_kill();
+		wait_event_freezable_timeout(oom_waitq, atomic_read(&needs_reclaim), HZ);
 		atomic_set(&needs_reclaim, 0);
+
+		si_swapinfo(&val);
+		swap_pct = 0;
+		if (val.totalswap > 0) {
+			swap_used = val.totalswap - val.freeswap;
+			swap_pct = (swap_used * 100) / val.totalswap;
+		}
+
+		if ((val.totalswap > 0 && swap_pct >= slmk_zram_ratio) ||
+		    LOAD_INT(psi_system.avg[PSI_MEM_SOME][0]) >= slmk_psi_some) {
+			scan_and_kill();
+		}
 	}
 
 	return 0;
@@ -466,27 +569,6 @@ void simple_lmk_mm_freed(struct mm_struct *mm)
 	read_unlock(&mm_free_lock);
 }
 
-static unsigned short slmk_vmpressure __read_mostly = 95;
-module_param(slmk_vmpressure, short, 0644);
-
-static int simple_lmk_vmpressure_cb(struct notifier_block *nb,
-				    unsigned long pressure, void *data)
-{
-	if (pressure >= slmk_vmpressure) {
-		atomic_set(&needs_reclaim, 1);
-		smp_mb__after_atomic();
-		if (waitqueue_active(&oom_waitq))
-			wake_up(&oom_waitq);
-	}
-
-	return NOTIFY_OK;
-}
-
-static struct notifier_block vmpressure_notif = {
-	.notifier_call = simple_lmk_vmpressure_cb,
-	.priority = INT_MAX
-};
-
 /* Initialize Simple LMK when lmkd in Android writes to the minfree parameter */
 static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
 {
@@ -500,7 +582,6 @@ static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
 		thread = kthread_run(simple_lmk_reclaim_thread, NULL,
 				     "simple_lmkd");
 		BUG_ON(IS_ERR(thread));
-		BUG_ON(vmpressure_notifier_register(&vmpressure_notif));
 	}
 
 	return 0;
