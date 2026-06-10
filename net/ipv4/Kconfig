@@ -502,6 +502,16 @@ config TCP_CONG_WESTWOOD
 	  TCP Westwood+ significantly increases fairness wrt TCP Reno in
 	  wired networks and throughput over wireless links.
 
+config TCP_CONG_WESTWOOD_MAX
+	tristate "TCP Westwood+ Max"
+	default m
+	---help---
+	  westwood_max is a highly aggressive throughput-optimized fork 
+	  of the westwood_sub congestion control algorithm. It is designed 
+	  specifically for erratic RF links (Wi-Fi/5G/4G) where maximizing 
+	  bandwidth utilization is strictly prioritized over network fairness,
+	  latency mitigation, or standard TCP backoff compliance.
+
 config TCP_CONG_HTCP
 	tristate "H-TCP"
 	default m
@@ -696,6 +706,9 @@ choice
 	config DEFAULT_WESTWOOD
 		bool "Westwood" if TCP_CONG_WESTWOOD=y
 
+	config DEFAULT_WESTWOOD_MAX
+		bool "Westwood Max" if TCP_CONG_WESTWOOD_MAX=y
+
 	config DEFAULT_DCTCP
 		bool "DCTCP" if TCP_CONG_DCTCP=y
 
@@ -724,6 +737,7 @@ config DEFAULT_TCP_CONG
 	default "hybla" if DEFAULT_HYBLA
 	default "vegas" if DEFAULT_VEGAS
 	default "westwood" if DEFAULT_WESTWOOD
+	default "westwood_max" if DEFAULT_WESTWOOD_MAX
 	default "veno" if DEFAULT_VENO
 	default "reno" if DEFAULT_RENO
 	default "dctcp" if DEFAULT_DCTCP
