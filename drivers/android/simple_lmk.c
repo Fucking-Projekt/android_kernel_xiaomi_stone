@@ -31,10 +31,10 @@ static unsigned short slmk_timeout __read_mostly = CONFIG_ANDROID_SIMPLE_LMK_TIM
 module_param(slmk_timeout, short, 0644);
 #define RECLAIM_EXPIRES msecs_to_jiffies(slmk_timeout)
 
-static short slmk_psi_some __read_mostly = 40;
+static short slmk_psi_some __read_mostly = 60;
 module_param(slmk_psi_some, short, 0644);
 
-static short slmk_zram_ratio __read_mostly = 50;
+static short slmk_zram_ratio __read_mostly = 85;
 module_param(slmk_zram_ratio, short, 0644);
 
 static short slmk_protect_libs __read_mostly = 1;
