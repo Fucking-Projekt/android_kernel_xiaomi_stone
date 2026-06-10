@@ -502,6 +502,17 @@ config TCP_CONG_WESTWOOD
 	  TCP Westwood+ significantly increases fairness wrt TCP Reno in
 	  wired networks and throughput over wireless links.
 
+config TCP_CONG_WESTWOOD_SUB
+	tristate "TCP Westwood+ Sub"
+	default m
+	---help---
+	  This is an evolution of the Westwood algorithm.
+	  The Westwood algorithm, conceptually a DDD algorithm, 
+	  is definitely better than BBR. However, due to the 
+	  limitations of the BBR state machine, it gradually 
+	  became less effective. Improved robustness comes 
+	  from extending the time complexity.
+
 config TCP_CONG_WESTWOOD_MAX
 	tristate "TCP Westwood+ Max"
 	default m
@@ -706,6 +717,9 @@ choice
 	config DEFAULT_WESTWOOD
 		bool "Westwood" if TCP_CONG_WESTWOOD=y
 
+	config DEFAULT_WESTWOOD_SUB
+		bool "Westwood Sub" if TCP_CONG_WESTWOOD_SUB=y
+
 	config DEFAULT_WESTWOOD_MAX
 		bool "Westwood Max" if TCP_CONG_WESTWOOD_MAX=y
 
@@ -737,6 +751,7 @@ config DEFAULT_TCP_CONG
 	default "hybla" if DEFAULT_HYBLA
 	default "vegas" if DEFAULT_VEGAS
 	default "westwood" if DEFAULT_WESTWOOD
+	default "westwood_sub" if DEFAULT_WESTWOOD_SUB
 	default "westwood_max" if DEFAULT_WESTWOOD_MAX
 	default "veno" if DEFAULT_VENO
 	default "reno" if DEFAULT_RENO
