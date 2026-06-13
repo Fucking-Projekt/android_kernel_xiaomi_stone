@@ -178,6 +178,7 @@ unsigned int sysctl_sched_sync_hint_enable = 1;
 #endif
 unsigned int sched_small_task_threshold = 102;
 __read_mostly unsigned int sysctl_sched_force_lb_enable = 1;
+unsigned int sysctl_sched_cstate_aware = 1;
 
 static inline void update_load_add(struct load_weight *lw, unsigned long inc)
 {
@@ -4023,15 +4024,15 @@ static inline bool cpu_is_in_target_set(struct task_struct *p, int cpu)
 	struct root_domain *rd = cpu_rq(cpu)->rd;
 	int first_cpu, next_usable_cpu;
 
-	if (schedtune_task_boost(p)) {
-		first_cpu = rd->mid_cap_orig_cpu != -1 ? rd->mid_cap_orig_cpu :
-			    rd->max_cap_orig_cpu;
+	if (per_task_boost(p)) {
+		first_cpu = rd->wrd.mid_cap_orig_cpu != -1 ? rd->wrd.mid_cap_orig_cpu :
+			    rd->wrd.max_cap_orig_cpu;
 
 	} else {
-		first_cpu = rd->min_cap_orig_cpu;
+		first_cpu = rd->wrd.min_cap_orig_cpu;
 	}
 
-	next_usable_cpu = cpumask_next(first_cpu - 1, &p->cpus_allowed);
+	next_usable_cpu = cpumask_next(first_cpu - 1, &p->cpus_mask);
 	return cpu >= next_usable_cpu || next_usable_cpu >= nr_cpu_ids;
 }
 
@@ -6678,10 +6679,10 @@ static inline int select_idle_sibling_cstate_aware(struct task_struct *p,
 		sg = sd->groups;
 		do {
 			if (!cpumask_intersects(sched_group_span(sg),
-						&p->cpus_allowed))
+						&p->cpus_mask))
 				goto next;
 
-			for_each_cpu_and(i, &p->cpus_allowed,
+			for_each_cpu_and(i, &p->cpus_mask,
 					  sched_group_span(sg)) {
 				int idle_idx;
 				unsigned long new_usage;
@@ -6691,7 +6692,7 @@ static inline int select_idle_sibling_cstate_aware(struct task_struct *p,
 					goto next;
 
 				/* figure out if the task can fit here at all */
-				new_usage = uclamp_task(p);
+				new_usage = uclamp_task_util(p);
 				capacity_orig = capacity_orig_of(i);
 
 				if (new_usage > capacity_orig)
