@@ -1501,6 +1501,9 @@ extern void sched_ttwu_pending(void);
 	for (__sd = rcu_dereference_check_sched_domain(cpu_rq(cpu)->sd); \
 			__sd; __sd = rcu_dereference(__sd->parent))
 
+#define for_each_lower_domain(__sd) \
+	for (; __sd; __sd = rcu_dereference(__sd->child))
+
 /**
  * highest_flag_domain - Return highest sched_domain containing flag.
  * @cpu:	The CPU whose highest level of sched domain is to
