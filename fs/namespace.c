@@ -118,12 +118,16 @@ static int mnt_alloc_id(struct mount *mnt)
 	if (res < 0)
 		return res;
 	mnt->mnt_id = res;
+	mnt->orig_mnt_id = res;
 	return 0;
 }
 
 static void mnt_free_id(struct mount *mnt)
 {
-	ida_free(&mnt_id_ida, mnt->mnt_id);
+	if (mnt->orig_mnt_id)
+		ida_free(&mnt_id_ida, mnt->orig_mnt_id);
+	else
+		ida_free(&mnt_id_ida, mnt->mnt_id);
 }
 
 /*
