@@ -1861,7 +1861,7 @@ static int msm_pcm_add_audio_adsp_stream_callback_control(
 
 	kctl = snd_soc_card_get_kcontrol(rtd->card, mixer_str);
 	if (!kctl) {
-		pr_err("%s: failed to get kctl %s.\n", __func__, mixer_str);
+		pr_debug("%s: failed to get kctl %s.\n", __func__, mixer_str);
 		ret = -EINVAL;
 		goto free_mixer_str;
 	}

@@ -34115,7 +34115,7 @@ static int msm_routing_probe(struct snd_soc_component *component)
 	kctl = snd_soc_card_get_kcontrol(component->dapm.card,
 				"ADSP COPP Callback Event");
 	if (!kctl) {
-		pr_err("%s: failed to get kctl %s.\n", __func__,
+		pr_debug("%s: failed to get kctl %s.\n", __func__,
 				"ADSP COPP Callback Event");
 		return -EINVAL;
 	}

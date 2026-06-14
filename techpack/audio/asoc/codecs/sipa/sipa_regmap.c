@@ -556,7 +556,7 @@ bool sipa_regmap_set_chip_on(
 		if (si_pa->channel_num == 0)
 			return true;
 	}
-	pr_err("sipa enable sia91xx_selector:%d \r\n", sia91xx_selector);
+	pr_debug("sipa enable sia91xx_selector:%d \r\n", sia91xx_selector);
 	if (0 != sipa_regmap_proc_1_reg_list(si_pa, 
 			startup_list, startup_regs, chip_cfg.reg_val_width))
 		return false;

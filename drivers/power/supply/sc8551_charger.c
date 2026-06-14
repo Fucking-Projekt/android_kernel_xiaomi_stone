@@ -126,8 +126,6 @@ do {											\
 		printk(KERN_ERR "[sc8551-MASTER]:%s:" fmt, __func__, ##__VA_ARGS__);	\
 	else if (sc->mode == SC8551_ROLE_SLAVE)					\
 		printk(KERN_ERR "[sc8551-SLAVE]:%s:" fmt, __func__, ##__VA_ARGS__);	\
-	else										\
-		printk(KERN_ERR "[sc8551-STANDALONE]:%s:" fmt, __func__, ##__VA_ARGS__);\
 } while(0);
 
 #define sc_info(fmt, ...)								\
@@ -136,8 +134,6 @@ do {											\
 		printk(KERN_INFO "[sc8551-MASTER]:%s:" fmt, __func__, ##__VA_ARGS__);	\
 	else if (sc->mode == SC8551_ROLE_SLAVE)					\
 		printk(KERN_INFO "[sc8551-SLAVE]:%s:" fmt, __func__, ##__VA_ARGS__);	\
-	else										\
-		printk(KERN_INFO "[sc8551-STANDALONE]:%s:" fmt, __func__, ##__VA_ARGS__);\
 } while(0);
 
 #define sc_dbg(fmt, ...)								\
@@ -146,8 +142,6 @@ do {											\
 		printk(KERN_DEBUG "[sc8551-MASTER]:%s:" fmt, __func__, ##__VA_ARGS__);	\
 	else if (sc->mode == SC8551_ROLE_SLAVE)					\
 		printk(KERN_DEBUG "[sc8551-SLAVE]:%s:" fmt, __func__, ##__VA_ARGS__);	\
-	else										\
-		printk(KERN_DEBUG "[sc8551-STANDALONE]:%s:" fmt, __func__, ##__VA_ARGS__);\
 } while(0);
 
 struct sc8551_cfg {
@@ -1709,12 +1703,12 @@ static irqreturn_t sc8551_charger_interrupt(int irq, void *dev_id)
 	u8 i = 0;
 	u8 data = 0;
 
-	sc_info("Enter sc8551_charger_interrupt\n");
+	sc_dbg("Enter sc8551_charger_interrupt\n");
 
 	for(i=0; i<0x13; i++)
 	{
 		sc8551_read_byte(sc, SC8551_REG_10, &data);
-		sc_err("reg[0x%02x]----->0x%x\n", i, data);
+		sc_dbg("reg[0x%02x]----->0x%x\n", i, data);
 	}
 #if 0
 	mutex_lock(&sc->irq_complete);
@@ -1868,7 +1862,7 @@ static int sc8551_suspend(struct device *dev)
 	mutex_lock(&sc->irq_complete);
 	sc->resume_completed = false;
 	mutex_unlock(&sc->irq_complete);
-	sc_err("Suspend successfully!");
+	sc_dbg("Suspend successfully!");
 
 	return 0;
 }
@@ -1902,7 +1896,7 @@ static int sc8551_resume(struct device *dev)
 	}
 
 	power_supply_changed(sc->fc2_psy);
-	sc_err("Resume successfully!");
+	sc_dbg("Resume successfully!");
 
 	return 0;
 }

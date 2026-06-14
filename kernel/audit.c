@@ -300,7 +300,7 @@ void audit_panic(const char *message)
 		break;
 	case AUDIT_FAIL_PRINTK:
 		if (printk_ratelimit())
-			pr_err("%s\n", message);
+			pr_debug("%s\n", message);
 		break;
 	case AUDIT_FAIL_PANIC:
 		panic("audit: %s\n", message);
@@ -369,7 +369,7 @@ void audit_log_lost(const char *message)
 
 	if (print) {
 		if (printk_ratelimit())
-			pr_warn("audit_lost=%u audit_rate_limit=%u audit_backlog_limit=%u\n",
+			pr_debug("audit_lost=%u audit_rate_limit=%u audit_backlog_limit=%u\n",
 				atomic_read(&audit_lost),
 				audit_rate_limit,
 				audit_backlog_limit);
@@ -1850,7 +1850,7 @@ struct audit_buffer *audit_log_start(struct audit_context *ctx, gfp_t gfp_mask,
 				remove_wait_queue(&audit_backlog_wait, &wait);
 			} else {
 				if (audit_rate_check() && printk_ratelimit())
-					pr_warn("audit_backlog=%d > audit_backlog_limit=%d\n",
+					pr_debug("audit_backlog=%d > audit_backlog_limit=%d\n",
 						skb_queue_len(&audit_queue),
 						audit_backlog_limit);
 				audit_log_lost("backlog limit exceeded");

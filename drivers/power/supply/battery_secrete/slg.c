@@ -24,10 +24,10 @@
 #include <misc/hqsys_pcba.h>
 #include "w1_slg.h"
 
-#define ds_info	pr_err
-#define ds_dbg	pr_err
-#define ds_err	pr_err
-#define ds_log	pr_err
+#define ds_info	pr_debug
+#define ds_dbg	pr_debug
+#define ds_err	pr_debug
+#define ds_log	pr_debug
 
 enum {
 	FIRST_SUPPLIER,

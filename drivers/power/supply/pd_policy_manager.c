@@ -203,13 +203,13 @@ static void usbpd_check_cp_psy(struct usbpd_pm *pdpm)
             if (!pdpm->cp_psy) {
                 pdpm->cp_psy = power_supply_get_by_name("ln8000_standalone");
                 if(!pdpm->cp_psy)
-                    pr_err("cp_psy not found\n");
+                    pr_debug("cp_psy not found\n");
                 else {
-                    pr_err("find ln8000-standalone psy\n");
+                    pr_debug("find ln8000-standalone psy\n");
                     pdpm->cp_isln8000_flag = 1;
                 }
             } else {
-                pr_err("find sc8551-standalone psy\n");
+                pr_debug("find sc8551-standalone psy\n");
                 pdpm->cp_isln8000_flag = 0;
             }
     }
@@ -223,10 +223,10 @@ static void usbpd_enable_ln8000_ovp_check(struct usbpd_pm *pdpm, int enable)
 
     if (pdpm->cp_psy != NULL && pdpm->cp_isln8000_flag) {
         power_supply_set_property(pdpm->cp_psy, POWER_SUPPLY_PROP_STATUS, &val);
-        pr_err("LN8000, enable check ovp %d\n", enable);
+        pr_debug("LN8000, enable check ovp %d\n", enable);
     }
     else
-        pr_err("not LN8000,  need not check ovp\n");
+        pr_debug("not LN8000,  need not check ovp\n");
 }
 
 static void usbpd_check_cp_sec_psy(struct usbpd_pm *pdpm)
@@ -234,7 +234,7 @@ static void usbpd_check_cp_sec_psy(struct usbpd_pm *pdpm)
     if (!pdpm->cp_sec_psy) {
         pdpm->cp_sec_psy = power_supply_get_by_name("sc8551-slave");
         if (!pdpm->cp_sec_psy)
-            pr_err("cp_sec_psy not found\n");
+            pr_debug("cp_sec_psy not found\n");
     }
 }
 
