@@ -41,6 +41,7 @@
 #include <dt-bindings/sound/audio-codec-port-types.h>
 #include "holi-port-config.h"
 #include "msm_holi_dailink.h"
+#include "codecs/sipa/sipa_aux_dev_if.h"
 
 #define DRV_NAME "holi-asoc-snd"
 #define __CHIPSET__ "HOLI "

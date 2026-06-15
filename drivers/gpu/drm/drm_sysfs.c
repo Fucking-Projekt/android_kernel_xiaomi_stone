@@ -273,6 +273,9 @@ static ssize_t panel_info_show(struct device *device,
 /*M17-LCM-END-20220603*/
 
 /* BSP.LCM - 2022.07.15 - modify for LCM add hbm */
+extern ssize_t dsi_display_get_hbm_status(struct drm_connector *connector);
+extern ssize_t dsi_display_set_hbm(struct drm_connector *connector, int hbm_status);
+
 static ssize_t hbm_show(struct device *device,
 				struct device_attribute *attr,
 				char *buf)
