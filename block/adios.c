@@ -275,7 +275,8 @@ struct adios_data {
 
 	struct kmem_cache *rq_data_cache;
 	mempool_t *rq_data_pool;
-	struct kmem_cache *dl_group_pool;
+	struct kmem_cache *dl_group_cache;
+	mempool_t *dl_group_pool;
 
 	struct request_queue *queue;
 };
@@ -718,6 +719,9 @@ static inline u32 eval_this_adios_state(u32 state, u32 shift)
 static inline u32 eval_adios_state(struct adios_data *ad, u32 shift)
 { return eval_this_adios_state(get_adios_state(ad), shift); }
 
+static void insert_to_prio_queue(struct adios_data *ad,
+		struct request *rq, bool pq_idx);
+
 // Add a request to the deadline-sorted red-black tree
 static void add_to_dl_tree(
 		struct adios_data *ad, bool dl_idx, struct request *rq) {
@@ -764,9 +768,16 @@ static void add_to_dl_tree(
 
 	dlg = rb_entry_safe(parent, struct dl_group, node);
 	if (!dlg || dlg->deadline != deadline) {
-		dlg = kmem_cache_zalloc(ad->dl_group_pool, GFP_ATOMIC);
-		if (!dlg)
+		dlg = mempool_alloc(ad->dl_group_pool, GFP_ATOMIC);
+		if (unlikely(!dlg)) {
+			if (parent) {
+				dlg = rb_entry(parent, struct dl_group, node);
+				goto found;
+			}
+			insert_to_prio_queue(ad, rq, 1);
 			return;
+		}
+		memset(dlg, 0, sizeof(*dlg));
 		dlg->deadline = deadline;
 		INIT_LIST_HEAD(&dlg->rqs);
 		rb_link_node(&dlg->node, parent, link);
@@ -790,7 +801,7 @@ static void del_from_dl_tree(
 	list_del_init(&rd->dl_node);
 	if (list_empty(&dlg->rqs)) {
 		rb_erase_cached(&dlg->node, root);
-		kmem_cache_free(ad->dl_group_pool, dlg);
+		mempool_free(dlg, ad->dl_group_pool);
 	}
 	rd->dl_group = NULL;
 
@@ -1578,12 +1589,19 @@ static int adios_init_sched(struct request_queue *q, struct elevator_type *e) {
 	}
 
 	/* Create a memory pool for dl_group */
-	ad->dl_group_pool = kmem_cache_create("dl_group_pool",
+	ad->dl_group_cache = kmem_cache_create("dl_group_cache",
 						sizeof(struct dl_group),
 						0, SLAB_HWCACHE_ALIGN, NULL);
+	if (!ad->dl_group_cache) {
+		pr_err("adios: Failed to create dl_group_cache\n");
+		goto destroy_rq_data_pool;
+	}
+
+	ad->dl_group_pool = mempool_create_slab_pool(
+						q->nr_requests, ad->dl_group_cache);
 	if (!ad->dl_group_pool) {
 		pr_err("adios: Failed to create dl_group_pool\n");
-		goto destroy_rq_data_pool;
+		goto destroy_dl_group_cache;
 	}
 
 	for (i = 0; i < ADIOS_PQ_LEVELS; i++)
@@ -1690,7 +1708,9 @@ free_buckets:
 free_aggr_buckets:
 	kfree(ad->aggr_buckets);
 destroy_dl_group_pool:
-	kmem_cache_destroy(ad->dl_group_pool);
+	mempool_destroy(ad->dl_group_pool);
+destroy_dl_group_cache:
+	kmem_cache_destroy(ad->dl_group_cache);
 destroy_rq_data_pool:
 	mempool_destroy(ad->rq_data_pool);
 destroy_rq_data_cache:
@@ -1733,7 +1753,9 @@ static void adios_exit_sched(struct elevator_queue *e) {
 	kmem_cache_destroy(ad->rq_data_cache);
 
 	if (ad->dl_group_pool)
-		kmem_cache_destroy(ad->dl_group_pool);
+		mempool_destroy(ad->dl_group_pool);
+	if (ad->dl_group_cache)
+		kmem_cache_destroy(ad->dl_group_cache);
 
 	kfree(ad);
 }
