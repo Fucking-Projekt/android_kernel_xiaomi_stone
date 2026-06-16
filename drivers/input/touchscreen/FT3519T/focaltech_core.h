@@ -63,6 +63,14 @@
 #include <linux/dma-mapping.h>
 #include "focaltech_common.h"
 
+#ifdef CONFIG_BUILD_QGKI
+/*BSP.TP - 2022.6.24 - Add for palm senser - Start Modify*/
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+#include "../xiaomi/xiaomi_touch.h"
+#endif
+/*End Modify*/
+#endif
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 start */
 /*****************************************************************************
 * Private constant and macro definitions using #define
 *****************************************************************************/
@@ -121,6 +129,10 @@ int fts_proc_tp_lockdown_info(void);
 void fts_lockdown_proc_deinit(void);
 int lct_get_lockdown_info(void);
 #endif
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 start */
+#include "focaltech_flash.h"
+#define FTS_USB_DETECT_CALLBACK
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 end */
 
 /*BSP.TP - 2022.6.24 - Add for palm senser - Start Modify*/
 #define	FTS_PALM_EN	                            1
@@ -205,6 +217,14 @@ struct fts_ts_data {
 	spinlock_t irq_lock;
 	struct mutex report_mutex;
 	struct mutex bus_lock;
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 start */
+#if defined(FTS_USB_DETECT_CALLBACK)
+	struct notifier_block charger_notif;    //S2,X660 Charge flag
+    	struct workqueue_struct *fts_charger_notify_wq;
+   	struct work_struct charger_notify_work;
+   	int fw_loaded;
+#endif
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 end */
 	unsigned long intr_jiffies;
 	int irq;
 	int log_level;
@@ -303,6 +323,17 @@ enum _FTS_IC_TYPE {
 	FT3658U,
 	FT3519T,
 };
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 start */
+enum _ex_mode {
+	MODE_GLOVE = 0,
+	MODE_COVER,
+	MODE_CHARGER,
+	MODE_EDGE,
+	MODE_PALM,
+};
+extern struct fts_upgrade *fwupgrade;
+extern int fts_ex_mode_switch(enum _ex_mode mode, u8 value);
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 end */
 
 /*****************************************************************************
 * Global variable or extern global variabls/functions
