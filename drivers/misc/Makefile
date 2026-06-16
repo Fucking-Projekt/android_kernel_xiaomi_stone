@@ -71,3 +71,5 @@ obj-$(CONFIG_MI_FS)		+= xiaomi_fs/
 obj-$(CONFIG_MI_HARDWARE_ID)	+= hwid.o
 obj-$(CONFIG_GPIO_TESTING_MODE)	+= gpio-testing-mode.o
 obj-$(CONFIG_MMHARDWARE_OTHER_DETECTION) += mmhardware_others.o
+obj-$(CONFIG_SIMTRAY_STATUS)    += simtray.o
+obj-$(CONFIG_PERF_HELPER)       += perf_helper.o
