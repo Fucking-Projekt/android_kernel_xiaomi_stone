@@ -1864,6 +1864,13 @@ config BUILD_QGKI
 	help
 	  make the driver ko in GKI build mode but normal in QGKI build.
 
+config BOOT_INFO
+	bool "Boot information from bootloader"
+	default y
+	help
+	  On embedded linux device, we try to collect more information from
+	  bootloader to kernel. eg. powerup reason.
+
 config HQ_QGKI
         bool "HQ QGKI build"
         help
