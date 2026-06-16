@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 subdir-ccflags-$(CONFIG_POWER_SUPPLY_DEBUG) := -DDEBUG
-
+#  M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 start
+#  M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 end
 power_supply-y				:= power_supply_core.o
 power_supply-$(CONFIG_SYSFS)		+= power_supply_sysfs.o
 power_supply-$(CONFIG_LEDS_TRIGGERS)	+= power_supply_leds.o
@@ -68,7 +69,7 @@ obj-$(CONFIG_CHARGER_LP8727)	+= lp8727_charger.o
 obj-$(CONFIG_CHARGER_LP8788)	+= lp8788-charger.o
 obj-$(CONFIG_CHARGER_GPIO)	+= gpio-charger.o
 obj-$(CONFIG_CHARGER_MANAGER)	+= charger-manager.o
-obj-$(CONFIG_HQ_CHARGER_MANAGER)	+= hq_charger_manager.o 
+obj-$(CONFIG_HQ_CHARGER_MANAGER)	+= hq_charger_manager.o
 obj-$(CONFIG_CHARGER_LT3651)	+= lt3651-charger.o
 obj-$(CONFIG_CHARGER_MAX14577)	+= max14577_charger.o
 obj-$(CONFIG_CHARGER_DETECTOR_MAX14656)	+= max14656_charger_detector.o
@@ -100,3 +101,7 @@ obj-$(CONFIG_CHARGER_WILCO)	+= wilco-charger.o
 obj-$(CONFIG_QTI_BATTERY_CHARGER)	+= qti_battery_charger_main.o
 qti_battery_charger_main-y += qti_battery_charger.o qti_typec_class.o
 obj-$(CONFIG_QCOM_POWER_SUPPLY)		+= qcom/ battery_secrete/
+#  M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 start
+obj-$(CONFIG_HQ_NOTIFY)			+= hq_notify.o
+obj-$(CONFIG_XM_CHG_DFS)	  += xm_chg_dfs.o
+#  M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 end

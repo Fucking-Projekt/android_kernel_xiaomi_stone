@@ -25,9 +25,12 @@
 #include <linux/types.h>
 #include "ln8000_charger.h"
 #include <linux/power/charger-manager.h>
-
-#include <linux/quiet_logs.h>
-
+/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 start*/
+#if IS_ENABLED(CONFIG_MIEV)
+#include "hq_notify.h"
+#include "xm_chg_dfs.h"
+#endif
+/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 end*/
 extern void power_supply_unregister(struct power_supply *psy);
 extern void gpiod_put(struct gpio_desc *desc);
 extern struct gpio_desc *__must_check gpiod_get(struct device *dev, const char *con_id,
@@ -86,7 +89,12 @@ do {                                                                    \
 	}                                                                   \
 } while (0);
 
-#define LN8000_BIT_CHECK(val, idx, desc) if (val & (1<<idx)) ln_info("-> %s\n", desc)
+#define LN8000_BIT_CHECK(val, idx, desc)              \
+do {                                                  \
+	if (val & (1<<idx))                           \
+		ln_info("-> %s\n", desc);             \
+} while (0);
+
 #define LN8000_USE_GPIO(pdata) ((pdata != NULL) && (!IS_ERR_OR_NULL(pdata->irq_gpio)))
 #define LN8000_STATUS(val, mask) ((val & mask) ? true : false)
 
@@ -105,7 +113,7 @@ static int ln8000_read_reg(struct ln8000_info *info, u8 addr, u8 *data)
 {
 	int i, ret = 0;
 
-        for (i = 0; i < I2C_RETRY_CNT; ++i) {
+	for (i = 0; i < I2C_RETRY_CNT; ++i) {
 		ret = i2c_smbus_read_byte_data(info->client, addr);
 		if (IS_ERR_VALUE((unsigned long)ret)) {
 			ln_info("failed-read, reg(0x%02X), ret(%d)\n", addr, ret);
@@ -120,7 +128,7 @@ static int ln8000_bulk_read_reg(struct ln8000_info *info, u8 addr, void *data, i
 {
 	int i, ret = 0;
 
-        for (i = 0; i < I2C_RETRY_CNT; ++i) {
+	for (i = 0; i < I2C_RETRY_CNT; ++i) {
 		ret = i2c_smbus_read_i2c_block_data(info->client, addr, count, data);
 		if (IS_ERR_VALUE((unsigned long)ret)) {
 			ln_info("failed-bulk-read, reg(0x%02X, %d bytes), ret(%d)\n", addr, count, ret);
@@ -135,7 +143,7 @@ static int ln8000_write_reg(struct ln8000_info *info, u8 addr, u8 data)
 {
 	int i, ret = 0;
 
-        for (i = 0; i < I2C_RETRY_CNT; ++i) {
+	for (i = 0; i < I2C_RETRY_CNT; ++i) {
 		ret = i2c_smbus_write_byte_data(info->client, addr, data);
 		if (IS_ERR_VALUE((unsigned long)ret)) {
 			ln_info("failed-write, reg(0x%02X), ret(%d)\n", addr, ret);
@@ -151,7 +159,7 @@ static int ln8000_update_reg(struct ln8000_info *info, u8 addr, u8 mask, u8 data
 	int i, ret;
 	u8 old_val, new_val;
 
-        for (i = 0; i < I2C_RETRY_CNT; ++i) {
+	for (i = 0; i < I2C_RETRY_CNT; ++i) {
 		ret = i2c_smbus_read_byte_data(info->client, addr);
 		if (ret < 0) {
 			ln_err("failed-update, reg(0x%02X), ret(%d)\n", addr, ret);
@@ -564,8 +572,20 @@ static int ln8000_check_status(struct ln8000_info *info)
 			ln8000_update_reg(info, LN8000_REG_TIMER_CTRL, 0x1 << 2, 0x0 << 2);
 		}
 	}
-	info->iin_oc     = LN8000_STATUS(val[3], LN8000_MASK_IIN_OC_DETECTED);
-
+ 	info->iin_oc    = LN8000_STATUS(val[3], LN8000_MASK_IIN_OC_DETECTED);
+/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 start*/
+#if IS_ENABLED(CONFIG_MIEV)
+	if (info->vbat_ov){
+	hq_cp_notifier_call_chain(CP_EVENT_VBAT_OVP,NULL);
+	}
+	if (info->vbus_ov){
+	hq_cp_notifier_call_chain(CP_EVENT_VBUS_OVP,NULL);
+	}
+	if (info->iin_oc){
+	hq_cp_notifier_call_chain(CP_EVENT_IBUS_OCP,NULL);
+	}
+#endif
+/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 end*/
 	mutex_unlock(&info->data_lock);
 
 	return 0;
@@ -688,7 +708,7 @@ static int ln8000_init_device(struct ln8000_info *info)
 
 	/* config default charging paramter by dt */
 	vbat_float = info->pdata->bat_ovp_th * 100 / 102;   /* ovp thershold = v_float x 1.02 */
-        vbat_float = (vbat_float / 1000) * 1000;
+	vbat_float = (vbat_float / 1000) * 1000;
 	ln_info("bat_ovp_th=%d, vbat_float=%d\n", info->pdata->bat_ovp_th, vbat_float);
 	ln8000_set_vbat_float(info, vbat_float);
 	info->vbat_ovp_alarm_th = info->pdata->bat_ovp_alarm_th;
@@ -835,7 +855,7 @@ static int ln8000_check_regmap_data(struct ln8000_info *info)
 	if ((info->regulation_ctrl != regulation_ctrl) ||
 	    (info->adc_ctrl != adc_ctrl) ||
 	    (info->charge_ctrl != charge_ctrl) ||
-	    (info->v_float_ctrl != v_float_ctrl) || 
+	    (info->v_float_ctrl != v_float_ctrl) ||
 		(bus_ovp == 0x00)) {
 		/* Decide register map was reset. caused by EOS */
 		ln_err("decided register map RESET, re-initialize device\n");
@@ -891,19 +911,19 @@ static int ln8000_enter_STANDBY(struct ln8000_info *info)
 
 static int psy_chg_get_it_bus_error_status(struct ln8000_info *info)
 {
-        ln8000_get_adc_data(info, LN8000_ADC_CH_VIN, &info->vbus_uV);
+	ln8000_get_adc_data(info, LN8000_ADC_CH_VIN, &info->vbus_uV);
 
-        if (info->vbus_uV < 6000000) {
-                return VBUS_ERROR_LOW;
-	    } else if (info->vbus_uV > 13000000) {
-                return VBUS_ERROR_HIGHT;
-        }
-        return VBUS_ERROR_NONE;
+	if (info->vbus_uV < 6000000) {
+		return VBUS_ERROR_LOW;
+	} else if (info->vbus_uV > 13000000) {
+		return VBUS_ERROR_HIGHT;
+		}
+	return VBUS_ERROR_NONE;
 }
 
 static int ln8000_charger_get_property(struct power_supply *psy,
-				       enum power_supply_property prop,
-				       union power_supply_propval *val)
+						enum power_supply_property prop,
+						union power_supply_propval *val)
 {
 	struct ln8000_info *info = power_supply_get_drvdata(psy);
 
@@ -940,7 +960,7 @@ static int ln8000_charger_get_property(struct power_supply *psy,
 		val->strval = ln8000_dev_name[info->dev_role];
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
-        val->intval = psy_chg_get_it_bus_error_status(info);
+		val->intval = psy_chg_get_it_bus_error_status(info);
 		break;
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 		break;
@@ -965,6 +985,11 @@ static int psy_chg_set_charging_enable(struct ln8000_info *info, int val)
 		ret = ln8000_enter_SW(info, LN8000_OPMODE_SWITCHING);
 	} else {
 		ret = ln8000_enter_STANDBY(info);
+		/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 start*/
+		#if IS_ENABLED(CONFIG_MIEV)
+		hq_cp_notifier_call_chain(CP_EVENT_ENABLE_ERR,NULL);
+		#endif
+		/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 end*/
 	}
 
 	return ret;
@@ -1022,7 +1047,8 @@ static int ln8000_charger_set_property(struct power_supply *psy,
 }
 
 static int ln8000_charger_is_writeable(struct power_supply *psy,
-				       enum power_supply_property prop) {
+				       enum power_supply_property prop)
+{
 	int ret;
 
 	switch (prop) {
@@ -1425,11 +1451,11 @@ static int ln8000_get_dev_role(struct i2c_client *client)
 
 	of_id = of_match_device(of_match_ptr(ln8000_dt_match), &client->dev);
 	if (of_id == NULL) {
-                dev_err(&client->dev, "%s: fail to matched of_device_id\n", __func__);
+		dev_err(&client->dev, "%s: fail to matched of_device_id\n", __func__);
 		return -EINVAL;
 	}
 
-        dev_info(&client->dev, "%s: matched to %s\n", __func__, of_id->compatible);
+	dev_info(&client->dev, "%s: matched to %s\n", __func__, of_id->compatible);
 
 	return (uintptr_t)of_id->data;
 }
@@ -1557,7 +1583,7 @@ static int try_to_find_i2c_address(struct i2c_client *client)
 	u8 ori_addr = client->addr;
 	int i, ret;
 
-        for (i = 0; i < ARRAY_SIZE(addr_set); ++i) {
+	for (i = 0; i < ARRAY_SIZE(addr_set); ++i) {
 		client->addr = addr_set[i];
 		ret = i2c_smbus_read_byte_data(client, LN8000_REG_DEVICE_ID);
 		if (ret == LN8000_DEVICE_ID) {
@@ -1572,7 +1598,7 @@ static int try_to_find_i2c_address(struct i2c_client *client)
 	}
 
 	client->addr = ori_addr;
-        if (ret == LN8000_DEVICE_ID) {
+	if (ret == LN8000_DEVICE_ID) {
 		ret = i2c_smbus_read_byte_data(client, LN8000_REG_DEVICE_ID);
 	}
 
@@ -1596,7 +1622,7 @@ static int ln8000_probe(struct i2c_client *client, const struct i2c_device_id *i
 			return -ENODEV;
 		}
 #else
-		dev_err(&client->dev, "fail to detect ln8000 on i2c_bus(addr=0x%x), ret = %d\n", client->addr, ret);
+		dev_err(&client->dev, "fail to detect ln8000 on i2c_bus(addr=0x%x)\n", client->addr);
 		return -ENODEV;
 #endif
 	}

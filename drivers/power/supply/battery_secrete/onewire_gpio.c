@@ -22,7 +22,7 @@
 #include <linux/spinlock.h>
 #include <misc/hqsys_pcba.h>
 
-#define ow_info	pr_info
+#define ow_info	pr_debug
 #define ow_dbg	pr_debug
 #define ow_err	pr_debug
 #define ow_log	pr_debug
@@ -41,7 +41,9 @@
 #define ONE_WIRE_OUT_HIGH		writel_relaxed(OUTPUT_HIGH, g_onewire_data->gpio_in_out_reg)// OUT: 1
 #define ONE_WIRE_OUT_LOW		writel_relaxed(OUTPUT_LOW, g_onewire_data->gpio_in_out_reg)// OUT: 0
 
+#ifdef CONFIG_HQ_QGKI
 extern PCBA_CONFIG get_huaqin_pcba_config(void);
+#endif
 
 struct onewire_gpio_data {
 	struct platform_device *pdev;
@@ -181,18 +183,18 @@ int onewire_gpio_get_status(void)
 EXPORT_SYMBOL(onewire_gpio_get_status);
 
 //ADD Software_Reset( ) to onewire_gpio.c
-void Software_Reset(void)                                  
+void Software_Reset(void) 
 {
 	unsigned int i;
-	static int step=0;
-	if(step>1) {
+	static int step;
+	if (step > 1) {
 		return;
 	}
 
 	ONE_WIRE_CONFIG_OUT;
 	ONE_WIRE_OUT_LOW;
 	for (i = 0; i < 4000; i++)
-		Delay_us(100);            // Pulldown for 400ms 
+		Delay_us(100);				 // Pulldown for 400ms
 	ONE_WIRE_OUT_HIGH;
 	for (i = 0; i < 40; i++)  //Pullup for 4ms
 		Delay_us(100);
@@ -416,10 +418,12 @@ static int onewire_gpio_probe(struct platform_device *pdev)
 
 	ow_log("onewire probe entry");
 
-	if ((get_huaqin_pcba_config() >= PCBA_UNKNOW) && (get_huaqin_pcba_config() <= PCBA_END) && (get_huaqin_pcba_config() % 0x10 == 3)){
+#ifdef CONFIG_HQ_QGKI
+	if ((get_huaqin_pcba_config() >= PCBA_UNKNOW) && (get_huaqin_pcba_config() <= PCBA_END) && (get_huaqin_pcba_config() % 0x10 == 3)) {
 		ow_err("No compatable phone!\n");
 		return -ERANGE;
 	}
+#endif
 
 	if (!pdev->dev.of_node || !of_device_is_available(pdev->dev.of_node))
 		return -ENODEV;
@@ -617,7 +621,7 @@ static void __exit onewire_gpio_exit(void)
 	class_destroy(onewire_class);
 }
 
-module_init(onewire_gpio_init);
+fs_initcall(onewire_gpio_init);
 module_exit(onewire_gpio_exit);
 
 MODULE_AUTHOR("xiaomi Inc.");

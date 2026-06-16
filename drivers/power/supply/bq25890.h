@@ -84,8 +84,10 @@ struct bq25890_device {
 	struct regulator	*dpdm_reg;
 
 	struct delayed_work detect_float_work;
+	struct delayed_work detect_hvdcp_work;
 	struct delayed_work detect_vbat_set_vindpm_work;
 	int detect_force_dpdm_count;
+	int detect_detect_hvdcp_count;
 	int charger_val;
 	int charger_status;
 	int vbus_good_status;
@@ -103,17 +105,26 @@ struct bq25890_device {
 	int apdo_max_curr;
 	int online;
 	int update_cont;
-	int old_online;
+	int old_real_type;
 	bool			dpdm_enabled;
+/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 start*/
+	bool	dfs_plugin;
+/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 end*/
 	struct mutex		dpdm_lock;
 	unsigned int		nchannels;
 	/*struct iio_channel	**bq25890_iio_chan_list;*/
 	struct iio_chan_spec	*bq25890_iio_chan_ids;
 	struct iio_channel		*board_therm_channel;
 };
+/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 start*/
+extern int bq25890_get_chg_type(struct bq25890_device *bq);
+extern	int bq25890_charger_get_state(struct bq25890_device *bq,struct bq25890_state *state);
+/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 end*/
+#ifdef CONFIG_HQ_QGKI
 extern int bq25890_detect_status(struct bq25890_device *bq);
 extern int bq25890_detect_charger_status(struct bq25890_device *bq);
 extern int bq25890_charger_start_charge(struct bq25890_device *bq);
 extern int bq25890_charger_stop_charge(struct bq25890_device *bq);
 extern int bq25890_detect_charger_vbus_good_status(struct bq25890_device *bq);
+#endif
 #endif

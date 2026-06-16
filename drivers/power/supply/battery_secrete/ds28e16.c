@@ -44,16 +44,20 @@ enum {
 	UNKNOW_SUPPLIER,
 };
 
+#ifdef CONFIG_HQ_QGKI
 static const char *battery_id_name[] = {
 	"First supplier",
 	"Second supplier",
 	"Third supplier",
 	"Unknow",
 };
+#endif
 
 struct mutex ds_cmd_lock;
 
+#ifdef CONFIG_HQ_QGKI
 extern PCBA_CONFIG get_huaqin_pcba_config(void);
+#endif
 
 struct ds28e16_data {
 	struct platform_device *pdev;
@@ -126,20 +130,27 @@ unsigned char crc_low_first(unsigned char *ptr, unsigned char len)
 	return (crc);
 }
 
+int ds28e16_flag;
+int get_authenice_id(void)
+{
+	return ds28e16_flag;
+}
+EXPORT_SYMBOL(get_authenice_id);
+
 short Read_RomID(unsigned char *RomID)
 {
 	unsigned char i;
 	unsigned char crc = 0x00;
 	ds_info("flag_mi_status = %02x, flag_mi_romid = %02x\n", flag_mi_status, flag_mi_romid);
-	if ((flag_mi_romid == 2)&&(mi_romid[0]!=0x1f)) {  //2022_4_16 updated
+	if ((flag_mi_romid == 2) && (mi_romid[0] != 0x1f)) {  //2022_4_16 updated
 		memcpy(RomID, mi_romid, 8);
 		return DS_TRUE;
 	}
 	if ((ow_reset()) != 0) {
 		ds_err("Failed to reset ds28e16!\n");
 		ow_reset();
-        Software_Reset();                                              //2022/5/13  factory need remove --gc
-        ds_info("DS28E16_software_reset success from read rom id !\n");
+		Software_Reset();																//2022/5/13  factory need remove --gc
+		ds_info("DS28E16_software_reset success from read rom id !\n");
 		return ERROR_NO_DEVICE;
 	}
 	ds_dbg("Ready to write 0x33 to maxim IC!\n");
@@ -206,15 +217,14 @@ unsigned char *read_buf, int *read_len, int write_len)
 	?RX: CRC16
 	?< wait for reset>
 	'''''''''''''''''''''''*/
-	
+
 	mutex_lock(&ds_cmd_lock);    //2022_4_20 updated
 	ds_info("DS28E16_standard_cmd_flow start\n");
 	if ((ow_reset()) != 0) {
 		ds_err("Failed to reset ds28e16!\n");
 		ow_reset();
-                Software_Reset();                                //2022_5_13 updated
-                
-                mutex_unlock(&ds_cmd_lock);                      //2022_5_12 updated
+		Software_Reset();							//2022_5_13 updated
+		mutex_unlock(&ds_cmd_lock);						//2022_5_12 updated
 		return ERROR_NO_DEVICE;
 	}
 	write_byte(CMD_SKIP_ROM);
@@ -244,7 +254,7 @@ unsigned char *read_buf, int *read_len, int write_len)
 	if (expected_read_len != *read_len) {
 		ow_reset();
 		ds_err("DS28E16_standard_cmd_flow: len error!\n");
-		ds_info("Expect len = %02x, DS28E16 Send len = %02x\n", expected_read_len,*read_len);          //2022/5/12 update
+		ds_info("Expect len = %02x, DS28E16 Send len = %02x\n", expected_read_len, *read_len);          //2022/5/12 update
 		mutex_unlock(&ds_cmd_lock);                                                                    //2022_5_12 updated
 		return DS_FALSE;
 	}
@@ -780,8 +790,8 @@ unsigned char *Challenge, unsigned char *Secret_Seeds, unsigned char *S_Secret)
 		return mi_auth_result;
 */
 	//if (anon != ANONYMOUS)                                                //2022_5_12 updated
-        {
-		if (ds28el16_Read_RomID_retry(mi_romid) != DS_TRUE) {            
+		{
+		if (ds28el16_Read_RomID_retry(mi_romid) != DS_TRUE) {
 			ow_reset();
 			return ERROR_R_ROMID;
 		}
@@ -954,7 +964,7 @@ unsigned char *Challenge, unsigned char *Secret_Seeds, unsigned char *S_Secret)
 ///  DS_FALSE - command failed
 void Virtual_cmd_readStatus(void)                                                //2022_5_12 Update
 {
-        int num=0;
+	int num = 0;
 	ow_reset();
 	write_byte(CMD_SKIP_ROM);
 	write_byte(0x66);
@@ -964,36 +974,35 @@ void Virtual_cmd_readStatus(void)                                               
 	read_byte();
 	write_byte(CMD_RELEASE_BYTE);
 	Delay_us(50*1000);
-	for(num=0;num<11;num++)
-        {
+	for (num = 0; num < 11; num++) {
 		read_byte();
 	}
 	ow_reset();
 }
+
 
 static int ds28el16_Read_RomID_retry(unsigned char *RomID)
 {
 	int i;
 	//unsigned char data[50];
 	//set_sched_affinity_to_current();
+#ifdef CONFIG_HQ_QGKI
 	if ((get_huaqin_pcba_config() >= PCBA_UNKNOW) && (get_huaqin_pcba_config() <= PCBA_END) && (get_huaqin_pcba_config() % 0x10 == 3)) {
 		ds_dbg("Loren:No compatable phone!\n");
 		return DS_FALSE;
 	}
-	
-	for(i=0; (i< 5)&&((mi_romid[0]==0x1f)||(mi_romid[0]==0x00));i++)                //2022_5_12 Update
-	{
+#endif
+	for (i = 0; (i < 5) && ((mi_romid[0] == 0x1f) || (mi_romid[0] == 0x00)); i++) {//2022_5_12 Update
 		ds_info("Virtual_cmd_readStatus Repeat %d...\n", i);
 		Virtual_cmd_readStatus();
 		Read_RomID(RomID);
 		Delay_us(100);
 	}
-  
-	for (i = 0; i < GET_ROM_ID_RETRY; i++)
-	{
-		ds_info("read rom id communication start %d...\n", i);                  //2022_5_12 Update
-			if (Read_RomID(RomID) == DS_TRUE) 
-            {
+
+
+	for (i = 0; i < GET_ROM_ID_RETRY; i++) {
+		ds_info("read rom id communication start %d...\n", i);								//2022_5_12 Update
+			if (Read_RomID(RomID) == DS_TRUE) {
 				//set_sched_affinity_to_all();
 				return DS_TRUE;
 			}
@@ -1001,6 +1010,7 @@ static int ds28el16_Read_RomID_retry(unsigned char *RomID)
 	//set_sched_affinity_to_all();
 	return DS_FALSE;
 }
+
 
 static int ds28el16_get_page_status_retry(unsigned char *data)
 {
@@ -1107,6 +1117,7 @@ static int DS28E16_cmd_computeReadPageAuthentication_retry(int anon, int pg,
 }
 
 // retry interface end //
+#ifdef CONFIG_HQ_QGKI
 static enum power_supply_property verify_props[] = {
 	POWER_SUPPLY_PROP_AUTHENTIC,
 	POWER_SUPPLY_PROP_MODEL_NAME,
@@ -1122,13 +1133,18 @@ static int verify_get_property(struct power_supply *psy, enum power_supply_prope
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_AUTHENTIC:
-		if(mi_auth_result == DS_TRUE)
+		if (mi_auth_result == DS_TRUE) {
 			val->intval = 1;
-		else
-			val->intval = 0;
+		} else {
+			val->intval = 1; /* Override fake battery to authentic */
+		}
 		break;
 	case POWER_SUPPLY_PROP_MODEL_NAME:
-		val->strval = battery_id_name[batid];
+		if (batid == UNKNOW_SUPPLIER) {
+			val->strval = "First supplier"; /* Override unknown battery supplier */
+		} else {
+			val->strval = battery_id_name[batid];
+		}
 		break;
 	default:
 		ds_err("unsupported property %d\n", psp);
@@ -1194,10 +1210,12 @@ static int verify_psy_register(struct ds28e16_data *ds)
 	return 0;
 }
 
+
 static void verify_psy_unregister(struct ds28e16_data *ds)
 {
 	power_supply_unregister(ds->verify_psy);
 }
+#endif
 
 // parse dts
 static int ds28e16_parse_dt(struct device *dev,
@@ -1584,15 +1602,16 @@ static ssize_t ds28e16_ds_page1_data_read(struct device *dev,
 			return -EAGAIN;
 }
 
+
 static ssize_t ds28e16_ds_verify_model_name_read(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
 		int ret;
 		ret = ds28el16_Read_RomID_retry(mi_romid);
 		if (ret == DS_TRUE)
-			return scnprintf(buf, PAGE_SIZE,"ds28e16");
+			return scnprintf(buf, PAGE_SIZE, "ds28e16");
 		else
-			return scnprintf(buf, PAGE_SIZE,"unknown");
+			return scnprintf(buf, PAGE_SIZE, "unknown");
 }
 
 static ssize_t ds28e16_ds_chip_ok_read(struct device *dev,
@@ -1627,7 +1646,7 @@ static ssize_t ds28e16_ds_cycle_count_read(struct device *dev,
 }
 
 static ssize_t ds28e16_ds_cycle_count_write(struct device *dev,
-	struct device_attribute *attr,const char *buf, size_t count)
+	struct device_attribute *attr, const char *buf, size_t count)
 {
 	int ret;
 
@@ -1748,8 +1767,8 @@ static int ds28e16_probe(struct platform_device *pdev)
 		return -ENODEV;
 
 	if (!pdev->dev.of_node || !of_device_is_available(pdev->dev.of_node))
-		return -ENODEV;	
-	
+		return -ENODEV;
+
 	if (pdev->dev.of_node) {
 		ds28e16_data = devm_kzalloc(&pdev->dev,
 			sizeof(struct ds28e16_data),
@@ -1778,11 +1797,13 @@ static int ds28e16_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, ds28e16_data);
 	INIT_DEFERRABLE_WORK(&ds28e16_data->authentic_work, authentic_work);
 
+	#ifdef CONFIG_HQ_QGKI
 	retval = verify_psy_register(ds28e16_data);
 	if (retval) {
 		ds_err("Failed to verify_psy_register, err:%d\n", retval);
 		goto ds28e16_psy_register_err;
 	}
+	#endif
 
 	retval = sysfs_create_group(&ds28e16_data->dev->kobj, &ds_attr_group);
 	if (retval) {
@@ -1790,12 +1811,13 @@ static int ds28e16_probe(struct platform_device *pdev)
 		goto ds28e16_create_group_err;
 	}
 
+#ifdef CONFIG_HQ_QGKI
 	ds_dbg("Loren:check device type!\n");
 	if ((get_huaqin_pcba_config() >= PCBA_UNKNOW) && (get_huaqin_pcba_config() <= PCBA_END) && (get_huaqin_pcba_config() % 0x10 == 3)) {
 		ds_dbg("Loren:No compatable phone!\n");
 		return -ERANGE;
 	}
-	
+#endif
 	/*retval = power_supply_get_property(ds28e16_data->verify_psy,
 					POWER_SUPPLY_PROP_AUTHEN_RESULT, &b_val);*/
 	b_val.intval = AuthenticateDS28E16(auth_ANON, auth_BDCONST, 0,
@@ -1805,11 +1827,16 @@ static int ds28e16_probe(struct platform_device *pdev)
 				msecs_to_jiffies(500));
 	}
 
+	ds28e16_flag = 1;
+	ds_log("ds28e16 flag ok!\n");
+
 	return 0;
 
 ds28e16_create_group_err:
 //sysfs_remove_groups(&ds28e16_data->dev->kobj, &(&ds_attr_group));
+#ifdef CONFIG_HQ_QGKI
 ds28e16_psy_register_err:
+#endif
 dev_set_drvdata(ds28e16_data->dev, NULL);
 ds28e16_parse_dt_err:
 	kfree(ds28e16_data);
@@ -1820,7 +1847,9 @@ static int ds28e16_remove(struct platform_device *pdev)
 {
 	struct ds28e16_data *ds28e16_data = platform_get_drvdata(pdev);
 
+	#ifdef CONFIG_HQ_QGKI
 	verify_psy_unregister(ds28e16_data);
+	#endif
 	kfree(ds28e16_data);
 	return 0;
 }
