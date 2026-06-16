@@ -1908,6 +1908,53 @@ const struct file_operations proc_pagemap_operations = {
 };
 #endif /* CONFIG_PROC_PAGE_MONITOR */
 
+#ifdef CONFIG_RTMM
+int rtmm_reclaim_pte_range(pmd_t *pmd, unsigned long addr,
+                                unsigned long end, struct mm_walk *walk)
+{
+        struct rtmm_reclaim_proc *rr = walk->private;
+        struct vm_area_struct *vma = rr->vma;
+        pte_t *pte, ptent;
+        spinlock_t *ptl;
+        struct page *page;
+        LIST_HEAD(page_list);
+        int isolated;
+
+        split_huge_pmd(vma, addr, pmd);
+        if (pmd_trans_unstable(pmd))
+                return 0;
+cont:
+        isolated = 0;
+        pte = pte_offset_map_lock(vma->vm_mm, pmd, addr, &ptl);
+        for (; addr != end; pte++, addr += PAGE_SIZE) {
+                ptent = *pte;
+                if (!pte_present(ptent))
+                        continue;
+
+                page = vm_normal_page(vma, addr, ptent);
+                if (!page)
+                        continue;
+
+                if (isolate_lru_page(compound_head(page)))
+                        continue;
+
+                list_add(&page->lru, &page_list);
+                inc_node_page_state(page, NR_ISOLATED_ANON +
+                                page_is_file_cache(page));
+                isolated++;
+                if (isolated >= SWAP_CLUSTER_MAX)
+                        break;
+        }
+        pte_unmap_unlock(pte - 1, ptl);
+        rr->nr_reclaimed = reclaim_pages_from_list(&page_list, vma);
+        if (addr != end)
+                goto cont;
+
+        cond_resched();
+        return 0;
+}
+#endif
+
 #ifdef CONFIG_PROCESS_RECLAIM
 static int reclaim_pte_range(pmd_t *pmd, unsigned long addr,
 				unsigned long end, struct mm_walk *walk)
