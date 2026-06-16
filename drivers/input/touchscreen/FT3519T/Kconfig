@@ -13,4 +13,3 @@ config TOUCHSCREEN_FT3519T_DIRECTORY
 	string "Focaltech ts directory name"
 	default "focaltech_touch"
 	depends on TOUCHSCREEN_FT3519T
-

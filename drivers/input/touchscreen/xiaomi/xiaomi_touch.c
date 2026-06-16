@@ -32,6 +32,79 @@ static ssize_t xiaomi_touch_dev_write(struct file *file,
 	return 0;
 }
 
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+static ssize_t touch_dfs_test_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return 0;
+}
+static ssize_t touch_dfs_test_store(struct device *dev,struct device_attribute *attr, const char *buf, size_t count)
+{
+	int input;
+	struct xiaomi_touch_pdata *pdata = dev_get_drvdata(dev);
+	if (sscanf(buf, "%d", &input) < 0)
+		return -EINVAL;
+	if (pdata->touch_data->touch_dfs_test)
+		pdata->touch_data->touch_dfs_test(input);
+	else {
+		pr_err("%s has not touch_dfs_test\n", __func__);
+	}
+	pr_info("%s value:%d\n", __func__, input);
+	return count;
+}
+#endif
+#endif
+#endif
+
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+void xiaomi_touch_mievent_report_int(unsigned int code, int panel_id, const char *fault_name, const char *vendor_name, long error_code)
+{
+	struct misight_mievent *event;
+#ifdef CONFIG_TOUCH_FACTORY_BUILD
+	pr_info("factory build,return\n");
+	return;
+#endif
+	pr_info("code:%d,fault_name:%s,panel_id:%d,vendor_name:%s,error_code:%ld\n", code, fault_name, panel_id, vendor_name, error_code);
+	event = cdev_tevent_alloc(code);
+	if (!event) {
+		pr_err("misight event is error\n");
+		return;
+	}
+	cdev_tevent_add_int(event, "panel_id", panel_id);
+	cdev_tevent_add_str(event, "fault_name", fault_name);
+	cdev_tevent_add_str(event, "vendor_name", vendor_name);
+	cdev_tevent_add_int(event, "error_code", error_code);
+	cdev_tevent_write(event);
+	cdev_tevent_destroy(event);
+}
+EXPORT_SYMBOL_GPL(xiaomi_touch_mievent_report_int);
+void xiaomi_touch_mievent_report_str(unsigned int code, int panel_id, const char *fault_name, const char *vendor_name)
+{
+	struct misight_mievent *event;
+#ifdef CONFIG_TOUCH_FACTORY_BUILD
+	pr_info("factory build,return\n");
+	return;
+#endif
+	pr_info("code:%d,fault_name:%s,panel_id:%d,vendor_name:%s\n", code, fault_name, panel_id, vendor_name);
+	event = cdev_tevent_alloc(code);
+	if (!event) {
+		pr_err("misight event is error\n");
+		return;
+	}
+	cdev_tevent_add_int(event, "panel_id", panel_id);
+	cdev_tevent_add_str(event, "fault_name", fault_name);
+	cdev_tevent_add_str(event, "vendor_name", vendor_name);
+	cdev_tevent_write(event);
+	cdev_tevent_destroy(event);
+}
+EXPORT_SYMBOL_GPL(xiaomi_touch_mievent_report_str);
+#endif
+#endif
+#endif
+
 static unsigned int xiaomi_touch_dev_poll(struct file *file,
 		poll_table *wait)
 {
@@ -66,6 +139,11 @@ static long xiaomi_touch_dev_ioctl(struct file *file, unsigned int cmd,
 	switch (user_cmd) {
 	case SET_CUR_VALUE:
 		if (touch_data->setModeValue)
+			/*sunstone-T code for HQ-260430 by zenghui at 2022/11/06  start */
+			/*sunstone-T code for HQ-260430 by zenghui at 2022/11/05  start */
+			//buf[1]++;
+			/*sunstone-T code for HQ-260430 by zenghui at 2022/11/05  end */
+			/*sunstone-T code for HQ-260430 by zenghui at 2022/11/06  end */
 			buf[0] = touch_data->setModeValue(buf[0], buf[1]);
 		break;
 	case GET_CUR_VALUE:
@@ -185,7 +263,14 @@ int xiaomitouch_register_modedata(struct xiaomi_touch_interface *data)
 	touch_data->panel_display_read = data->panel_display_read;
 	touch_data->touch_vendor_read = data->touch_vendor_read;
 	touch_data->setModeLongValue = data->setModeLongValue;
-
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+	if (data->touch_dfs_test)
+		touch_data->touch_dfs_test = data->touch_dfs_test;
+#endif
+#endif
+#endif
 	mutex_unlock(&xiaomi_touch_dev.mutex);
 	return 0;
 }
@@ -362,6 +447,15 @@ static DEVICE_ATTR(panel_display, (S_IRUGO),
 static DEVICE_ATTR(touch_vendor, (S_IRUGO),
 		   touch_vendor_show, NULL);
 
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+static DEVICE_ATTR(touch_dfs_test, (0664),
+		   touch_dfs_test_show, touch_dfs_test_store);
+#endif
+#endif
+#endif
+
 static struct attribute *touch_attr_group[] = {
 	&dev_attr_palm_sensor.attr,
 	&dev_attr_p_sensor.attr,
@@ -369,6 +463,13 @@ static struct attribute *touch_attr_group[] = {
 	&dev_attr_panel_color.attr,
 	&dev_attr_panel_display.attr,
 	&dev_attr_touch_vendor.attr,
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+	&dev_attr_touch_dfs_test.attr,
+#endif
+#endif
+#endif
 	NULL,
 };
 

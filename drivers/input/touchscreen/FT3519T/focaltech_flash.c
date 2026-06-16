@@ -1158,7 +1158,9 @@ static int fts_read_file_default(char *file_name, u8 **file_buf)
 	}
 
 	snprintf(file_path, FILE_NAME_LENGTH, "%s%s", FTS_FW_BIN_FILEPATH, file_name);
+#ifdef CONFIG_BUILD_QGKI
 	filp = filp_open(file_path, O_RDONLY, 0);
+#endif
 	if (IS_ERR(filp)) {
 		FTS_ERROR("open %s file fail", file_path);
 		return -ENOENT;
@@ -1175,17 +1177,23 @@ static int fts_read_file_default(char *file_name, u8 **file_buf)
 	*file_buf = (u8 *)vmalloc(file_len);
 	if (NULL == *file_buf) {
 		FTS_ERROR("file buf malloc fail");
+#ifdef CONFIG_BUILD_QGKI
 		filp_close(filp, NULL);
+#endif
 		return -ENOMEM;
 	}
 	old_fs = get_fs();
 	set_fs(KERNEL_DS);
 	pos = 0;
+#ifdef CONFIG_BUILD_QGKI
 	ret = vfs_read(filp, *file_buf, file_len, &pos);
+#endif
 	if (ret < 0)
 		FTS_ERROR("read file fail");
 	FTS_INFO("file len:%d read len:%d pos:%d", (u32)file_len, ret, (u32)pos);
+#ifdef CONFIG_BUILD_QGKI
 	filp_close(filp, NULL);
+#endif
 	set_fs(old_fs);
 
 	return ret;
@@ -1293,7 +1301,14 @@ int fts_upgrade_bin(char *fw_name, bool force)
 	}
 
 	if (ret < 0) {
-		FTS_ERROR("upgrade fw bin failed");
+		FTS_ERROR("[DIS-TF-TOUCH] upgrade fw bin failed");
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+		xiaomi_touch_mievent_report_str(TOUCH_EVENT_FWLOAD_ERR, 0, "TpFirmwareLoadFail", "focal");
+#endif
+#endif
+#endif
 		fts_fwupg_reset_in_boot();
 		goto err_bin;
 	}
@@ -1916,7 +1931,7 @@ int lct_get_lockdown_info(void)
 	if (ret)
 		FTS_ERROR("lockdown info read error");
 
-	snprintf(tp_lockdown_info_buf, sizeof(tp_lockdown_info_buf), "%02x%02x%02x%02x%02x%02x%02x%02x\n",
+	snprintf(tp_lockdown_info_buf, PAGE_SIZE, "%02x%02x%02x%02x%02x%02x%02x%02x\n",
 			lockdown_values[0], lockdown_values[1], lockdown_values[2], lockdown_values[3],
 			lockdown_values[4], lockdown_values[5], lockdown_values[6], lockdown_values[7]);
 	//update_lct_tp_info(NULL, tp_lockdown_info_buf);
@@ -1995,7 +2010,15 @@ static int fts_get_fw_file_via_request_firmware(struct fts_upgrade *upg)
 			upg->fw_from_request = 1;
 		}
 	} else {
-		FTS_INFO("firmware(%s) request fail,ret=%d", fwname, ret);
+		FTS_INFO("[DIS-TF-TOUCH] firmware(%s) request fail,ret=%d", fwname, ret);
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+		xiaomi_touch_mievent_report_str(TOUCH_EVENT_FWLOAD_ERR, 0, "TpFirmwareLoadFail", "focal");
+#endif
+#endif
+#endif
+
 	}
 
 	if (fw != NULL) {
@@ -2116,7 +2139,14 @@ static void fts_fwupg_work(struct work_struct *work)
 	/* get fw */
 	ret = fts_fwupg_get_fw_file(upg);
 	if (ret < 0) {
-		FTS_ERROR("get file fail, can't upgrade");
+		FTS_ERROR("[DIS-TF-TOUCH] get file fail, can't upgrade");
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+		xiaomi_touch_mievent_report_str(TOUCH_EVENT_FWLOAD_ERR, 0, "TpFirmwareLoadFail", "focal");
+#endif
+#endif
+#endif
 	} else {
 		/* ic init if have */
 		fts_fwupg_init_ic_detail(upg);
@@ -2130,6 +2160,9 @@ static void fts_fwupg_work(struct work_struct *work)
 	fts_irq_enable();
 	upg->ts_data->fw_loading = 0;
 	fts_hw_info_add(ts_data);
+	/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 start */
+	upg->ts_data->fw_loaded = 1;
+	/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 end */
 }
 
 int fts_hw_info_add(struct fts_ts_data *ts_data)
@@ -2142,7 +2175,9 @@ int fts_hw_info_add(struct fts_ts_data *ts_data)
 	}
 	FTS_INFO("read FW version:0x%02x", fw_version);
 	sprintf(tp_version_info, "[Vendor]Samsung [TP-IC]:FT3519T [FW]0x%x\n", fw_version);
+#ifdef CONFIG_BUILD_QGKI
 	hq_regiser_hw_info(HWID_CTP, tp_version_info);
+#endif
 	return 0;
 }
 int fts_fwupg_init(struct fts_ts_data *ts_data)
