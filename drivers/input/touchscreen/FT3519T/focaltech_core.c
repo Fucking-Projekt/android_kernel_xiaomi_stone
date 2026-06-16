@@ -58,12 +58,11 @@
 #endif
 #include "focaltech_core.h"
 #include <linux/string.h>
-/*BSP.TP - 2022.6.24 - Add for palm senser - Start Modify*/
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-#include "../xiaomi/xiaomi_touch.h"
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 start */
+#if defined(FTS_USB_DETECT_CALLBACK)
+#include <linux/power_supply.h>//charge flag
 #endif
-/*End Modify*/
-
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 end */
 /*****************************************************************************
 * Private constant and macro definitions using #define
 *****************************************************************************/
@@ -183,7 +182,7 @@ int fts_reset_proc_back(int hdelayms)
 	gpio_direction_output(fts_data->pdata->reset_gpio, 0);
 	msleep(2);
 	gpio_direction_output(fts_data->pdata->avdd_gpio, 0);
-	msleep(10);
+	msleep(2);
 	gpio_direction_output(fts_data->pdata->avdd_gpio, 1);
 	msleep(2);
 	gpio_direction_output(fts_data->pdata->reset_gpio, 1);
@@ -815,31 +814,37 @@ static int fts_read_parse_touchdata(struct fts_ts_data *ts_data, u8 *touch_buf)
 #if	FTS_PALM_EN
 int enter_palm_mode(struct fts_ts_data *data)
 {
-	u8 mode0 = 0;
+	/*sunstone-T code for HQ-238231 by zenghui at 2022/11/05  start */
+	//u8 mode0 = 0;
 	u8 mode1 = 0;
 
 	if (!data->palm_sensor_switch)
 		return 0;
 
-	fts_read_reg(0x9A, &mode0);
+	//fts_read_reg(0x9A, &mode0);
 	fts_read_reg(0x9B, &mode1);
 
-	if (0x01 == mode0 && 0x00 == mode1) {
+	if (0x00 == mode1) {
+		#ifdef CONFIG_BUILD_QGKI
 		#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
 		update_palm_sensor_value(0);
 		//FTS_INFO("palm_sensor close");
 		#endif
-	} else if (0x01 == mode0 && 0x01 == mode1) {
+		#endif
+	} else if (0x01 == mode1) {
 		FTS_INFO("get packet palm on event.\n");
+		#ifdef CONFIG_BUILD_QGKI
 		#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
 		update_palm_sensor_value(1);
 		//FTS_INFO("palm_sensor open");
 		#endif
-		input_report_key(data->input_dev, 523, 1);
-		input_sync(data->input_dev);
-		input_report_key(data->input_dev, 523, 0);
-		input_sync(data->input_dev);
+		#endif
+		//input_report_key(data->input_dev, 523, 1);
+		//input_sync(data->input_dev);
+		//input_report_key(data->input_dev, 523, 0);
+		//input_sync(data->input_dev);
 		//FTS_INFO("palm_sensor report");
+	/*sunstone-T code for HQ-238231 by zenghui at 2022/11/05  end */
 	}
 	return 0;
 }
@@ -1335,24 +1340,25 @@ static int fts_power_source_ctrl(struct fts_ts_data *ts_data, int enable)
 	}
 
 	FTS_FUNC_ENTER();
-	FTS_INFO("ts_data->power_disabled = %d", ts_data->power_disabled);
 	if (enable) {
-		FTS_DEBUG("regulator enable !");
-		gpio_direction_output(ts_data->pdata->reset_gpio, 0);
-		msleep(1);
-		gpio_direction_output(ts_data->pdata->avdd_gpio, 1);
-		/*ret = regulator_enable(ts_data->vdd);
-		if (ret) {
-			FTS_ERROR("enable vdd regulator failed,ret=%d", ret);
-		}
-
-		if (!IS_ERR_OR_NULL(ts_data->vcc_i2c)) {
-			ret = regulator_enable(ts_data->vcc_i2c);
+		if (ts_data->power_disabled) {
+			FTS_DEBUG("regulator enable !");
+			gpio_direction_output(ts_data->pdata->reset_gpio, 0);
+			msleep(1);
+			gpio_direction_output(ts_data->pdata->avdd_gpio, 1);
+			/*ret = regulator_enable(ts_data->vdd);
 			if (ret) {
-				FTS_ERROR("enable vcc_i2c regulator failed,ret=%d", ret);
+				FTS_ERROR("enable vdd regulator failed,ret=%d", ret);
 			}
+
+			if (!IS_ERR_OR_NULL(ts_data->vcc_i2c)) {
+				ret = regulator_enable(ts_data->vcc_i2c);
+				if (ret) {
+					FTS_ERROR("enable vcc_i2c regulator failed,ret=%d", ret);
+				}
+			}
+			ts_data->power_disabled = false;*/
 		}
-		ts_data->power_disabled = false;*/
 	} else {
 		if (!ts_data->power_disabled) {
 			FTS_DEBUG("regulator disable !");
@@ -1485,7 +1491,9 @@ static int fts_power_source_resume(struct fts_ts_data *ts_data)
 #if FTS_PINCTRL_EN
 	fts_pinctrl_select_normal(ts_data);
 #endif
-
+	if (!(ts_data->gesture_mode) && !(fts_data->aod_changed)) {
+			ts_data->power_disabled = true;
+	}
 	ret = fts_power_source_ctrl(ts_data, ENABLE);
 	if (ret < 0) {
 		FTS_ERROR("power on fail, ret=%d", ret);
@@ -1522,34 +1530,18 @@ static int fts_gpio_configure(struct fts_ts_data *data)
 			FTS_ERROR("[GPIO]reset gpio request failed");
 			goto err_irq_gpio_dir;
 		}
-
-		ret = gpio_direction_output(data->pdata->reset_gpio, 1);
+		/*sunstone-T code for HQ-249410 by zenghui at 2022/11/16 start */
+		ret = gpio_direction_output(data->pdata->reset_gpio, 0);
+		/*sunstone-T code for HQ-249410 by zenghui at 2022/11/16 end */
 		if (ret) {
 			FTS_ERROR("[GPIO]set_direction for reset gpio failed");
 			goto err_reset_gpio_dir;
 		}
 	}
 
-	/* request reset gpio */
-	if (gpio_is_valid(data->pdata->avdd_gpio)) {
-		ret = gpio_request(data->pdata->avdd_gpio, "fts_avdd_gpio");
-		if (ret) {
-			FTS_ERROR("[GPIO]avdd gpio request failed");
-			goto err_reset_gpio_dir;
-		}
-
-		ret = gpio_direction_output(data->pdata->avdd_gpio, 1);
-		if (ret) {
-			FTS_ERROR("[GPIO]set_direction for avdd gpio failed");
-			goto err_avdd_gpio_dir;
-		}
-	}
 	FTS_FUNC_EXIT();
 	return 0;
 
-err_avdd_gpio_dir:
-	if (gpio_is_valid(data->pdata->avdd_gpio))
-		gpio_free(data->pdata->avdd_gpio);
 err_reset_gpio_dir:
 	if (gpio_is_valid(data->pdata->reset_gpio))
 		gpio_free(data->pdata->reset_gpio);
@@ -1806,9 +1798,9 @@ static int drm_notifier_callback(struct notifier_block *self,
 		break;
 	case DRM_PANEL_BLANK_POWERDOWN:
 	case DRM_PANEL_BLANK_LP:
-		if (DRM_PANEL_EARLY_EVENT_BLANK == event) {
+		if (DRM_PANEL_EVENT_BLANK == event) {
 			FTS_INFO("suspend: event = %lu, not care\n", event);
-		} else if (DRM_PANEL_EVENT_BLANK == event) {
+		} else if (DRM_PANEL_EARLY_EVENT_BLANK == event) {
 			cancel_work_sync(&fts_data->resume_work);
 			fts_ts_suspend(ts_data->dev);
 		}
@@ -1884,6 +1876,66 @@ static void fts_ts_late_resume(struct early_suspend *handler)
 	queue_work(fts_data->ts_workqueue, &fts_data->resume_work);
 }
 #endif
+/*sunstone-T code for HQ-248877 by zenghui at 2023/02/23 start */
+#if defined(FTS_USB_DETECT_CALLBACK)
+static void fts_charger_notify_work(struct work_struct *work)
+{
+  	if (NULL == work) {
+          	FTS_ERROR("%s:  parameter work are null!\n", __func__);
+          	return;
+      	}
+
+      	mutex_lock(&fts_data->report_mutex);
+      	if (fts_data->charger_mode) {
+          	fts_ex_mode_switch(MODE_CHARGER, ENABLE);
+         	FTS_INFO("Charger Mode:%s\n", fts_data->charger_mode ? "On" : "Off");
+      	} else if (fts_data->charger_mode == 0) {
+          	fts_ex_mode_switch(MODE_CHARGER, DISABLE);
+          	FTS_INFO("Charger Mode:%s\n", fts_data->charger_mode ? "On" : "Off");
+      	} else {
+        	FTS_INFO("Charger flag:%d not currently required!\n",fts_data->charger_mode);
+    	}
+     	mutex_unlock(&fts_data->report_mutex);
+}
+
+static int fts_charger_notifier_callback(struct notifier_block *nb,unsigned long val, void *v)
+{
+      	int ret = 0;
+      	struct power_supply *psy = NULL;
+      	struct fts_ts_data *ts = container_of(nb, struct fts_ts_data, charger_notif);
+     	union power_supply_propval prop;
+
+	if (fwupgrade->ts_data->fw_loaded == 1){
+		psy = power_supply_get_by_name("usb");
+		if (!psy) {
+			FTS_ERROR("Couldn't get usbpsy\n");
+			return -EINVAL;
+		}
+		if(psy)
+		{
+			if (!strcmp(psy->desc->name, "usb")) {
+				if (psy && ts && val == POWER_SUPPLY_PROP_STATUS) {
+					ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_ONLINE,&prop);//power_supply_get_property
+					if (ret < 0) {
+						FTS_ERROR("Couldn't get POWER_SUPPLY_PROP_ONLINE rc=%d\n", ret);
+						return ret;
+					} else {
+						if (ts->charger_mode != prop.intval) {
+							ts->charger_mode = prop.intval;
+							FTS_INFO("usb prop.intval =%d\n", prop.intval);
+							if ((!ts->suspended) && (ts->fts_charger_notify_wq != NULL))
+								queue_work(ts->fts_charger_notify_wq, &ts->charger_notify_work);
+						}
+					}
+				}
+			}
+		}
+
+	}
+     	return 0;
+}
+#endif
+/*sunstone-T code for HQ-248877 by zenghui at 2023/02/23 end */
 
 static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 {
@@ -1900,8 +1952,16 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 
 	if (ts_data->dev->of_node) {
 		ret = fts_parse_dt(ts_data->dev, ts_data->pdata);
-		if (ret)
-			FTS_ERROR("device-tree parse fail");
+		if (ret){
+			FTS_ERROR("[DIS-TF-TOUCH]device-tree parse fail");
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+			xiaomi_touch_mievent_report_int(TOUCH_EVENT_PARAM_ERR, 0, "TpParamParseFail", "focal", ERROR_DTS_PARSE);
+#endif
+#endif
+#endif
+		}
 
 #if defined(CONFIG_DRM)
 #if defined(CONFIG_DRM_PANEL)
@@ -1951,14 +2011,28 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 
 	ret = fts_gpio_configure(ts_data);
 	if (ret) {
-		FTS_ERROR("configure the gpios fail");
+		FTS_ERROR("[DIS-TF-TOUCH] configure the gpios fail");
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+		xiaomi_touch_mievent_report_int(TOUCH_EVENT_PARAM_ERR, 0, "TpParamParseFail", "focal", ERROR_GPIO_REQUEST);
+#endif
+#endif
+#endif
 		goto err_gpio_config;
 	}
 
 #if FTS_POWER_SOURCE_CUST_EN
 	ret = fts_power_source_init(ts_data);
 	if (ret) {
-		FTS_ERROR("fail to get power(regulator)");
+		FTS_ERROR("[DIS-TF-TOUCH] fail to get power(regulator)");
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+		xiaomi_touch_mievent_report_int(TOUCH_EVENT_PARAM_ERR, 0, "TpParamParseFail", "focal", ERROR_GPIO_REQUEST);
+#endif
+#endif
+#endif
 		goto err_power_init;
 	}
 #endif
@@ -1969,7 +2043,14 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 
 	ret = fts_get_ic_information(ts_data);
 	if (ret) {
-		FTS_ERROR("not focal IC, unregister driver");
+		FTS_ERROR("[DIS-TF-TOUCH] not focal IC, unregister driver");
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+		xiaomi_touch_mievent_report_int(TOUCH_EVENT_TRANSFER_ERR, 0, "TpTransferErr", "focal", ERROR_REGULATOR_INIT);
+#endif
+#endif
+#endif
 		goto err_irq_req;
 	}
 
@@ -2042,9 +2123,32 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 
 	ret = fts_fwupg_init(ts_data);
 	if (ret) {
-		FTS_ERROR("init fw upgrade fail");
+		FTS_ERROR("[DIS-TF-TOUCH] init fw upgrade fail");
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+		xiaomi_touch_mievent_report_str(TOUCH_EVENT_FWLOAD_ERR, 0, "TpFirmwareLoadFail", "focal");
+#endif
+#endif
+#endif
 	}
-
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 start */
+#if defined(FTS_USB_DETECT_CALLBACK)
+	ts_data->fts_charger_notify_wq = create_singlethread_workqueue("fts_charger_wq");
+    	if (!ts_data->fts_charger_notify_wq) {
+        	FTS_ERROR("allocate fts_charger_notify_wq failed\n");
+		goto err_charger_notify_wq_failed;
+    	}
+    	INIT_WORK(&ts_data->charger_notify_work, fts_charger_notify_work);
+    	ts_data->charger_notif.notifier_call = fts_charger_notifier_callback;
+    	ret = power_supply_reg_notifier(&ts_data->charger_notif);
+    	if (ret < 0) {
+        	FTS_ERROR("power_supply_reg_notifier fail!");
+   	 } else {
+        	FTS_INFO("power_supply_reg_notifier successful!");
+    	}
+#endif
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 end */
 	if (ts_data->ts_workqueue) {
 		INIT_WORK(&ts_data->resume_work, fts_resume_work);
 	}
@@ -2089,12 +2193,17 @@ err_irq_req:
 err_power_init:
 	fts_power_source_exit(ts_data);
 #endif
-	if (gpio_is_valid(ts_data->pdata->avdd_gpio))
-		gpio_free(ts_data->pdata->avdd_gpio);
 	if (gpio_is_valid(ts_data->pdata->reset_gpio))
 		gpio_free(ts_data->pdata->reset_gpio);
 	if (gpio_is_valid(ts_data->pdata->irq_gpio))
 		gpio_free(ts_data->pdata->irq_gpio);
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 start */
+#if defined(FTS_USB_DETECT_CALLBACK)
+	if(ts_data->fts_charger_notify_wq)
+		destroy_workqueue(ts_data->fts_charger_notify_wq);
+err_charger_notify_wq_failed:
+#endif
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 end */
 err_gpio_config:
 	kfree_safe(ts_data->touch_buf);
 err_buffer_init:
@@ -2162,7 +2271,14 @@ static int fts_ts_remove_entry(struct fts_ts_data *ts_data)
 #if FTS_PEN_EN
 	input_unregister_device(ts_data->pen_dev);
 #endif
-
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 start */
+#if defined(FTS_USB_DETECT_CALLBACK)
+	if(ts_data->fts_charger_notify_wq)
+	{
+		destroy_workqueue(ts_data->fts_charger_notify_wq);
+	}
+#endif
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 end */
 	if (ts_data->ts_workqueue)
 		destroy_workqueue(ts_data->ts_workqueue);
 
@@ -2180,12 +2296,14 @@ static int fts_ts_remove_entry(struct fts_ts_data *ts_data)
 #elif defined(CONFIG_HAS_EARLYSUSPEND)
 	unregister_early_suspend(&ts_data->early_suspend);
 #endif
-
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 start */
+#if defined(FTS_USB_DETECT_CALLBACK)
+	power_supply_unreg_notifier(&ts_data->charger_notif);
+#endif
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 end */
 	if (IS_ERR_OR_NULL(ts_data->pdata)) {
 		return -EINVAL;
 	}
-	if (gpio_is_valid(ts_data->pdata->avdd_gpio))
-		gpio_free(ts_data->pdata->avdd_gpio);
 	if (gpio_is_valid(ts_data->pdata->reset_gpio))
 		gpio_free(ts_data->pdata->reset_gpio);
 
@@ -2223,6 +2341,7 @@ static int fts_ts_suspend(struct device *dev)
 		FTS_INFO("fw upgrade in process, can't suspend");
 		return 0;
 	}
+#ifdef CONFIG_BUILD_QGKI
 /*BSP.TP - 2022.6.24 - Add for palm senser - Start Modify*/
 #ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
 	if (fts_data->palm_sensor_switch) {
@@ -2233,6 +2352,7 @@ static int fts_ts_suspend(struct device *dev)
 	}
 #endif
 /*End Modify*/
+#endif
 #if FTS_ESDCHECK_EN
 	fts_esdcheck_suspend(ts_data);
 #endif
@@ -2317,6 +2437,7 @@ static int fts_ts_resume(struct device *dev)
 	}
 
 	ts_data->suspended = false;
+#ifdef CONFIG_BUILD_QGKI
 /*BSP.TP - 2022.6.24 - Add for palm senser - Start Modify*/
 #ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
 	if (fts_data->palm_sensor_switch) {
@@ -2325,6 +2446,7 @@ static int fts_ts_resume(struct device *dev)
 	}
 #endif
 /*End Modify*/
+#endif
 	FTS_FUNC_EXIT();
 	return 0;
 }
@@ -2355,6 +2477,7 @@ static const struct dev_pm_ops fts_dev_pm_ops = {
 	.resume = fts_pm_resume,
 };
 #endif
+#ifdef CONFIG_BUILD_QGKI
 
 /*BSP.TP - 2022.6.24 - Add for palm senser - Start Modify*/
 #ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
@@ -2470,9 +2593,11 @@ static int fts_set_cur_value(int mode, int value)
 				FTS_INFO("%s,unknow value\n", __func__);
 			}
 		} else if (mode == 7) {
+			/*sunstone-T code for HQ-260430 by zenghui at 2022/11/06  start */
 			xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE]++;
 			fts_write_reg(0X8D, xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE]);
 			FTS_INFO("write 0X8D xiaomi_touch_interfaces.touch_mode[%d][SET_CUR_VALUE] == %d", mode, xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE]);
+			/*sunstone-T code for HQ-260430 by zenghui at 2022/11/06  end */
 		} else if (mode == 11) {
 			xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE] = value;
 			switch (xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE]) {
@@ -2497,7 +2622,7 @@ static int fts_get_mode_cur_value(int mode)
 {
     uint8_t fwver = 0;
 
-	int ret = xiaomi_touch_interfaces.touch_mode[mode][GET_DEF_VALUE];
+	int ret = xiaomi_touch_interfaces.touch_mode[mode][GET_DEF_VALUE];;
 
 	if (mode < 16 && mode >= 0) {
 		if (mode == 0) {
@@ -2538,6 +2663,7 @@ static int fts_get_mode_cur_value(int mode)
 				ret = 0;
 		} else if (mode == 7) {
 			fts_read_reg(0x8D, &fwver);
+			/*sunstone-T code for HQ-260430 by zenghui at 2022/11/05  start */
 			if (fwver == 0x01)
 				ret = 1;
 			else if (fwver == 0x02)
@@ -2548,6 +2674,7 @@ static int fts_get_mode_cur_value(int mode)
 				ret = 4;
 			else
 				ret = 1;
+			/*sunstone-T code for HQ-260430 by zenghui at 2022/11/05  end */
 		} else {
 			ret = 0;
 			FTS_INFO("%s,don't support\n", __func__);
@@ -2592,6 +2719,8 @@ static void fts_init_touchmode_data(void)
 	xiaomi_touch_interfaces.touch_mode[Touch_Edge_Filter][GET_DEF_VALUE] = 2;
 	xiaomi_touch_interfaces.touch_mode[Touch_Edge_Filter][SET_CUR_VALUE] = 2;
 	xiaomi_touch_interfaces.touch_mode[Touch_Edge_Filter][GET_CUR_VALUE] = 2;
+
+
 }
 
 static int fts_get_mode_value(int mode, int value_type)
@@ -2620,6 +2749,35 @@ static int fts_get_mode_all(int mode, int *value)
 
 	return 0;
 }
+
+#ifdef CONFIG_MIEV
+static void focal_touch_dfs_test(int value)
+{
+    switch(value){
+        case TOUCH_EVENT_TRANSFER_ERR:
+            xiaomi_touch_mievent_report_int(TOUCH_EVENT_TRANSFER_ERR, 0, "TpTransferErr", "focal", -1);
+            break;
+        case TOUCH_EVENT_FWLOAD_ERR:
+            xiaomi_touch_mievent_report_int(TOUCH_EVENT_FWLOAD_ERR, 0, "TpFirmwareLoadFail", "focal", -1);
+            break;
+        case TOUCH_EVENT_PARAM_ERR:
+            xiaomi_touch_mievent_report_int(TOUCH_EVENT_PARAM_ERR, 0, "TpParamParseFail", "focal", ERROR_REGULATOR_INIT);
+            xiaomi_touch_mievent_report_int(TOUCH_EVENT_PARAM_ERR, 0, "TpParamParseFail", "focal", ERROR_REGULATOR_INIT);
+            xiaomi_touch_mievent_report_int(TOUCH_EVENT_PARAM_ERR, 0, "TpParamParseFail", "focal", ERROR_GPIO_REQUEST);
+            break;
+        case TOUCH_EVENT_OPENTEST_FAIL:
+            xiaomi_touch_mievent_report_int(TOUCH_EVENT_OPENTEST_FAIL, 0, "TpOpenTestFail", "focal", 0);
+            break;
+        case TOUCH_EVENT_SHORTTEST_FAIL:
+            xiaomi_touch_mievent_report_int(TOUCH_EVENT_SHORTTEST_FAIL, 0, "TpShortTestFail", "focal", 0);
+            break;
+        default:
+            FTS_ERROR("don't support touch dfs test");
+            break;
+    }
+}
+#endif
+
 static int fts_reset_mode(int mode)
 {
 	if (mode < 16 && mode >= 0) {
@@ -2639,7 +2797,7 @@ static int fts_reset_mode(int mode)
 }
 /*GAME MODE END*/
 #endif
-
+#endif
 /*****************************************************************************
 * TP Driver
 *****************************************************************************/
@@ -2656,6 +2814,7 @@ static int fts_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
 	}
 
 /*BSP.TP - 2022.6.24 - Add for palm senser - Start Modify*/
+#ifdef CONFIG_BUILD_QGKI
 #ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
 	memset(&xiaomi_touch_interfaces, 0x00, sizeof(struct xiaomi_touch_interface));
 	xiaomi_touch_interfaces.palm_sensor_write = fts_palm_sensor_write;
@@ -2664,11 +2823,14 @@ static int fts_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
 	xiaomi_touch_interfaces.getModeAll = fts_get_mode_all;
 	xiaomi_touch_interfaces.resetMode = fts_reset_mode;
 	xiaomi_touch_interfaces.getModeCurValue = fts_get_mode_cur_value;
+#ifdef CONFIG_MIEV
+    xiaomi_touch_interfaces.touch_dfs_test = focal_touch_dfs_test;
+#endif
 	xiaomitouch_register_modedata(&xiaomi_touch_interfaces);
 	fts_init_touchmode_data();
 #endif
 /*End Modify*/
-
+#endif
 	/* malloc memory for global struct variable */
 	ts_data = (struct fts_ts_data *)kzalloc(sizeof(*ts_data), GFP_KERNEL);
 	if (!ts_data) {

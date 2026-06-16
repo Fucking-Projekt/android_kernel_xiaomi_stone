@@ -20,6 +20,13 @@
 #include <linux/poll.h>
 #include <linux/slab.h>
 
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+#include <miev/mievent.h>
+#endif
+#endif
+#endif
 
 /*CUR,DEFAULT,MIN,MAX*/
 #define VALUE_TYPE_SIZE 6
@@ -74,6 +81,13 @@ struct xiaomi_touch_interface {
 	char (*touch_vendor_read)(void);
 	int long_mode_len;
 	int long_mode_value[MAX_BUF_SIZE];
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+	void (*touch_dfs_test)(int value);
+#endif
+#endif
+#endif
 };
 
 struct xiaomi_touch {
@@ -97,6 +111,24 @@ struct xiaomi_touch_pdata{
 	const char *name;
 };
 
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+enum touch_mievent_code {
+	TOUCH_EVENT_TRANSFER_ERR = 912001001,
+	TOUCH_EVENT_FWLOAD_ERR = 912001002,
+	TOUCH_EVENT_PARAM_ERR = 912001003,
+	TOUCH_EVENT_OPENTEST_FAIL = 912002001,
+	TOUCH_EVENT_SHORTTEST_FAIL = 912002002,
+};
+enum param_parse_fail_type {
+	ERROR_REGULATOR_INIT,
+	ERROR_GPIO_REQUEST,
+	ERROR_DTS_PARSE,
+};
+#endif
+#endif
+#endif
 struct xiaomi_touch *xiaomi_touch_dev_get(int minor);
 
 extern struct class *get_xiaomi_touch_class(void);
@@ -108,5 +140,14 @@ extern int update_palm_sensor_value(int value);
 extern int update_p_sensor_value(int value);
 
 int xiaomitouch_register_modedata(struct xiaomi_touch_interface *data);
+
+#ifdef CONFIG_MIEV
+#ifdef CONFIG_BUILD_QGKI
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+void xiaomi_touch_mievent_report_int(unsigned int code, int panel_id, const char *fault_name, const char *vendor_name, long error_code);
+void xiaomi_touch_mievent_report_str(unsigned int code, int panel_id, const char *fault_name, const char *vendor_name);
+#endif
+#endif
+#endif
 
 #endif

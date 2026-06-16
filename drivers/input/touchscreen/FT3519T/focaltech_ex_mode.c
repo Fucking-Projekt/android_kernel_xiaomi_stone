@@ -41,13 +41,14 @@
 /*****************************************************************************
 * 3.Private enumerations, structures and unions using typedef
 *****************************************************************************/
-enum _ex_mode {
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 start */
+/*enum _ex_mode {
 	MODE_GLOVE = 0,
 	MODE_COVER,
 	MODE_CHARGER,
 	MODE_EDGE,
 	MODE_PALM,
-};
+};*/
 
 /*****************************************************************************
 * 4.Static variables
@@ -60,7 +61,7 @@ enum _ex_mode {
 /*****************************************************************************
 * 6.Static function prototypes
 *******************************************************************************/
-static int fts_ex_mode_switch(enum _ex_mode mode, u8 value)
+int fts_ex_mode_switch(enum _ex_mode mode, u8 value)
 {
 	int ret = 0;
 	u8 m_val = 0;
@@ -109,6 +110,7 @@ static int fts_ex_mode_switch(enum _ex_mode mode, u8 value)
 
 	return ret;
 }
+/*sunstone-T code for HQ-248877 by zenghui at 2022/11/28 end */
 
 static ssize_t fts_glove_mode_show(struct device *dev,
 				   struct device_attribute *attr, char *buf)
@@ -319,26 +321,28 @@ static ssize_t fts_edge_mode_store(struct device *dev,
 	struct fts_ts_data *ts_data = fts_data;
 
 	if (FTS_SYSFS_ECHO_ON(buf)) {
-		if (buf[0] == '1') /*USB PORTS RIGHT*/ {
-			FTS_INFO("enter right mode");
-			ret = fts_ex_mode_switch(MODE_EDGE, 1);
-			if (ret >= 0) {
-				ts_data->edge_mode = 1;
-			}
-		}
-		if (buf[0] == '2') /*USB PORTS LEFT*/ {
-			FTS_INFO("enter left mode");
-			ret = fts_ex_mode_switch(MODE_EDGE, 2);
-			if (ret >= 0) {
-				ts_data->edge_mode = 2;
+		if (!ts_data->edge_mode) {
+			FTS_DEBUG("enter edge mode");
+			if (buf[0] == '1') /*USB PORTS RIGHT*/ {
+				ret = fts_ex_mode_switch(MODE_EDGE, 1);
+				if (ret >= 0) {
+					ts_data->edge_mode = 1;
+				}
+			} else if (buf[0] == '2') /*USB PORTS LEFT*/ {
+				ret = fts_ex_mode_switch(MODE_EDGE, 2);
+				if (ret >= 0) {
+					ts_data->edge_mode = 2;
+				}
 			}
 		}
 	} else if (FTS_SYSFS_ECHO_OFF(buf)) {
+		if (ts_data->edge_mode) {
 			FTS_DEBUG("exit edge mode");
 			ret = fts_ex_mode_switch(MODE_EDGE, DISABLE);
 			if (ret >= 0) {
 				ts_data->edge_mode = DISABLE;
 			}
+		}
 	}
 
 	FTS_DEBUG("edge mode:%d", ts_data->edge_mode);

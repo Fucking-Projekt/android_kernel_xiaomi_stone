@@ -41,6 +41,13 @@
 #include <linux/pm_qos.h>
 #include <linux/cpufreq.h>
 #include <linux/pm_wakeup.h>
+#include <drm/drm_bridge.h>
+#ifndef GOODIX_DRM_INTERFACE_WA
+#include <drm/drm_notifier.h>
+#endif
+#if defined(CONFIG_BUILD_QGKI)
+extern int dsi_bridge_interface_enable(int timeout);
+#endif
 
 #include "gf_spi.h"
 extern int gf_hw_reset(struct gf_dev *gf_dev, unsigned int delay_ms);
@@ -441,6 +448,18 @@ static long gf_compat_ioctl(struct file *filp, unsigned int cmd,
 }
 #endif /*CONFIG_COMPAT */
 
+#ifndef GOODIX_DRM_INTERFACE_WA
+#if defined(CONFIG_BUILD_QGKI)
+static void notification_work(struct work_struct *work)
+{
+	pr_debug("%s unblank\n", __func__);
+	#if 0
+	dsi_bridge_interface_enable(FP_UNLOCK_REJECTION_TIMEOUT);
+	#endif
+}
+#endif
+#endif
+
 static irqreturn_t gf_irq(int irq, void *handle)
 {
 #if defined(GF_NETLINK_ENABLE)
@@ -610,6 +629,71 @@ static const struct file_operations gf_fops = {
 #endif
 };
 
+#ifndef GOODIX_DRM_INTERFACE_WA
+#if defined(CONFIG_BUILD_QGKI)
+static int goodix_fb_state_chg_callback(struct notifier_block *nb,
+					unsigned long val, void *data)
+{
+	struct gf_dev *gf_dev;
+	struct fb_event *evdata = data;
+	unsigned int blank;
+	char temp[4] = { 0x0 };
+
+	pr_debug("%s start\n", __func__);
+	if (val != DRM_EVENT_BLANK)
+		return 0;
+	pr_debug
+	    ("[info] %s go to the goodix_fb_state_chg_callback value = %d\n",
+	     __func__, (int)val);
+	gf_dev = container_of(nb, struct gf_dev, notifier);
+	if (evdata && evdata->data && val == DRM_EVENT_BLANK && gf_dev) {
+		blank = *(int *)(evdata->data);
+		switch (blank) {
+		case DRM_BLANK_POWERDOWN:
+			pr_debug("%s DRM_BLANK_POWERDOWN\n", __func__);
+			if (gf_dev->device_available == 1) {
+				gf_dev->fb_black = 1;
+				gf_dev->wait_finger_down = true;
+#if defined(GF_NETLINK_ENABLE)
+				temp[0] = GF_NET_EVENT_FB_BLACK;
+				sendnlmsg(temp);
+#elif defined (GF_FASYNC)
+				if (gf_dev->async) {
+					kill_fasync(&gf_dev->async, SIGIO,
+						    POLL_IN);
+				}
+#endif
+			}
+			break;
+		case DRM_BLANK_UNBLANK:
+			pr_debug("%s DRM_BLANK_UNBLANK\n", __func__);
+			if (gf_dev->device_available == 1) {
+				gf_dev->fb_black = 0;
+#if defined(GF_NETLINK_ENABLE)
+				temp[0] = GF_NET_EVENT_FB_UNBLACK;
+				sendnlmsg(temp);
+#elif defined (GF_FASYNC)
+				if (gf_dev->async) {
+					kill_fasync(&gf_dev->async, SIGIO,
+						    POLL_IN);
+				}
+#endif
+			}
+			break;
+		default:
+			pr_debug("%s defalut\n", __func__);
+			break;
+		}
+	}
+	return NOTIFY_OK;
+}
+
+static struct notifier_block goodix_noti_block = {
+	.notifier_call = goodix_fb_state_chg_callback,
+};
+#endif
+#endif
+
 static struct class *gf_class;
 #if defined(USE_SPI_BUS)
 static int gf_probe(struct spi_device *spi)
@@ -632,6 +716,13 @@ static int gf_probe(struct platform_device *pdev)
 	gf_dev->irq_gpio = -EINVAL;
 	gf_dev->reset_gpio = -EINVAL;
 	gf_dev->pwr_gpio = -EINVAL;
+
+#ifndef GOODIX_DRM_INTERFACE_WA
+#if defined(CONFIG_BUILD_QGKI)
+	pr_debug("%s INIT_WORK\n", __func__);
+	INIT_WORK(&gf_dev->work, notification_work);
+#endif
+#endif
 
 	// if (gf_parse_dts(gf_dev))
 	// 	goto error_hw;
@@ -697,6 +788,13 @@ static int gf_probe(struct platform_device *pdev)
 	spi_clock_set(gf_dev, 1000000);
 #endif
 
+#ifndef GOODIX_DRM_INTERFACE_WA
+#if defined(CONFIG_BUILD_QGKI)
+	gf_dev->notifier = goodix_noti_block;
+	drm_register_client(&gf_dev->notifier);
+#endif
+#endif
+
 	//gf_dev->irq = gf_irq_num(gf_dev);
 
 	wakeup_source_add(&fp_wakelock);
@@ -753,6 +851,11 @@ static int gf_remove(struct platform_device *pdev)
 	if (gf_dev->users == 0)
 		gf_cleanup(gf_dev);
 
+#ifndef GOODIX_DRM_INTERFACE_WA
+#if defined(CONFIG_BUILD_QGKI)
+	drm_unregister_client(&gf_dev->notifier);
+#endif
+#endif
 	mutex_unlock(&device_list_lock);
 
 	return 0;

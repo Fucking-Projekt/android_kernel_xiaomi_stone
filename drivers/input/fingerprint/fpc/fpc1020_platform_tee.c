@@ -38,6 +38,11 @@
 #include <linux/pinctrl/consumer.h>
 #include <linux/pm_wakeup.h>
 #include <linux/fb.h>
+#include <drm/drm_notifier.h>
+#include <drm/drm_bridge.h>
+#if defined(CONFIG_BUILD_QGKI)
+extern int dsi_bridge_interface_enable(int timeout);
+#endif
 #ifdef CONFIG_HQ_SYSFS_SUPPORT
 #include <linux/hqsysfs.h>
 #endif
@@ -94,6 +99,11 @@ struct fpc1020_data {
 	bool compatible_enabled;
 #endif
 	atomic_t wakeup_enabled; /* Used both in ISR and non-ISR */
+#if defined(CONFIG_BUILD_QGKI)
+	bool fb_black;
+	struct notifier_block fb_notifier;
+	struct work_struct work;
+#endif
 };
 
 static irqreturn_t fpc1020_irq_handler(int irq, void *handle);
@@ -310,6 +320,59 @@ static ssize_t hw_reset_set(struct device *dev,
 }
 static DEVICE_ATTR(hw_reset, S_IWUSR, NULL, hw_reset_set);
 
+static ssize_t power_ctrl_set(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	int rc = 0;
+	struct fpc1020_data *fpc1020 = dev_get_drvdata(dev);
+
+	if (!strncmp(buf, "disable", strlen("disable"))) {
+		mutex_lock(&fpc1020->lock);
+		gpio_direction_output(fpc1020->vdd_gpio, 1);
+		gpio_set_value(fpc1020->vdd_gpio, 0);
+		printk(" power_ctrl_set fpc disable compatible_enabled");
+		mutex_unlock(&fpc1020->lock);
+	} else if (!strncmp(buf, "enable", strlen("enable"))) {
+		mutex_lock(&fpc1020->lock);
+		printk(" power_ctrl_set fpc enable");
+		select_pin_ctl(fpc1020, "fpc1020_reset_reset");
+		gpio_direction_output(fpc1020->vdd_gpio, 1);
+		gpio_set_value(fpc1020->vdd_gpio, 1);
+		mutex_unlock(&fpc1020->lock);
+	} else if (!strncmp(buf, "power_on_reset", strlen("power_on_reset"))) {
+		mutex_lock(&fpc1020->lock);
+		printk(" power_ctrl_set fpc power_on_reset");
+		select_pin_ctl(fpc1020, "fpc1020_reset_reset");
+		gpio_direction_output(fpc1020->vdd_gpio, 1);
+		gpio_set_value(fpc1020->vdd_gpio, 1);
+		mutex_unlock(&fpc1020->lock);
+	} else if (!strncmp(buf, "force_disable", strlen("force_disable"))) {
+		mutex_lock(&fpc1020->lock);
+		printk(" power_ctrl_set fpc force_disable");
+		gpio_direction_output(fpc1020->vdd_gpio, 1);
+		gpio_set_value(fpc1020->vdd_gpio, 0);
+		mutex_unlock(&fpc1020->lock);
+	} else {
+		return -EINVAL;
+	}
+
+	return rc ? rc : count;
+}
+static DEVICE_ATTR(power_ctrl, S_IWUSR, NULL, power_ctrl_set);
+
+static ssize_t screen_get(struct device *device, struct device_attribute *attribute, char *buffer)
+{
+    int value;
+    struct fpc1020_data *fpc1020 = dev_get_drvdata(device);
+
+    mutex_lock(&fpc1020->lock);
+    value = fpc1020->fb_black ? 1 : 0;
+    mutex_unlock(&fpc1020->lock);
+
+    return scnprintf(buffer, PAGE_SIZE, "%i\n", value);
+}
+
+static DEVICE_ATTR(screen, S_IRUSR | S_IWUSR, screen_get, NULL);
 /**
  * Will setup GPIOs, and regulators to correctly initialize the touch sensor to
  * be ready for work.
@@ -580,6 +643,7 @@ static ssize_t compatible_all_set(struct device *dev,
 		devm_free_irq(dev, gpio_to_irq(fpc1020->irq_gpio), fpc1020);
 		fpc1020->compatible_enabled = 0;
 	}
+
 	return count;
 exit:
 	return -EINVAL;
@@ -595,6 +659,8 @@ static struct attribute *attributes[] = {
 	&dev_attr_wakeup_enable.attr,
 	&dev_attr_clk_enable.attr,
 	&dev_attr_irq.attr,
+	&dev_attr_power_ctrl.attr,
+	&dev_attr_screen.attr,
 #ifdef CONFIG_FPC_COMPAT
 	&dev_attr_compatible_all.attr,
 #endif
@@ -604,6 +670,16 @@ static struct attribute *attributes[] = {
 static const struct attribute_group attribute_group = {
 	.attrs = attributes,
 };
+
+#if defined(CONFIG_BUILD_QGKI)
+static void notification_work(struct work_struct *work)
+{
+	pr_info("%s: unblank\n", __func__);
+	#if 0
+	dsi_bridge_interface_enable(FP_UNLOCK_REJECTION_TIMEOUT);
+	#endif
+}
+#endif
 
 static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 {
@@ -640,6 +716,47 @@ static int fpc1020_request_named_gpio(struct fpc1020_data *fpc1020,
 
 	return 0;
 }
+
+#if defined(CONFIG_BUILD_QGKI)
+static int fpc_fb_notif_callback(struct notifier_block *nb,
+				 unsigned long val, void *data)
+{
+	struct fpc1020_data *fpc1020 = container_of(nb, struct fpc1020_data,
+						    fb_notifier);
+	struct fb_event *evdata = data;
+	unsigned int blank;
+	pr_info("%s start\n", __func__);
+	if (!fpc1020)
+		return 0;
+
+	if (val != DRM_EVENT_BLANK || fpc1020->prepared == false)
+		return 0;
+
+	pr_info("%s value = %d\n", __func__, (int)val);
+
+	if (evdata && evdata->data && val == DRM_EVENT_BLANK) {
+		blank = *(int *)(evdata->data);
+		pr_info("%s blank = %d\n", __func__, (int)blank);
+		switch (blank) {
+		case DRM_BLANK_POWERDOWN:
+			fpc1020->fb_black = true;
+			sysfs_notify(&fpc1020->dev->kobj, NULL, dev_attr_screen.attr.name);
+			break;
+		case DRM_BLANK_UNBLANK:
+			fpc1020->fb_black = false;
+			break;
+		default:
+			pr_info("%s defalut\n", __func__);
+			break;
+		}
+	}
+	return NOTIFY_OK;
+}
+
+static struct notifier_block fpc_notif_block = {
+	.notifier_call = fpc_fb_notif_callback,
+};
+#endif
 
 static int fpc1020_probe(struct platform_device *pdev)
 {
@@ -773,6 +890,11 @@ static int fpc1020_probe(struct platform_device *pdev)
 	}
 #endif
 	dev_info(dev, "%s: ok\n", __func__);
+#if defined(CONFIG_BUILD_QGKI)
+	INIT_WORK(&fpc1020->work, notification_work);
+        fpc1020->fb_notifier = fpc_notif_block;
+	drm_register_client(&fpc1020->fb_notifier);
+#endif
 exit:
 	return rc;
 }
@@ -780,6 +902,10 @@ exit:
 static int fpc1020_remove(struct platform_device *pdev)
 {
 	struct fpc1020_data *fpc1020 = platform_get_drvdata(pdev);
+
+#if defined(CONFIG_BUILD_QGKI)
+	drm_unregister_client(&fpc1020->fb_notifier);
+#endif
 
 	sysfs_remove_group(&pdev->dev.kobj, &attribute_group);
 	mutex_destroy(&fpc1020->lock);
