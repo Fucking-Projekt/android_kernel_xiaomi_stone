@@ -1858,6 +1858,12 @@ config DMI
 
 endmenu
 
+config BUILD_QGKI
+	bool "Is QGKI build"
+	default y
+	help
+	  make the driver ko in GKI build mode but normal in QGKI build.
+
 config HQ_QGKI
         bool "HQ QGKI build"
         help
