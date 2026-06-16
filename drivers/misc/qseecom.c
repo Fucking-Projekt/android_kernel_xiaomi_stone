@@ -2895,7 +2895,7 @@ static int qseecom_load_app(struct qseecom_dev_handle *data, void __user *argp)
 		ret = 0;
 	} else {
 		first_time = true;
-		pr_debug("App (%s) does'nt exist, loading apps for first time\n",
+		pr_warn("App (%s) does'nt exist, loading apps for first time\n",
 			(char *)(load_img_req.img_name));
 
 		ret = qseecom_vaddr_map(load_img_req.ifd_data_fd,
@@ -3013,7 +3013,7 @@ static int qseecom_load_app(struct qseecom_dev_handle *data, void __user *argp)
 		spin_unlock_irqrestore(&qseecom.registered_app_list_lock,
 									flags);
 
-		pr_debug("App with id %u (%s) now loaded\n", app_id,
+		pr_warn("App with id %u (%s) now loaded\n", app_id,
 		(char *)(load_img_req.img_name));
 	}
 	data->client.app_id = app_id;
@@ -3095,7 +3095,7 @@ static int __qseecom_unload_app(struct qseecom_dev_handle *data,
 	}
 	switch (resp.result) {
 	case QSEOS_RESULT_SUCCESS:
-		pr_debug("App (%d) is unloaded\n", app_id);
+		pr_warn("App (%d) is unloaded\n", app_id);
 		break;
 	case QSEOS_RESULT_INCOMPLETE:
 		ret = __qseecom_process_incomplete_cmd(data, &resp);
@@ -3103,7 +3103,7 @@ static int __qseecom_unload_app(struct qseecom_dev_handle *data,
 			pr_err("unload app %d fail proc incom cmd: %d,%d,%d\n",
 				app_id, ret, resp.result, resp.data);
 		else
-			pr_debug("App (%d) is unloaded\n", app_id);
+			pr_warn("App (%d) is unloaded\n", app_id);
 		break;
 	case QSEOS_RESULT_FAILURE:
 		pr_err("app (%d) unload_failed!!\n", app_id);
@@ -3134,15 +3134,10 @@ static int qseecom_unload_app(struct qseecom_dev_handle *data,
 	pr_debug("unload app %d(%s), app_crash flag %d\n", data->client.app_id,
 			data->client.app_name, app_crash);
 
-	if (!memcmp(data->client.app_name, "keymaste", sizeof("keymaste")-1)) {
+	if (!memcmp(data->client.app_name, "keymaste", strlen("keymaste"))) {
 		pr_debug("Do not unload keymaster app from tz\n");
 		goto unload_exit;
 	}
-
-	if (!memcmp(data->client.app_name, "tzxflattest", strlen("tzxflattest"))) {
-		pr_debug("Do not unload tzxflattest app from tz\n");
-		goto unload_exit;
-	}	
 
 	__qseecom_cleanup_app(data);
 	__qseecom_reentrancy_check_if_no_app_blocked(TZ_OS_APP_SHUTDOWN_ID);
@@ -3764,8 +3759,8 @@ static int __qseecom_send_cmd(struct qseecom_dev_handle *data,
 				(uint32_t)(__qseecom_uvirt_to_kphys(
 				data, (uintptr_t)req->resp_buf));
 		} else {
-			send_data_req.req_ptr = (uintptr_t)req->cmd_req_buf;
-			send_data_req.rsp_ptr = (uintptr_t)req->resp_buf;
+			send_data_req.req_ptr = (uint32_t)req->cmd_req_buf;
+			send_data_req.rsp_ptr = (uint32_t)req->resp_buf;
 		}
 
 		send_data_req.req_len = req->cmd_req_len;
@@ -5104,7 +5099,7 @@ int qseecom_start_app(struct qseecom_handle **handle,
 
 	strlcpy(data->client.app_name, app_name, MAX_APP_NAME_SIZE);
 	if (app_id) {
-		pr_debug("App id %d for [%s] app exists\n", app_id,
+		pr_warn("App id %d for [%s] app exists\n", app_id,
 			(char *)app_ireq.app_name);
 		spin_lock_irqsave(&qseecom.registered_app_list_lock, flags);
 		list_for_each_entry(entry,
@@ -9806,8 +9801,7 @@ static int qseecom_suspend(struct platform_device *pdev, pm_message_t state)
 
 	mutex_unlock(&clk_access_lock);
 	mutex_unlock(&qsee_bw_mutex);
-	if (qseecom.support_bus_scaling)
-		cancel_work_sync(&qseecom.bw_inactive_req_ws);
+	cancel_work_sync(&qseecom.bw_inactive_req_ws);
 
 	return 0;
 }

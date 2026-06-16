@@ -547,6 +547,16 @@ config MMHARDWARE_OTHER_DETECTION
 	help
 	  This adds support for mmhardware detection
 
+config SIMTRAY_STATUS
+	tristate "Xiaomi SIM tray status"
+	default y
+	help
+	  Say 'y' here to support SIM tray GPIO detection
+
+config PERF_HELPER
+	tristate "Xiaomi perf helper"
+	default y
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
