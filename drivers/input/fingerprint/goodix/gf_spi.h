@@ -7,6 +7,8 @@
 #define __GF_SPI_H
 
 #include <linux/types.h>
+#include <linux/notifier.h>
+#include <linux/workqueue.h>
 /**********************************************************/
 enum FP_MODE {
 	GF_IMAGE_MODE = 0,
@@ -137,6 +139,13 @@ struct gf_dev {
 #endif
 #ifdef CONFIG_FINGERPRINT_FP_VREG_CONTROL
 	struct regulator *vreg;
+#endif
+#if defined(CONFIG_BUILD_QGKI)
+	int device_available;
+	int fb_black;
+	bool wait_finger_down;
+	struct work_struct work;
+	struct notifier_block notifier;
 #endif
 };
 
