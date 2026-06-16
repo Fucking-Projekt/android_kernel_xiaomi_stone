@@ -31,6 +31,10 @@
 #include <linux/android_kabi.h>
 #include <linux/android_vendor.h>
 
+#ifdef CONFIG_RTMM
+struct mm_walk;
+#endif
+
 struct mempolicy;
 struct anon_vma;
 struct anon_vma_chain;
@@ -42,6 +46,13 @@ struct bdi_writeback;
 extern int sysctl_page_lock_unfairness;
 
 void init_mm_internals(void);
+
+#ifdef CONFIG_RTMM
+struct rtmm_reclaim_proc {
+	struct vm_area_struct *vma;
+	unsigned long nr_reclaimed;
+};
+#endif
 
 #ifndef CONFIG_NEED_MULTIPLE_NODES	/* Don't use mapnrs, do it properly */
 extern unsigned long max_mapnr;
@@ -3057,6 +3068,12 @@ static inline int pages_identical(struct page *page1, struct page *page2)
 }
 
 extern int want_old_faultaround_pte;
+
+#ifdef CONFIG_RTMM
+extern unsigned long reclaim_global(unsigned long nr_to_reclaim);
+extern int rtmm_reclaim_pte_range(pmd_t *pmd, unsigned long addr,
+				unsigned long end, struct mm_walk *walk);
+#endif
 
 #ifndef CONFIG_MULTIPLE_KSWAPD
 static inline void update_kswapd_threads_node(int nid) {}
