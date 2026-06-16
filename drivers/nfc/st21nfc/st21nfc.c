@@ -42,6 +42,8 @@
 
 // Comment this out to remove the check of CLF response during probe
 #define WITH_PING_DURING_PROBE
+#define RECOVERY_SUPPORT_IN_PING
+
 
 
 #define MAX_BUFFER_SIZE 260
@@ -51,11 +53,12 @@
 // wake up for the duration of a typical transaction
 #define WAKEUP_SRC_TIMEOUT (500)
 
-#define DRIVER_VERSION "2.2.0.17"
+#define DRIVER_VERSION "2.2.0.19"
 
 #define PROP_PWR_MON_RW_ON_NTF nci_opcode_pack(NCI_GID_PROPRIETARY, 5)
 #define PROP_PWR_MON_RW_OFF_NTF nci_opcode_pack(NCI_GID_PROPRIETARY, 6)
 
+#define gpiod_set_value_t(x,y) gpiod_set_value(x,y)
 #define I2C_ID_NAME "st21nfc"
 
 
@@ -588,6 +591,14 @@ static int st21nfc_release(struct inode *inode, struct file *file)
 	struct st21nfc_device *st21nfc_dev = container_of(
 		file->private_data, struct st21nfc_device, st21nfc_device);
 
+	if (st21nfc_dev->irq_is_attached) {
+		st21nfc_disable_irq(st21nfc_dev);
+		devm_free_irq(&st21nfc_dev->client->dev,
+					st21nfc_dev->client->irq,
+					st21nfc_dev);
+		st21nfc_dev->irq_is_attached = false;
+	}
+
 	st21nfc_dev->device_open = false;
 	if (enable_debug_log)
 		pr_debug("%s : device_open  = false\n", __func__);
@@ -663,14 +674,14 @@ static long st21nfc_dev_ioctl(struct file *filp, unsigned int cmd,
 						      st21nfc_st54spi_data);
 
 			/* pulse low for 20 millisecs */
-			gpiod_set_value(st21nfc_dev->gpiod_reset, 0);
+			gpiod_set_value_t(st21nfc_dev->gpiod_reset, 0);
 			msleep(20);
-			gpiod_set_value(st21nfc_dev->gpiod_reset, 1);
+			gpiod_set_value_t(st21nfc_dev->gpiod_reset, 1);
 			usleep_range(10000, 11000);
 			/* pulse low for 20 millisecs */
-			gpiod_set_value(st21nfc_dev->gpiod_reset, 0);
+			gpiod_set_value_t(st21nfc_dev->gpiod_reset, 0);
 			msleep(20);
-			gpiod_set_value(st21nfc_dev->gpiod_reset, 1);
+			gpiod_set_value_t(st21nfc_dev->gpiod_reset, 1);
 			pr_info("%s done Double Pulse Request\n", __func__);
 			if (st21nfc_st54spi_cb != 0)
 				(*st21nfc_st54spi_cb)(ST54SPI_CB_RESET_END,
@@ -713,7 +724,7 @@ static long st21nfc_dev_ioctl(struct file *filp, unsigned int cmd,
 				st21nfc_dev->irq_is_attached = false;
 			}
 			/* pulse low for 20 millisecs */
-			gpiod_set_value(st21nfc_dev->gpiod_reset, 0);
+			gpiod_set_value_t(st21nfc_dev->gpiod_reset, 0);
 			usleep_range(10000, 11000);
 			/* During the reset, force IRQ OUT as */
 			/* DH output instead of input in normal usage */
@@ -728,7 +739,7 @@ static long st21nfc_dev_ioctl(struct file *filp, unsigned int cmd,
 
 			gpiod_set_value(st21nfc_dev->gpiod_irq, 1);
 			usleep_range(10000, 11000);
-			gpiod_set_value(st21nfc_dev->gpiod_reset, 1);
+			gpiod_set_value_t(st21nfc_dev->gpiod_reset, 1);
 
 			pr_info("%s done Pulse Request\n", __func__);
 		}
@@ -848,57 +859,134 @@ static int st21nfc_ping(struct st21nfc_device *st21nfc_dev)
 
 		// Read next message.
 		len = i2c_master_recv(st21nfc_dev->client, st21nfc_dev->buffer,
-				      4);
-		if (len != 4) {
+				      3);
+		if (len != 3) {
 			pr_warn("%s Could not read header: %d\n", __func__,
 				len);
-			break;
+			/* retry read */
 		}
-		if (st21nfc_dev->buffer[0] == IDLE_CHARACTER) {
-			if (st21nfc_dev->buffer[1] == IDLE_CHARACTER) {
-				pr_warn("%s Read 7E7E... header, IRQ always high ? Stop\n",
-					__func__);
-				break;
+		else
+		{
+			if (st21nfc_dev->buffer[0] == IDLE_CHARACTER) {
+				if (st21nfc_dev->buffer[1] == IDLE_CHARACTER) {
+					if (st21nfc_dev->buffer[2] == IDLE_CHARACTER) {
+						pr_warn("%s Read 7E7E7E... header, IRQ always high ? Stop\n",
+							__func__);
+						break;
+					} else {
+						st21nfc_dev->buffer[0] = st21nfc_dev->buffer[2];
+						len = i2c_master_recv(st21nfc_dev->client,
+									st21nfc_dev->buffer + 1,
+									2);
+						if (len != 2) {
+							pr_warn("%s Could not read rest of header after 7E7E: %d\n",
+								__func__, len);
+							break;
+						}
+						len = i2c_master_recv(st21nfc_dev->client,
+									st21nfc_dev->buffer + 3,
+									st21nfc_dev->buffer[2]);
+						if (len != (int)st21nfc_dev->buffer[2]) {
+							pr_warn("%s Could not read payload: %d\n",
+								__func__, len);
+							break;
+						}
+					}
+				} else {
+					// 4bytes header, read length
+					st21nfc_dev->buffer[0] = st21nfc_dev->buffer[1];
+					st21nfc_dev->buffer[1] = st21nfc_dev->buffer[2];
+					len = i2c_master_recv(st21nfc_dev->client,
+								st21nfc_dev->buffer + 2,
+								1);
+					if (len != 1) {
+						pr_warn("%s Could not read payload length: %d\n",
+							__func__, len);
+						break;
+					}
+					len = i2c_master_recv(st21nfc_dev->client,
+								st21nfc_dev->buffer + 3,
+								st21nfc_dev->buffer[2]);
+					if (len != (int)st21nfc_dev->buffer[2]) {
+						pr_warn("%s Could not read payload: %d\n",
+							__func__, len);
+						break;
+					}
+				}
 			} else {
-				// 4bytes header, shift
-				st21nfc_dev->buffer[0] = st21nfc_dev->buffer[1];
-				st21nfc_dev->buffer[1] = st21nfc_dev->buffer[2];
-				st21nfc_dev->buffer[2] = st21nfc_dev->buffer[3];
+				// we got 3 bytes header
 				len = i2c_master_recv(st21nfc_dev->client,
-						      st21nfc_dev->buffer + 3,
-						      st21nfc_dev->buffer[2]);
+							st21nfc_dev->buffer + 3,
+							st21nfc_dev->buffer[2]);
 				if (len != (int)st21nfc_dev->buffer[2]) {
 					pr_warn("%s Could not read payload: %d\n",
 						__func__, len);
 					break;
 				}
 			}
-		} else {
-			// 3 bytes header
-			len = i2c_master_recv(st21nfc_dev->client,
-					      st21nfc_dev->buffer + 3,
-					      st21nfc_dev->buffer[2]);
-			if (len != (int)st21nfc_dev->buffer[2]) {
-				pr_warn("%s Could not read payload: %d\n",
-					__func__, len);
-				break;
+			pr_info("%s Read message (%d bytes): %02x %02x %02x %02x ...\n", __func__,
+				len + 3, st21nfc_dev->buffer[0], st21nfc_dev->buffer[1],
+				st21nfc_dev->buffer[2], st21nfc_dev->buffer[3] );
+
+			if (st21nfc_dev->buffer[0] == 0x60 &&
+				st21nfc_dev->buffer[1] == 0x00) {
+				ret = 0;
 			}
-		}
-		pr_info("%s Read message (%d bytes): %02x %02x ...\n", __func__,
-			len + 3, st21nfc_dev->buffer[0],
-			st21nfc_dev->buffer[1]);
 
-		if (st21nfc_dev->buffer[0] == 0x60 &&
-		    st21nfc_dev->buffer[1] == 0x00) {
-			ret = 0;
+			msleep(5);
 		}
-
-		msleep(5);
 	}
 
 	return ret;
 }
 
+#ifdef RECOVERY_SUPPORT_IN_PING
+static int st21nfc_recovery(struct st21nfc_device *st21nfc_dev) {
+	int ret = 0;
+	/* This sequence allows to recover some chips that have become mute for SW reason */
+	pr_info("%s Recovery Request\n", __func__);
+	mutex_lock(&st21nfc_dev->irq_dir_mutex);
+	if (!IS_ERR_OR_NULL(st21nfc_dev->gpiod_reset)) {
+		/* pulse low for 20 millisecs */
+		gpiod_set_value(st21nfc_dev->gpiod_reset, 0);
+		usleep_range(10000, 11000);
+		/* During the reset, force IRQ OUT as */
+		/* DH output instead of input in normal usage */
+		ret = gpiod_direction_output(st21nfc_dev->gpiod_irq, 1);
+		if (ret) {
+			pr_err("%s : gpiod_direction_output failed\n",
+					__func__);
+			ret = -ENODEV;
+			mutex_unlock(&st21nfc_dev->irq_dir_mutex);
+			return ret;
+		}
+
+		gpiod_set_value(st21nfc_dev->gpiod_irq, 1);
+		usleep_range(10000, 11000);
+		gpiod_set_value(st21nfc_dev->gpiod_reset, 1);
+
+		pr_info("%s done Pulse Request\n", __func__);
+	}
+
+	msleep(20);
+	gpiod_set_value(st21nfc_dev->gpiod_irq, 0);
+	msleep(20);
+	gpiod_set_value(st21nfc_dev->gpiod_irq, 1);
+	msleep(20);
+	gpiod_set_value(st21nfc_dev->gpiod_irq, 0);
+	msleep(20);
+	pr_info("%s Recovery procedure finished\n", __func__);
+	ret = gpiod_direction_input(st21nfc_dev->gpiod_irq);
+	if (ret) {
+		pr_err("%s : gpiod_direction_input failed\n", __func__);
+		ret = -ENODEV;
+	}
+	mutex_unlock(&st21nfc_dev->irq_dir_mutex);
+
+	return ret;
+}
+
+#endif // RECOVERY_SUPPORT_IN_PING
 #endif // WITH_PING_DURING_PROBE
 static const struct file_operations st21nfc_dev_fops = {
 	.owner = THIS_MODULE,
@@ -1068,6 +1156,9 @@ static int st21nfc_probe(struct i2c_client *client,
 	int ret;
 	struct st21nfc_device *st21nfc_dev;
 	struct device *dev = &client->dev;
+#ifdef RECOVERY_SUPPORT_IN_PING
+	int t;
+#endif
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		pr_err("%s : need I2C_FUNC_I2C\n", __func__);
@@ -1119,8 +1210,9 @@ static int st21nfc_probe(struct i2c_client *client,
 		}
 		/* Prepare a workqueue for st21nfc_dev_power_stats_handler */
 		st21nfc_dev->st_p_wq = create_workqueue("st_pstate_work");
-		if(!st21nfc_dev->st_p_wq)
+		if(!st21nfc_dev->st_p_wq) {
 			return -ENODEV;
+		}
 		mutex_init(&st21nfc_dev->pidle_mutex);
 		INIT_WORK(&(st21nfc_dev->st_p_work), st21nfc_pstate_wq);
 		/* Start the power stat in power mode idle */
@@ -1163,8 +1255,9 @@ static int st21nfc_probe(struct i2c_client *client,
 				 __func__);
 			st21nfc_dev->pinctrl_en = 1;
 		}
-
-
+		/* Set clk_run when clock pinctrl already enabled */
+		if (st21nfc_dev->pinctrl_en != 0)
+			st21nfc_dev->clk_run = true;
 		ret = st21nfc_clock_select(st21nfc_dev);
 		if (ret < 0) {
 			pr_err("%s : st21nfc_clock_select failed\n", __func__);
@@ -1185,10 +1278,27 @@ static int st21nfc_probe(struct i2c_client *client,
 	}
 
 #ifdef WITH_PING_DURING_PROBE
+#ifdef RECOVERY_SUPPORT_IN_PING
+	for(t = 0; t < 3; t++) {
+		int rc;
+
+		ret = st21nfc_ping(st21nfc_dev);
+		if (ret == 0) break;
+
+		pr_err("%s: Did not get CORE_RESET_NTF (%d), try recovery\n", __func__, ret);
+		rc = st21nfc_recovery(st21nfc_dev);
+		pr_info("%s: recovery done (#%d), result = %d, try ping again\n", __func__, t, rc);
+	}
+	// try the next ping only if last one failed
+	if (ret != 0) {
+#endif // RECOVERY_SUPPORT_IN_PING
 	if ((ret = st21nfc_ping(st21nfc_dev))) {
 		pr_err("%s: Did not get CORE_RESET_NTF, hardware issue? (%d)\n", __func__, ret);
-		return ret;
+		goto err_pidle_workqueue;
 	}
+#ifdef RECOVERY_SUPPORT_IN_PING
+	}
+#endif // RECOVERY_SUPPORT_IN_PING
 #endif // WITH_PING_DURING_PROBE
 
 	/* init mutex and queues */
@@ -1354,15 +1464,7 @@ module_i2c_driver(st21nfc_driver);
 /* module load/unload record keeping */
 static int __init st21nfc_dev_init(void)
 {
-        // GKI can not found 'saved_command_line' , No effect on functionality of NFC enable and disable
-	//if (!(strnstr(saved_command_line,
-	//	     "androidboot.product.hardware.sku=moonstone_p_global", strlen(saved_command_line)) ||
-        //    strnstr(saved_command_line,
-	//	     "androidboot.product.hardware.sku=sunstone_global", strlen(saved_command_line))))  {
-	//	printk(KERN_ERR "not nfc phone!");
-	//	return -EPERM;
-	//}
-	pr_info("Loading st21nfc driver\n");
+	pr_info("Loading st21nfc driver %s\n", DRIVER_VERSION);
 	return i2c_add_driver(&st21nfc_driver);
 }
 
