@@ -11,7 +11,8 @@
  * GNU General Public License for more details.
  */
 #include <linux/hqsysfs.h>
-#include <misc/hqsys_pcba.h>
+#include "hqsys_misc.h"
+#include "hqsys_pcba.h"
 #include <linux/proc_fs.h>
 #include <linux/of_gpio.h>
 #include <linux/gpio.h>
@@ -22,101 +23,130 @@
 
 static HW_INFO(HWID_VER, ver);
 static HW_INFO(HWID_SUMMARY, hw_summary);
-// static HW_INFO(HWID_DDR, ram);
-// static HW_INFO(HWID_EMMC, emmc);
+static HW_INFO(HWID_DDR, ram);
+static HW_INFO(HWID_EMMC, emmc);
 static HW_INFO(HWID_LCM, lcm);
 //static HW_INFO(HWID_BIAS_IC,lcm_bias_ic);
-// static HW_INFO(HWID_CTP, ctp);
-// static HW_INFO(HWID_SUB_CAM, sub_cam);      //sub
-// static HW_INFO(HWID_SUB_CAM_2, main0_cam);  //main0
-// static HW_INFO(HWID_MAIN_CAM, main1_cam);  //main1
-// static HW_INFO(HWID_MAIN_CAM_2, main2_cam);  //main2
-// static HW_INFO(HWID_MAIN_CAM_3, main3_cam);  //main3
-// static HW_INFO(HWID_MAIN_LENS, main_cam_len);
-// static HW_INFO(HWID_FLASHLIGHT, flashlight);
-// static HW_INFO(HWID_GSENSOR, gsensor);
-// static HW_INFO(HWID_ALSPS, alsps);
-// static HW_INFO(HWID_MSENSOR, msensor);
-// static HW_INFO(HWID_GYRO, gyro);
-// static HW_INFO(HWID_IRDA, irda);
-// static HW_INFO(HWID_FUEL_GAUGE_IC, fuel_gauge_ic);
-// static HW_INFO(HWID_NFC, nfc);
-// static HW_INFO(HWID_FP, fingerprint);
+static HW_INFO(HWID_CTP, ctp);
+static HW_INFO(HWID_SUB_CAM, sub_cam);      //sub
+static HW_INFO(HWID_SUB_CAM_2, main0_cam);  //main0
+static HW_INFO(HWID_MAIN_CAM, main1_cam);  //main1
+static HW_INFO(HWID_MAIN_CAM_2, main2_cam);  //main2
+static HW_INFO(HWID_MAIN_CAM_3, main3_cam);  //main3
+static HW_INFO(HWID_MAIN_LENS, main_cam_len);
+static HW_INFO(HWID_FLASHLIGHT, flashlight);
+static HW_INFO(HWID_GSENSOR, gsensor);
+static HW_INFO(HWID_ALSPS, alsps);
+static HW_INFO(HWID_MSENSOR, msensor);
+static HW_INFO(HWID_GYRO, gyro);
+static HW_INFO(HWID_IRDA, irda);
+static HW_INFO(HWID_FUEL_GAUGE_IC, fuel_gauge_ic);
+static HW_INFO(HWID_NFC, nfc);
+static HW_INFO(HWID_FP, fingerprint);
 //static HW_INFO(HWID_TEE,tee);
 static HW_INFO(HWID_PCBA, pcba_config);
+static HW_INFO(HWID_BATERY, battid_config);
 
-static PCBA_CONFIG huaqin_pcba_config = PCBA_UNKNOW;
+static PCBA_CONFIG huaqin_pcba_config;// = PCBA_UNKNOW;
+//static BATTID_CONFIG huaqin_battid_config;
 
+#if defined(TARGET_PRODUCT_LANCELOT) || defined(TARGET_PRODUCT_SHIVA)
 struct pcba_info pcba[] = {
-	{ PCBA_UNKNOW, "PCBA_UNKNOW" },
-	{ PCBA_M17_P0_1_CN, "PCBA_M17_P0-1_CN" },
-	{ PCBA_M17_P0_1_GL, "PCBA_M17_P0-1_GL" },
-	{ PCBA_M17_P0_1_IN, "PCBA_M17_P0-1_IN" },
-	{ PCBA_M17_P0_1_CN_NEW, "PCBA_M17_P0-1_CN_NEW" },
-	{ PCBA_M17P_P0_1_IN, "PCBA_M17P_P0-1_IN" },
-	{ PCBA_M17P_P0_1_GL, "PCBA_M17P_P0-1_GL" },
-	{ PCBA_M17P_P0_1_ID, "PCBA_M17P_P0-1_ID" },
-
-	{ PCBA_M17_P1_CN, "PCBA_M17_P1_CN" },
-	{ PCBA_M17_P1_GL, "PCBA_M17_P1_GL" },
-	{ PCBA_M17_P1_IN, "PCBA_M17_P1_IN" },
-	{ PCBA_M17_P1_CN_NEW, "PCBA_M17_P1_CN_NEW" },
-	{ PCBA_M17P_P1_IN, "PCBA_M17P_P1_IN" },
-	{ PCBA_M17P_P1_GL, "PCBA_M17P_P1_GL" },
-	{ PCBA_M17P_P1_ID, "PCBA_M17P_P1_ID" },
-
-	{ PCBA_M17_P1_1_CN, "PCBA_M17_P1-1_CN" },
-	{ PCBA_M17_P1_1_GL, "PCBA_M17_P1-1_GL" },
-	{ PCBA_M17_P1_1_IN, "PCBA_M17_P1-1_IN" },
-	{ PCBA_M17_P1_1_CN_NEW, "PCBA_M17_P1-1_CN_NEW" },
-	{ PCBA_M17P_P1_1_IN, "PCBA_M17P_P1-1_IN" },
-	{ PCBA_M17P_P1_1_GL, "PCBA_M17P_P1-1_GL" },
-	{ PCBA_M17P_P1_1_ID, "PCBA_M17P_P1-1_ID" },
-
-	{ PCBA_M17_P2_CN, "PCBA_M17_P2_CN" },
-	{ PCBA_M17_P2_GL, "PCBA_M17_P2_GL" },
-	{ PCBA_M17_P2_IN, "PCBA_M17_P2_IN" },
-	{ PCBA_M17_P2_CN_NEW, "PCBA_M17_P2_CN_NEW" },
-	{ PCBA_M17P_P2_IN, "PCBA_M17P_P2_IN" },
-	{ PCBA_M17P_P2_GL, "PCBA_M17P_P2_GL" },
-	{ PCBA_M17P_P2_ID, "PCBA_M17P_P2_ID" },
-
-	{ PCBA_M17_MP_CN, "PCBA_M17_MP_CN" },
-	{ PCBA_M17_MP_GL, "PCBA_M17_MP_GL" },
-	{ PCBA_M17_MP_IN, "PCBA_M17_MP_IN" },
-	{ PCBA_M17_MP_CN_NEW, "PCBA_M17_MP_CN_NEW" },
-	{ PCBA_M17P_MP_IN, "PCBA_M17P_MP_IN" },
-	{ PCBA_M17P_MP_GL, "PCBA_M17P_MP_GL" },
-	{ PCBA_M17P_MP_ID, "PCBA_M17P_MP_ID" },
+	{PCBA_J19_P0_1_CN, "PCBA_J19_P0-1_CN"},
+	{PCBA_J19_P0_1_INDIA, "PCBA_J19_P0-1_INDIA"},
+	{PCBA_J19_P0_1_GLOBAL, "PCBA_J19_P0-1_GLOBAL"},
+	{PCBA_J19_P1_CN, "PCBA_J19_P1_CN"},
+	{PCBA_J19_P1_INDIA, "PCBA_J19_P1_INDIA"},
+	{PCBA_J19_P1_GLOBAL, "PCBA_J19_P1_GLOBAL"},
+	{PCBA_J19_P2_CN, "PCBA_J19_P2_CN"},
+	{PCBA_J19_P2_INDIA, "PCBA_J19_P2_INDIA"},
+	{PCBA_J19_P2_GLOBAL, "PCBA_J19_P2_GLOBAL"},
+	{PCBA_J19A_P0_1_GLOBAL, "PCBA_J19A_P0-1_GLOBAL"},
+	{PCBA_J19A_P1_GLOBAL, "PCBA_J19A_P1_GLOBAL"},
+	{PCBA_J19A_P2_GLOBAL, "PCBA_J19A_P2_GLOBAL"},
+	{PCBA_J19P_P2_INDIA, "PCBA_J19P_P2_INDIA"},
 };
+#else
+/*M17-T code for HQ-222139 by qianxiaoming at 2022/11/17 start*/
+struct pcba_info pcba[] = {
+	{PCBA_UNKNOW, "PCBA_UNKNOW"},
+	{PCBA_M17_P0_1_CN,"PCBA_M17_P0-1_CN"},
+        {PCBA_M17_P0_1_GL,"PCBA_M17_P0-1_GL"},
+        {PCBA_M17_P0_1_IN,"PCBA_M17_P0-1_IN"},
+        {PCBA_M17_P0_1_CN_NEW,"PCBA_M17_P0-1_CN_NEW"},
+        {PCBA_M17P_P0_1_IN,"PCBA_M17P_P0-1_IN"},
+        {PCBA_M17P_P0_1_GL,"PCBA_M17P_P0-1_GL"},
+        {PCBA_M17X_P0_1_CN, "PCBA_M17X_P0-1_CN"},
+
+	{PCBA_M17_P1_CN,"PCBA_M17_P1_CN"},
+        {PCBA_M17_P1_GL,"PCBA_M17_P1_GL"},
+        {PCBA_M17_P1_IN,"PCBA_M17_P1_IN"},
+        {PCBA_M17_P1_CN_NEW,"PCBA_M17_P1_CN_NEW"},
+        {PCBA_M17P_P1_IN,"PCBA_M17P_P1_IN"},
+        {PCBA_M17P_P1_GL,"PCBA_M17P_P1_GL"},
+        {PCBA_M17X_P1_CN, "PCBA_M17X_P1_CN"},
+
+	{PCBA_M17_P1_1_CN,"PCBA_M17_P1-1_CN"},
+        {PCBA_M17_P1_1_GL,"PCBA_M17_P1-1_GL"},
+        {PCBA_M17_P1_1_IN,"PCBA_M17_P1-1_IN"},
+        {PCBA_M17_P1_1_CN_NEW,"PCBA_M17_P1-1_CN_NEW"},
+        {PCBA_M17P_P1_1_IN,"PCBA_M17P_P1-1_IN"},
+        {PCBA_M17P_P1_1_GL,"PCBA_M17P_P1-1_GL"},
+        {PCBA_M17X_P1_1_CN, "PCBA_M17X_P1-1_CN"},
+
+        {PCBA_M17_P2_CN,"PCBA_M17_P2_CN"},
+        {PCBA_M17_P2_GL,"PCBA_M17_P2_GL"},
+        {PCBA_M17_P2_IN,"PCBA_M17_P2_IN"},
+        {PCBA_M17_P2_CN_NEW,"PCBA_M17_P2_CN_NEW"},
+        {PCBA_M17P_P2_IN,"PCBA_M17P_P2_IN"},
+        {PCBA_M17P_P2_GL,"PCBA_M17P_P2_GL"},
+        {PCBA_M17X_P2_CN, "PCBA_M17X_P2_CN"},
+
+ 	{PCBA_M17_MP_CN,"PCBA_M17_MP_CN"},
+        {PCBA_M17_MP_GL,"PCBA_M17_MP_GL"},
+        {PCBA_M17_MP_IN,"PCBA_M17_MP_IN"},
+        {PCBA_M17_MP_CN_NEW,"PCBA_M17_MP_CN_NEW"},
+        {PCBA_M17P_MP_IN,"PCBA_M17P_MP_IN"},
+        {PCBA_M17P_MP_GL,"PCBA_M17P_MP_GL"},
+        {PCBA_M17X_MP_CN, "PCBA_M17X_MP_CN"},
+        {PCBA_M17_MP_CN_ZS,"PCBA_M17_MP_CN_ZS"},
+};
+#endif
+/*M17-T code for HQ-222139 by qianxiaoming at 2022/11/17 end*/
 
 static struct attribute *huaqin_attrs[] = {
 	&hw_info_ver.attr,
 	&hw_info_hw_summary.attr,
-	// &hw_info_ram.attr,
-	// &hw_info_emmc.attr,
+	&hw_info_ram.attr,
+	&hw_info_emmc.attr,
 	&hw_info_lcm.attr,
 //	&hw_info_lcm_bias_ic.attr,
-	// &hw_info_ctp.attr,
-	// &hw_info_sub_cam.attr,
-	// &hw_info_main0_cam.attr,
-	// &hw_info_main1_cam.attr,
-	// &hw_info_main2_cam.attr,
-	// &hw_info_main3_cam.attr,
-	// &hw_info_main_cam_len.attr,
-	// &hw_info_flashlight.attr,
-	// &hw_info_gsensor.attr,
-	// &hw_info_alsps.attr,
-	// &hw_info_msensor.attr,
-	// &hw_info_gyro.attr,
-	// &hw_info_irda.attr,
-	// &hw_info_fuel_gauge_ic.attr,
-	// &hw_info_nfc.attr,
-	// &hw_info_fingerprint.attr,
+	&hw_info_ctp.attr,
+	&hw_info_sub_cam.attr,
+	&hw_info_main0_cam.attr,
+	&hw_info_main1_cam.attr,
+	&hw_info_main2_cam.attr,
+	&hw_info_main3_cam.attr,
+	&hw_info_main_cam_len.attr,
+	&hw_info_flashlight.attr,
+	&hw_info_gsensor.attr,
+	&hw_info_alsps.attr,
+	&hw_info_msensor.attr,
+	&hw_info_gyro.attr,
+	&hw_info_irda.attr,
+	&hw_info_fuel_gauge_ic.attr,
+	&hw_info_nfc.attr,
+	&hw_info_fingerprint.attr,
 	&hw_info_pcba_config.attr,
+	&hw_info_battid_config.attr,
 //	&hw_info_tee.attr,
 	NULL
 };
+
+extern int get_authenice_id(void);
+extern int get_slg_authenice_id(void);
+extern int get_batt_auth_result(void);
+extern int get_w1_auth_result(void);
 
 static ssize_t huaqin_show(struct kobject *kobj, struct attribute *a, char *buf)
 {
@@ -162,7 +192,19 @@ static ssize_t huaqin_show(struct kobject *kobj, struct attribute *a, char *buf)
 			}
 		}
 		count = sprintf(buf, "%s\n", "PCBA_UNKONW_HELLO");
+	} else if (HWID_BATERY == hw->hw_id) {
+		if (get_authenice_id() == 1 && get_batt_auth_result() == 1) {// ds28e16  and first
+				pr_err("battid auth2\n");
+				count = sprintf(buf, "%s\n", "first supply\n");
+		} else if(get_slg_authenice_id() == 2 && get_w1_auth_result() == 3) {//slg and second
+				pr_err("battid auth3\n");
+				count = sprintf(buf, "%s\n", "second supply\n");
 		} else {
+				pr_err("battid auth4\n");
+				count = sprintf(buf, "%s\n", "no match\n");
+		}
+		return count;
+	} else {
 		if (0 == hw->hw_exist) {
 			count = sprintf(buf, "Not support\n");
 		} else if (NULL == hw->hw_device_name) {
