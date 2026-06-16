@@ -24,7 +24,18 @@ struct adapter_power_cap {
 struct adapter_properties {
 	const char *alias_name;
 };
-
+/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 start*/
+struct xm_pd_adapter_info {
+	struct tcpc_device *tcpc;
+	struct notifier_block pd_nb;
+	struct adapter_device *adapter_dev;
+	struct task_struct *adapter_task;
+	const char *adapter_dev_name;
+	bool enable_kpoc_shdn;
+	struct tcpm_svid_list *adapter_svid_list;
+	struct adapter_device *pd_adapter;
+};
+/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 end*/
 enum uvdm_state {
 	USBPD_UVDM_DISCONNECT,
 	USBPD_UVDM_CHARGER_VERSION,

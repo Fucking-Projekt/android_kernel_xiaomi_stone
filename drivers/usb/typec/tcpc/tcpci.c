@@ -537,18 +537,45 @@ int tcpci_enable_watchdog(struct tcpc_device *tcpc, bool en)
 	return 0;
 }
 
+struct cclogic_chip {
+	struct i2c_client *client;
+	struct device *dev;
+#ifdef CONFIG_RT_REGMAP
+	struct rt_regmap_device *m_dev;
+#endif /* CONFIG_RT_REGMAP */
+	struct tcpc_desc *tcpc_desc;
+	struct tcpc_device *tcpc;
+
+	int irq_gpio;
+	int irq;
+	int chip_id;
+
+	struct mutex irq_lock;
+	bool is_suspended;
+	bool irq_while_suspended;
+};
+
 int tcpci_source_vbus(
 	struct tcpc_device *tcpc, uint8_t type, int mv, int ma)
 {
 	struct tcp_notify tcp_noti;
 	int ret;
+	int tmp_rp_vlv;
+	struct cclogic_chip *chip = tcpc_get_dev_data(tcpc);
 
 #ifdef CONFIG_USB_POWER_DELIVERY
 	if (type >= TCP_VBUS_CTRL_PD &&
 			tcpc->pd_port.pe_data.pd_prev_connected)
 		type |= TCP_VBUS_CTRL_PD_DETECT;
-#endif	/* CONFIG_USB_POWER_DELIVERY */
-
+#endif
+	/* CONFIG_USB_POWER_DELIVERY */
+	if(chip->chip_id == 0) {
+		tmp_rp_vlv = tcpc->typec_local_rp_level;
+		pr_info("%s local_rp=%d", __func__, tcpc->typec_local_rp_level);
+		tcpc->typec_local_rp_level = TYPEC_CC_RP_1_5;
+		pr_info("%s local_rp=%d", __func__, tcpc->typec_local_rp_level);
+	}
+	pr_err("%s: chip id=%d\n", __func__, chip->chip_id);
 	if (ma < 0) {
 		if (mv != 0) {
 			switch (tcpc->typec_local_rp_level) {
@@ -566,7 +593,9 @@ int tcpci_source_vbus(
 		} else
 			ma = 0;
 	}
-
+	if(chip->chip_id == 0){
+		tcpc->typec_local_rp_level = tmp_rp_vlv;
+	}
 	tcp_noti.vbus_state.ma = ma;
 	tcp_noti.vbus_state.mv = mv;
 	tcp_noti.vbus_state.type = type;

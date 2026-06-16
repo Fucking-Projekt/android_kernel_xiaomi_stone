@@ -30,9 +30,9 @@
 #include <linux/iio/types.h>
 #include <linux/iio/consumer.h>
 
-#include "inc/tcpci_typec.h"
-
 #include <linux/quiet_logs.h>
+
+#include "inc/tcpci_typec.h"
 
 extern int class_for_each_device(struct class *class, struct device *start,
 				void *data, int (*fn)(struct device *, void *));
@@ -265,7 +265,7 @@ static void usb_dwork_handler(struct work_struct *work)
 		 */
 		ret = 0;
 		val.intval = POWER_SUPPLY_USB_TYPE_UNKNOWN;
-		ret = power_supply_get_property(rpmd->usb_psy,POWER_SUPPLY_PROP_USB_TYPE,&val);
+		ret = power_supply_get_property(rpmd->usb_psy, POWER_SUPPLY_PROP_USB_TYPE, &val);
 		dev_err(rpmd->dev, "%s polling_cnt = %d, ret = %d type = %d\n",
 				    __func__, ++rpmd->usb_type_polling_cnt,
 				    ret, val.intval);
@@ -295,8 +295,7 @@ static void usb_dwork_handler(struct work_struct *work)
 }
 
 static void pd_sink_set_vol_and_cur(struct rt_pd_manager_data *rpmd,
-				    int mv, int ma, uint8_t type)
- {
+				    int mv, int ma, uint8_t type)  {
 	/* ***
 	 * The input voltage/current limit hints from TCPC/RT1715
 	 */
@@ -312,26 +311,26 @@ static void pd_sink_set_vol_and_cur(struct rt_pd_manager_data *rpmd,
 		val.intval = POWER_SUPPLY_PD_PPS_ACTIVE;
 	else
 		val.intval = POWER_SUPPLY_PD_ACTIVE;
-	power_supply_set_property(rpmd->usb_psy,POWER_SUPPLY_PROP_USB_TYPE,&val);
+	power_supply_set_property(rpmd->usb_psy, POWER_SUPPLY_PROP_USB_TYPE, &val);
 
 	switch (type) {
-		case TCP_VBUS_CTRL_PD_HRESET:
-		case TCP_VBUS_CTRL_PD_PR_SWAP:
-		case TCP_VBUS_CTRL_PD_REQUEST:
-			set_bit(0, &sel);
-			set_bit(1, &sel);
-			val.intval = mv * 1000;
-			break;
-		case TCP_VBUS_CTRL_PD_STANDBY_UP:
-			set_bit(1, &sel);
-			val.intval = mv * 1000;
-			break;
-		case TCP_VBUS_CTRL_PD_STANDBY_DOWN:
-			set_bit(0, &sel);
-			val.intval = mv * 1000;
-			break;
-		default:
-			break;
+	case TCP_VBUS_CTRL_PD_HRESET:
+	case TCP_VBUS_CTRL_PD_PR_SWAP:
+	case TCP_VBUS_CTRL_PD_REQUEST:
+		set_bit(0, &sel);
+		set_bit(1, &sel);
+		val.intval = mv * 1000;
+		break;
+	case TCP_VBUS_CTRL_PD_STANDBY_UP:
+		set_bit(1, &sel);
+		val.intval = mv * 1000;
+		break;
+	case TCP_VBUS_CTRL_PD_STANDBY_DOWN:
+		set_bit(0, &sel);
+		val.intval = mv * 1000;
+		break;
+	default:
+		break;
 	}
 	if (val.intval < micro_5v)
 		val.intval = micro_5v;
@@ -369,7 +368,7 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 		if (noti->vbus_state.type & TCP_VBUS_CTRL_PD_DETECT)
 			pd_sink_set_vol_and_cur(rpmd, noti->vbus_state.mv,
 						noti->vbus_state.ma,
- 						noti->vbus_state.type);
+						noti->vbus_state.type);
 		break;
 	case TCP_NOTIFY_SOURCE_VBUS:
 		dev_err(rpmd->dev, "%s source vbus %dmV %dmA type(0x%02X)\n",
@@ -380,7 +379,7 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 		else
 			val.intval = POWER_SUPPLY_TYPE_OTG_DISABLE;
 
-		power_supply_set_property(rpmd->usb_psy,POWER_SUPPLY_PROP_USB_TYPE,&val);
+		power_supply_set_property(rpmd->usb_psy, POWER_SUPPLY_PROP_USB_TYPE, &val);
 		break;
 	case TCP_NOTIFY_TYPEC_STATE:
 		old_state = noti->typec_state.old_state;
@@ -478,19 +477,19 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 
 		if (new_state == TYPEC_ATTACHED_SRC) {
 			val.intval = TYPEC_ATTACHED_SRC;
-			dev_err(rpmd->dev, "%s TYPEC_ATTACHED_SRC(%d)\n",__func__, val.intval);
+			dev_err(rpmd->dev, "%s TYPEC_ATTACHED_SRC(%d)\n", __func__, val.intval);
 			rt_pd_set_psy_iio_property(rpmd, RT_PD_IIO_TYPEC_MODE, &val);
 		} else if (new_state == TYPEC_UNATTACHED) {
 			val.intval = TYPEC_UNATTACHED;
-			dev_err(rpmd->dev, "%s TYPEC_UNATTACHED(%d)\n",__func__, val.intval);
+			dev_err(rpmd->dev, "%s TYPEC_UNATTACHED(%d)\n", __func__, val.intval);
 			rt_pd_set_psy_iio_property(rpmd, RT_PD_IIO_TYPEC_MODE, &val);
 		} else if (new_state == TYPEC_ATTACHED_SNK) {
 			val.intval = TYPEC_ATTACHED_SNK;
-			dev_err(rpmd->dev, "%s TYPEC_ATTACHED_SNK(%d)\n",__func__, val.intval);
+			dev_err(rpmd->dev, "%s TYPEC_ATTACHED_SNK(%d)\n", __func__, val.intval);
 			rt_pd_set_psy_iio_property(rpmd, RT_PD_IIO_TYPEC_MODE, &val);
 		} else if (new_state == TYPEC_ATTACHED_AUDIO) {
 			val.intval = TYPEC_ATTACHED_AUDIO;
-			dev_err(rpmd->dev, "%s TYPEC_ATTACHED_AUDIO(%d)\n",__func__, val.intval);
+			dev_err(rpmd->dev, "%s TYPEC_ATTACHED_AUDIO(%d)\n", __func__, val.intval);
 			rt_pd_set_psy_iio_property(rpmd, RT_PD_IIO_TYPEC_MODE, &val);
 		}
 
@@ -593,8 +592,8 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 			 * to not interfering with USB2.0 communication
 			 */
 			val.intval = POWER_SUPPLY_PD_DUMMY_ACTIVE;
-			power_supply_set_property(rpmd->usb_psy,POWER_SUPPLY_PROP_USB_TYPE,&val);
-			dev_err(rpmd->dev, "%s set pd state = POWER_SUPPLY_PD_DUMMY_ACTIVE\n",__func__);
+			power_supply_set_property(rpmd->usb_psy, POWER_SUPPLY_PROP_USB_TYPE, &val);
+			dev_err(rpmd->dev, "%s set pd state = POWER_SUPPLY_PD_DUMMY_ACTIVE\n", __func__);
 
 			typec_set_pwr_role(rpmd->typec_port, TYPEC_SINK);
 		} else if (noti->swap_state.new_role == PD_ROLE_SOURCE) {
@@ -657,7 +656,7 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 		switch (rpmd->pd_connect_state) {
 		case PD_CONNECT_NONE:
 			val.intval = POWER_SUPPLY_PD_INACTIVE;
-			power_supply_set_property(rpmd->usb_psy,POWER_SUPPLY_PROP_USB_TYPE,&val);
+			power_supply_set_property(rpmd->usb_psy, POWER_SUPPLY_PROP_USB_TYPE, &val);
 			dev_err(rpmd->dev, "%s need set pd state = 0\n", __func__);
 			break;
 		case PD_CONNECT_HARD_RESET:
@@ -1031,7 +1030,7 @@ static int rt_pd_manager_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 	int i = 0;
-	static int probe_cnt = 0;
+	static int probe_cnt;
 	struct rt_pd_manager_data *rpmd = NULL;
 
 	dev_err(&pdev->dev, "%s (%s) probe_cnt = %d\n",

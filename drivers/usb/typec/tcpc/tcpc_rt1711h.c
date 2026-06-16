@@ -683,7 +683,7 @@ static int rt1711_tcpc_init(struct tcpc_device *tcpc, bool sw_reset)
 	}
 
 #ifdef CONFIG_TCPC_I2CRST_EN
-	if (chip->chip_id != HUSB311_DID){
+	if (chip->chip_id != HUSB311_DID) {
 		rt1711_i2c_write8(tcpc,
 			RT1711H_REG_I2CRST_CTRL,
 			RT1711H_REG_I2CRST_SET(true, 0x0f));
@@ -918,13 +918,19 @@ static int rt1711_set_cc(struct tcpc_device *tcpc, int pull)
 	int ret;
 	uint8_t data;
 	int rp_lvl = TYPEC_CC_PULL_GET_RP_LVL(pull), pull1, pull2;
+	struct rt1711_chip *chip = tcpc_get_dev_data(tcpc);
 
 	RT1711_INFO("pull = 0x%02X\n", pull);
+	pr_info("%s, pull = 0x%02X\n", __func__, pull);
 	pull = TYPEC_CC_PULL_GET_RES(pull);
+	 pr_info("%s, pull = 0x%02X\n", __func__, pull);
 	if (pull == TYPEC_CC_DRP) {
 		data = TCPC_V10_REG_ROLE_CTRL_RES_SET(
 				1, rp_lvl, TYPEC_CC_RD, TYPEC_CC_RD);
-
+				if(chip->chip_id == HUSB311_DID) {
+					data &= 0xCF;
+					data |= 0x20;
+				}
 		ret = rt1711_i2c_write8(
 			tcpc, TCPC_V10_REG_ROLE_CTRL, data);
 
@@ -947,6 +953,10 @@ static int rt1711_set_cc(struct tcpc_device *tcpc, int pull)
 				pull2 = TYPEC_CC_OPEN;
 		}
 		data = TCPC_V10_REG_ROLE_CTRL_RES_SET(0, rp_lvl, pull1, pull2);
+		if(chip->chip_id == HUSB311_DID) {
+			data &= 0xCF;
+			data |= 0x10;
+		}
 		ret = rt1711_i2c_write8(tcpc, TCPC_V10_REG_ROLE_CTRL, data);
 	}
 
@@ -1096,7 +1106,7 @@ static int rt1711_tcpc_deinit(struct tcpc_device *tcpc)
 		rt1711_i2c_write8(tcpc, TCPC_V10_REG_POWER_STATUS_MASK, 0x0); //0x14
 		rt1711_i2c_write8(tcpc, RT1711H_REG_RT_MASK, 0x0); //0x99
 		rt1711_i2c_write8(tcpc, RT1711H_REG_BMC_CTRL, 0x0); //0x90
-		pr_info("%s - HUSB311 deinit\n",__func__);
+		pr_info("%s - HUSB311 deinit\n", __func__);
 	} else {
 		rt1711_i2c_write8(tcpc,
 			RT1711H_REG_I2CRST_CTRL,
@@ -1168,10 +1178,10 @@ static int rt1711_get_message(struct tcpc_device *tcpc, uint32_t *payload,
 	*frame_type = buf[1];
 	*msg_head = le16_to_cpu(*(uint16_t *)&buf[2]);
 
-	if ( *msg_head == 0x0 ) {
+	if (*msg_head == 0x0) {
 		tcpci_init(tcpc, true);
 		pr_err("%s: msg_head = 0x%x", __func__, *msg_head);
-		return -1;
+		return -EINVAL;
 	}
 
 	/* TCPC 1.0 ==> no need to subtract the size of msg_head */
@@ -1394,6 +1404,8 @@ static int rt1711_tcpcdev_init(struct rt1711_chip *chip, struct device *dev)
 		case TYPEC_RP_1_5:
 		case TYPEC_RP_3_0:
 			desc->rp_lvl = val;
+			if(chip->chip_id != RT1715_DID_D) ///not rt1711,use 2---->3.0
+				desc->rp_lvl = 2;
 			break;
 		default:
 			break;
