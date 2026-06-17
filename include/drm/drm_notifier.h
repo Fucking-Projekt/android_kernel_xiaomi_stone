@@ -8,6 +8,7 @@
 
 #define DRM_EARLY_EVENT_BLANK	0x01
 #define DRM_EVENT_BLANK		0x02
+#define DRM_R_EARLY_EVENT_BLANK 0x03
 
 enum {
 	DRM_BLANK_UNBLANK = 0,
@@ -19,6 +20,7 @@ enum {
 };
 
 struct drm_notify_data {
+	bool is_primary;
 	void *data;
 };
 
