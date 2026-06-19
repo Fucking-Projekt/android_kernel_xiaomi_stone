@@ -155,6 +155,7 @@ int f2fs_start_gc_thread(struct f2fs_sb_info *sbi)
 		err = PTR_ERR(gc_th->f2fs_gc_task);
 		kvfree(gc_th);
 		sbi->gc_thread = NULL;
+		goto out;
 	}
 	sched_setscheduler(sbi->gc_thread->f2fs_gc_task, SCHED_IDLE, &param);
 	set_task_ioprio(sbi->gc_thread->f2fs_gc_task,
@@ -168,7 +169,8 @@ void f2fs_stop_gc_thread(struct f2fs_sb_info *sbi)
 	struct f2fs_gc_kthread *gc_th = sbi->gc_thread;
 	if (!gc_th)
 		return;
-	kthread_stop(gc_th->f2fs_gc_task);
+	if (gc_th->f2fs_gc_task)
+		kthread_stop(gc_th->f2fs_gc_task);
 	kvfree(gc_th);
 	sbi->gc_thread = NULL;
 }
