@@ -167,7 +167,7 @@ int soc_sia81xx_init(
 #endif
 		aux_dev[i].init = NULL;
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 5, 19))
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 4, 19))
 		codec_conf[i].dlc.name = NULL;
 		codec_conf[i].dlc.of_node = dev_of_node;
 #else
