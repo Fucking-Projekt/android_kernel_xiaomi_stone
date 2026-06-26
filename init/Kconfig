@@ -852,6 +852,13 @@ config UCLAMP_BUCKETS_COUNT
 
 	  If in doubt, use the default value.
 
+config UCLAMP_ASSIST
+	bool "UClamp configuration helper"
+	depends on ANDROID && UCLAMP_TASK && UCLAMP_TASK_GROUP
+	default y
+	help
+	  This option enabled in-kernel uclamp setting overrides
+
 endmenu
 
 menu "FAIR Scheuler tunables"
