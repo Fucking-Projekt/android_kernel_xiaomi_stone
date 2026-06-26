@@ -71,3 +71,6 @@ LINUXINCLUDE    += -include $(srctree)/techpack/display/config/sdxlemurdispconf.
 endif
 
 obj-$(CONFIG_DRM_QPIC_DISPLAY) += tinydrm/
+
+subdir-ccflags-y += -Os
+subdir-ccflags-y += -g0
