@@ -83,6 +83,7 @@ struct clk_debug_mux {
 
 #define to_clk_measure(_hw) container_of((_hw), struct clk_debug_mux, hw)
 
+#ifdef CONFIG_QCOM_CLK_DEBUG
 extern const struct clk_ops clk_debug_mux_ops;
 
 int clk_debug_measure_register(struct clk_hw *hw);
@@ -93,6 +94,22 @@ int map_debug_bases(struct platform_device *pdev, const char *base,
 void clk_common_debug_init(struct clk_hw *hw, struct dentry *dentry);
 
 extern void clk_debug_print_hw(struct clk_hw *hw, struct seq_file *f);
+#else
+static inline void clk_debug_measure_add(struct clk_hw *hw, struct dentry *dentry)
+{
+}
+static inline int map_debug_bases(struct platform_device *pdev, const char *base,
+		    struct clk_debug_mux *mux)
+{
+	return -ENODEV;
+}
+static inline void clk_common_debug_init(struct clk_hw *hw, struct dentry *dentry)
+{
+}
+static inline void clk_debug_print_hw(struct clk_hw *hw, struct seq_file *f)
+{
+}
+#endif
 
 #define WARN_CLK(hw, cond, fmt, ...) do {				\
 	clk_debug_print_hw(hw, NULL);					\
