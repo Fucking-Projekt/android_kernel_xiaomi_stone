@@ -615,8 +615,6 @@ static int opp_notify(struct notifier_block *nb,
 	}
 
 	pwr->cooling_thermal_pwrlevel = max_level;
-	pwr->thermal_pwrlevel = max(pwr->cooling_thermal_pwrlevel, pwr->sysfs_thermal_pwrlevel);
-	pwr->thermal_pwrlevel_floor = min_level;
 
 	/* Update the current level using the new limit */
 	kgsl_pwrctrl_pwrlevel_change(device, pwr->active_pwrlevel);
