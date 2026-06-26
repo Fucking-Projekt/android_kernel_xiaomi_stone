@@ -4471,6 +4471,7 @@ static struct platform_driver gcc_holi_driver = {
 		.name = "gcc-holi",
 		.of_match_table = gcc_holi_match_table,
 		.sync_state = gcc_holi_sync_state,
+		.probe_type = PROBE_FORCE_SYNCHRONOUS,
 	},
 };
 

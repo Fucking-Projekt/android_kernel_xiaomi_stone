@@ -4378,6 +4378,7 @@ static struct platform_driver gcc_blair_driver = {
 		.name = "gcc-blair",
 		.of_match_table = gcc_blair_match_table,
 		.sync_state = gcc_blair_sync_state,
+		.probe_type = PROBE_FORCE_SYNCHRONOUS,
 	},
 };
 
