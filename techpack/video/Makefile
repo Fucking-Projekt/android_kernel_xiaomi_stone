@@ -41,3 +41,6 @@ LINUXINCLUDE    += -I$(srctree)/techpack/video/include \
 USERINCLUDE     += -I$(srctree)/techpack/video/include/uapi
 
 obj-y +=msm/
+
+subdir-ccflags-y += -Os
+subdir-ccflags-y += -g0
