@@ -3160,7 +3160,8 @@ static void gmu_idle_check(struct work_struct *work)
 
 	mutex_lock(&device->mutex);
 
-	if (test_bit(GMU_DISABLE_SLUMBER, &device->gmu_core.flags))
+	if (test_bit(GMU_DISABLE_SLUMBER, &device->gmu_core.flags) ||
+	    device->pwrctrl.ctrl_flags)
 		goto done;
 
 	if (!atomic_read(&device->active_cnt)) {
