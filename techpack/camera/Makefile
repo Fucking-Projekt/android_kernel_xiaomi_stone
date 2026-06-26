@@ -108,3 +108,6 @@ obj-y += drivers/
 else
 $(info Target not found)
 endif
+
+subdir-ccflags-y += -Os
+subdir-ccflags-y += -g0
