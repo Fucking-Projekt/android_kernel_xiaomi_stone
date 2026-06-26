@@ -303,7 +303,7 @@ static void kgsl_pwrctrl_set_thermal_pwrlevel(struct kgsl_device *device,
 		level = pwr->num_pwrlevels - 1;
 
 	pwr->sysfs_thermal_pwrlevel = level;
-	pwr->thermal_pwrlevel = max(pwr->cooling_thermal_pwrlevel, pwr->sysfs_thermal_pwrlevel);
+	pwr->thermal_pwrlevel = level;
 
 	/* Update the current level using the new limit */
 	kgsl_pwrctrl_pwrlevel_change(device, pwr->active_pwrlevel);
@@ -733,16 +733,14 @@ static ssize_t force_rail_on_store(struct device *dev,
 static ssize_t force_no_nap_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
-	/* force_no_nap is deprecated, so return it as always disabled */
-	return scnprintf(buf, PAGE_SIZE, "0\n");
+	return __force_on_show(dev, attr, buf, KGSL_PWRFLAGS_NO_NAP);
 }
 
 static ssize_t force_no_nap_store(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
 {
-	/* force_no_nap is deprecated, so return EOPNOTSUPP */
-	return -EOPNOTSUPP;
+	return __force_on_store(dev, attr, buf, count, KGSL_PWRFLAGS_NO_NAP);
 }
 
 static ssize_t bus_split_show(struct device *dev,

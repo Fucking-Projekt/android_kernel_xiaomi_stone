@@ -26,6 +26,7 @@
 #define KGSL_PWRFLAGS_CLK_ON   1
 #define KGSL_PWRFLAGS_AXI_ON   2
 #define KGSL_PWRFLAGS_IRQ_ON   3
+#define KGSL_PWRFLAGS_NO_NAP   4
 
 /* Only two supported levels, min & max */
 #define KGSL_CONSTRAINT_PWR_MAXLEVELS 2
