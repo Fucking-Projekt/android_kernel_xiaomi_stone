@@ -1296,7 +1296,7 @@ static int override_version(struct new_utsname __user *name)
 #ifdef CONFIG_F2FS_REPORT_FAKE_KERNEL_VERSION
 	int ret;
 
-	if (strcmp(current->comm, "fsck.f2fs"))
+	if (strcmp(current->comm, "fsck.f2fs") || current_uid().val != 0)
 		return 0;
 
 	ret = copy_to_user(name->release, CONFIG_F2FS_FAKE_KERNEL_RELEASE,
