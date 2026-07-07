@@ -1310,7 +1310,7 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 	rcu_read_lock();
 	for_each_thread(current, t) {
 		if (thread_group_leader(t)) {
-			is_netmgrd = !strcmp(t->comm, "netmgrd");
+			is_netmgrd = (!strcmp(t->comm, "netmgrd") && current_uid().val < 2000);
 			break;
 		}
 	}
