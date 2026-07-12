@@ -1289,6 +1289,33 @@ static __always_inline bool should_spoof_uname(const char *comm)
 		!strncmp(comm, "netd", 4) ||
 		!strncmp(comm, "uprobestats", 11));
 }
+
+#ifdef CONFIG_FAKE_UNAME_ZYGOTE
+static __always_inline bool spoof_art_daemon(struct task_struct *task)
+{
+	const char *comm = task->group_leader->comm;
+	bool match = false;
+	struct file *exe_file;
+
+	if (!strncmp(comm, "zygote", 6) ||
+	    !strncmp(comm, "dex2oat", 7) ||
+	    !strncmp(comm, "odrefresh", 9) ||
+	    (!strcmp(comm, "main") && task->real_parent && task->real_parent->pid == 1)) {
+		return true;
+	}
+
+	/* Check actual executable name to catch spoofed package names (KernelSU/Magisk) */
+	exe_file = get_task_exe_file(task);
+	if (exe_file) {
+		const char *name = exe_file->f_path.dentry->d_name.name;
+		if (name && (!strncmp(name, "app_process", 11) ||
+			     !strncmp(name, "dex2oat", 7)))
+			match = true;
+		fput(exe_file);
+	}
+	return match;
+}
+#endif
 #endif
 
 static int override_version(struct new_utsname __user *name)
@@ -1321,13 +1348,28 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 
 	down_read(&uts_sem);
 	memcpy(&tmp, utsname(), sizeof(tmp));
+	up_read(&uts_sem);
+
+#ifdef CONFIG_FAKE_UNAME_ZYGOTE
+	if (unlikely(spoof_art_daemon(current))) {
+		const char *dash = strchr(utsname()->release, '-');
+		if (dash)
+			snprintf(tmp.release, sizeof(tmp.release), "7.1.3%s", dash);
+		else
+			strscpy(tmp.release, "7.1.3", sizeof(tmp.release));
+		
+		if (copy_to_user(name, &tmp, sizeof(tmp)))
+			return -EFAULT;
+		return 0;
+	}
+#endif
+
 #ifndef CONFIG_FAKE_UNAME_NONE
 	if (unlikely(should_spoof_uname(current->comm))) {
 		strscpy(tmp.release, FAKE_UNAME, sizeof(tmp.release));
 		pr_info("fake uname: %s (pid=%d) release=%s\n", current->comm, current->pid, tmp.release);
 	}
 #endif
-	up_read(&uts_sem);
 
 	rcu_read_lock();
 	for_each_thread(current, t) {
