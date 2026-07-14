@@ -3,6 +3,9 @@
 # Makefile for the input core drivers.
 #
 
+subdir-ccflags-y += -O3
+
+
 # Each configuration option enables a list of files.
 
 obj-$(CONFIG_INPUT)		+= input-core.o
