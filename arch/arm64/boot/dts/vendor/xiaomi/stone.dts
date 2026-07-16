@@ -15,7 +15,7 @@
 #include "stone-virtualsar.dts"
 
 / {
-	model = "Qualcomm Technologies, Inc. STONE QRD NOPMI";
+	model = "Qualcomm Technologies, Inc. MiBlair";
 };
 
 &qcom {
