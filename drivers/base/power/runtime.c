@@ -1269,7 +1269,7 @@ int __pm_runtime_set_status(struct device *dev, unsigned int status)
 		if (!parent->power.disable_depth
 		    && !parent->power.ignore_children
 		    && parent->power.runtime_status != RPM_ACTIVE) {
-			dev_err(dev, "runtime PM trying to activate child device %s but parent (%s) is not active\n",
+			dev_dbg(dev, "runtime PM trying to activate child device %s but parent (%s) is not active\n",
 				dev_name(dev),
 				dev_name(parent));
 			error = -EBUSY;
