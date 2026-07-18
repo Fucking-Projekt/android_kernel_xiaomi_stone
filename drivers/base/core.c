@@ -1141,8 +1141,14 @@ void device_links_driver_bound(struct device *dev)
 			 */
 			device_link_drop_managed(link);
 		} else {
-			WARN_ON(link->status != DL_STATE_CONSUMER_PROBE);
-			WRITE_ONCE(link->status, DL_STATE_ACTIVE);
+			if (link->status == DL_STATE_DORMANT ||
+			    link->status == DL_STATE_AVAILABLE) {
+				if (link->supplier->links.status == DL_DEV_DRIVER_BOUND)
+					WRITE_ONCE(link->status, DL_STATE_ACTIVE);
+			} else {
+				WARN_ON(link->status != DL_STATE_CONSUMER_PROBE);
+				WRITE_ONCE(link->status, DL_STATE_ACTIVE);
+			}
 		}
 
 		/*
