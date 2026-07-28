@@ -836,10 +836,25 @@ static void binder_restore_priority(struct binder_thread *thread,
 	binder_do_set_priority(thread, desired, /* verify = */ false);
 }
 
+#ifdef CONFIG_HQ_QGKI
+static bool is_home_systemui_task(struct binder_transaction *t) {
+	if (t && t->from && t->from->task && (!(t->flags & TF_ONE_WAY)) &&
+		is_rt_policy(t->from->task->policy) && (t->from->task->pid == t->from->task->tgid) &&
+		((strncmp(t->from->task->comm, "com.miui.home", strlen("com.miui.home")) == 0) ||
+		(strncmp(t->from->task->comm, "ndroid.systemui", strlen("ndroid.systemui")) == 0))) {
+		return true;
+	}
+	return false;
+}
+#endif
+
 static void binder_transaction_priority(struct binder_thread *thread,
 					struct binder_transaction *t,
 					struct binder_node *node)
 {
+	struct binder_priority desired_m={0};
+	unsigned int policy=0;
+	struct sched_param params;
 	struct task_struct *task = thread->task;
 	struct binder_priority desired = t->priority;
 	const struct binder_priority node_prio = {
@@ -895,6 +910,18 @@ static void binder_transaction_priority(struct binder_thread *thread,
 
 	binder_set_priority(thread, &desired);
 	trace_android_vh_binder_set_priority(t, task);
+
+#ifdef CONFIG_HQ_QGKI
+	if (is_home_systemui_task(t)){
+		desired_m.sched_policy = SCHED_FIFO;
+		desired_m.prio = 98;
+		policy = desired_m.sched_policy;
+	}
+	if (is_rt_policy(policy) && task->policy != policy) {
+		params.sched_priority = to_userspace_prio(policy, desired_m.prio);
+		sched_setscheduler_nocheck(task, policy | SCHED_RESET_ON_FORK, &params);
+	}
+#endif
 }
 
 static struct binder_node *binder_get_node_ilocked(struct binder_proc *proc,
