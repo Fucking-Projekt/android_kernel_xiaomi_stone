@@ -449,8 +449,13 @@ static void msm_restart_prepare(const char *cmd)
 		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
 	else
 		qpnp_pon_system_pwr_off(PON_POWER_OFF_HARD_RESET);
-
+#ifdef CONFIG_HQ_QGKI
+	if (in_panic) {
+		qpnp_pon_set_restart_reason(PON_RESTART_REASON_PANIC);
+	} else if (cmd != NULL) {
+#else
 	if (cmd != NULL) {
+#endif
 		if (!strncmp(cmd, "bootloader", 10)) {
 			reason = PON_RESTART_REASON_BOOTLOADER;
 			__raw_writel(0x77665500, restart_reason);
@@ -481,6 +486,9 @@ static void msm_restart_prepare(const char *cmd)
 			if (0)
 				enable_emergency_dload_mode();
 		} else {
+#ifdef CONFIG_HQ_QGKI
+			qpnp_pon_set_restart_reason(PON_RESTART_REASON_NORMAL);
+#endif
 			__raw_writel(0x77665501, restart_reason);
 		}
 
@@ -489,6 +497,11 @@ static void msm_restart_prepare(const char *cmd)
 		else
 			qpnp_pon_set_restart_reason(
 				(enum pon_restart_reason)reason);
+#ifdef CONFIG_HQ_QGKI
+	} else {
+		qpnp_pon_set_restart_reason(PON_RESTART_REASON_NORMAL);
+		__raw_writel(0x77665501, restart_reason);
+#endif
 	}
 
 	/*outer_flush_all is not supported by 64bit kernel*/
