@@ -29,6 +29,13 @@
 #include <linux/soc/qcom/smem.h>
 #include <linux/soc/qcom/smem_state.h>
 
+#ifdef CONFIG_HQ_QGKI
+#include <linux/workqueue.h>
+#include <linux/slab.h>
+#include <linux/seq_file.h>
+#include <linux/proc_fs.h>
+#endif
+
 #include "peripheral-loader.h"
 
 #define PIL_TZ_AVG_BW  0
@@ -147,13 +154,96 @@ static struct icc_path *scm_perf_client;
 static int scm_pas_bw_count;
 static DEFINE_MUTEX(scm_pas_bw_mutex);
 static int is_inited;
-
+#ifdef CONFIG_HQ_QGKI
+static char last_ssr_reason[MAX_SSR_REASON_LEN] = "none";
+static struct proc_dir_entry *last_ssr_reason_entry;
+#endif
 static void subsys_disable_all_irqs(struct pil_tz_data *d);
 static void subsys_enable_all_irqs(struct pil_tz_data *d);
 static bool generic_read_status(struct pil_tz_data *d);
 
 static int enable_debug;
 module_param(enable_debug, int, 0644);
+
+#ifdef CONFIG_HQ_QGKI
+/*BSP.Security - 2022.7.18 -NV check failed,reboot into recovery start*/
+#define STR_NV_SIGNATURE_DESTROYED "CRITICAL_DATA_CHECK_FAILED"
+static char last_modem_sfr_reason[MAX_SSR_REASON_LEN] = "none";
+static struct kobject *checknv_kobj;
+static struct kset *checknv_kset;
+static const struct sysfs_ops checknv_sysfs_ops = {
+};
+static void kobj_release(struct kobject *kobj)
+{
+	kfree(kobj);
+}
+static struct kobj_type checknv_ktype = {
+	.sysfs_ops = &checknv_sysfs_ops,
+	.release = kobj_release,
+};
+static void checknv_kobj_clean(struct work_struct *work)
+{
+	kobject_uevent(checknv_kobj, KOBJ_REMOVE);
+	kobject_put(checknv_kobj);
+	kset_unregister(checknv_kset);
+}
+static void checknv_kobj_create(struct work_struct *work)
+{
+	int ret;
+	if (checknv_kset != NULL) {
+		pr_err("checknv_kset is not NULL, should clean up.");
+		kobject_uevent(checknv_kobj, KOBJ_REMOVE);
+		kobject_put(checknv_kobj);
+	}
+
+	checknv_kobj = kzalloc(sizeof(struct kobject), GFP_KERNEL);
+	if (!checknv_kobj) {
+		pr_err("kobject alloc failed.");
+		return;
+	}
+	if (checknv_kset == NULL) {
+		checknv_kset = kset_create_and_add("checknv_errimei", NULL, NULL);
+		if (!checknv_kset) {
+			pr_err("kset creation failed.");
+			goto free_kobj;
+		}
+	}
+	checknv_kobj->kset = checknv_kset;
+
+	ret = kobject_init_and_add(checknv_kobj, &checknv_ktype, NULL, "%s", "errimei");
+	if (ret) {
+		pr_err("%s: Error in creation kobject", __func__);
+		goto del_kobj;
+	}
+	kobject_uevent(checknv_kobj, KOBJ_ADD);
+	return;
+del_kobj:
+	kobject_put(checknv_kobj);
+	kset_unregister(checknv_kset);
+free_kobj:
+	kfree(checknv_kobj);
+}
+static DECLARE_DELAYED_WORK(create_kobj_work, checknv_kobj_create);
+static DECLARE_WORK(clean_kobj_work, checknv_kobj_clean);
+/*BSP.Security - 2022.7.18 -NV check failed,reboot into recovery end*/
+
+static int last_ssr_reason_proc_show(struct seq_file *m, void *v)
+{
+	seq_printf(m, "%s\n", last_ssr_reason);
+	return 0;
+}
+static int last_ssr_reason_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, last_ssr_reason_proc_show, NULL);
+}
+static const struct file_operations last_ssr_reason_file_ops = {
+	.owner   = THIS_MODULE,
+	.open    = last_ssr_reason_proc_open,
+	.read    = seq_read,
+	.llseek  = seq_lseek,
+	.release = single_release,
+};
+#endif
 
 static int wait_for_err_ready(struct pil_tz_data *d)
 {
@@ -778,9 +868,14 @@ static void log_failure_reason(const struct pil_tz_data *d)
 		return;
 	}
 
+	memset(last_ssr_reason, 0, (size_t)MAX_SSR_REASON_LEN);
 	strlcpy(reason, smem_reason, min(size, (size_t)MAX_SSR_REASON_LEN));
+	/*BSP.Security - 2022.7.18 -NV check failed,reboot into recovery*/
+	strlcpy(last_modem_sfr_reason, smem_reason, min(size, (size_t)MAX_SSR_REASON_LEN));
 	update_crash_reason(d->subsys, reason, size);
 	pr_err("%s subsystem failure reason: %s.\n", name, reason);
+	snprintf(last_ssr_reason, (size_t)MAX_SSR_REASON_LEN,
+			"%s: %s", name, reason);
 }
 
 static int subsys_shutdown(const struct subsys_desc *subsys, bool force_stop)
@@ -899,6 +994,20 @@ static void subsys_crash_shutdown(const struct subsys_desc *subsys)
 	}
 }
 
+#ifdef CONFIG_HQ_QGKI
+/*BSP.Security - 2021.7.18 -NV check failed,reboot into recovery - start */
+static void check_nv(void *drv_data)
+{
+	struct pil_tz_data *d = drv_data;
+	if (strnstr(last_modem_sfr_reason, STR_NV_SIGNATURE_DESTROYED, strlen(last_modem_sfr_reason))) {
+		pr_err("errimei_dev: the NV has been destroyed, should restart to recovery\n");
+		schedule_delayed_work(&create_kobj_work, msecs_to_jiffies(1*1000));
+	} else {
+		subsystem_restart_dev(d->subsys);
+	}
+}
+/*BSP.Security - 2022.7.18 -NV check failed,reboot into recovery - end */
+#endif
 
 static irqreturn_t subsys_err_ready_intr_handler(int irq, void *drv_data)
 {
@@ -926,6 +1035,9 @@ static irqreturn_t subsys_err_fatal_intr_handler (int irq, void *drv_data)
 #endif
 	subsys_set_crash_status(d->subsys, CRASH_STATUS_ERR_FATAL);
 	log_failure_reason(d);
+#ifdef CONFIG_HQ_QGKI
+	check_nv(drv_data);
+#endif
 	subsystem_restart_dev(d->subsys);
 
 	return IRQ_HANDLED;
@@ -944,6 +1056,9 @@ static irqreturn_t subsys_wdog_bite_irq_handler(int irq, void *drv_data)
 							__func__);
 	subsys_set_crash_status(d->subsys, CRASH_STATUS_WDOG_BITE);
 	log_failure_reason(d);
+#ifdef CONFIG_HQ_QGKI
+	check_nv(drv_data);
+#endif
 	subsystem_restart_dev(d->subsys);
 
 	return IRQ_HANDLED;
@@ -1650,12 +1765,21 @@ static struct platform_driver pil_tz_driver = {
 
 static int __init pil_tz_init(void)
 {
+	last_ssr_reason_entry = proc_create("last_mcrash",
+		S_IFREG | S_IRUGO, NULL, &last_ssr_reason_file_ops);
+	if (!last_ssr_reason_entry) {
+		printk(KERN_ERR "pil: cannot create proc entry last_mcrash\n");
+	}
 	return platform_driver_register(&pil_tz_driver);
 }
 module_init(pil_tz_init);
 
 static void __exit pil_tz_exit(void)
 {
+	if (last_ssr_reason_entry) {
+		remove_proc_entry("last_mcrash", NULL);
+		last_ssr_reason_entry = NULL;
+	}
 	platform_driver_unregister(&pil_tz_driver);
 }
 module_exit(pil_tz_exit);
