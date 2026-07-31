@@ -112,6 +112,23 @@ struct pcba_info pcba[] = {
         {PCBA_M17_MP_CN_ZS,"PCBA_M17_MP_CN_ZS"},
 };
 #endif
+
+const char *get_huaqin_pcba_string(void)
+{
+	int i;
+	PCBA_CONFIG cfg = get_huaqin_pcba_config();
+	if (cfg < PCBA_UNKNOW || cfg >= PCBA_END)
+		cfg = PCBA_UNKNOW;
+
+	for (i = 0; i < sizeof(pcba)/sizeof(struct pcba_info); i++) {
+		if (cfg == pcba[i].pcba_config) {
+			return pcba[i].pcba_name;
+		}
+	}
+	return "PCBA_UNKNOW";
+}
+EXPORT_SYMBOL(get_huaqin_pcba_string);
+
 /*M17-T code for HQ-222139 by qianxiaoming at 2022/11/17 end*/
 
 static struct attribute *huaqin_attrs[] = {
