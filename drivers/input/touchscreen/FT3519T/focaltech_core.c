@@ -1677,10 +1677,33 @@ static int fts_parse_dt(struct device *dev, struct fts_ts_platform_data *pdata)
 	return 0;
 }
 
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+static struct xiaomi_touch_interface xiaomi_touch_interfaces;
+#endif
+
 static void fts_resume_work(struct work_struct *work)
 {
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+	struct xiaomi_touch_pdata *pdata;
+#endif
 	struct fts_ts_data *ts_data = container_of(work, struct fts_ts_data,
 								  resume_work);
+
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+	pdata = dev_get_drvdata(get_xiaomi_touch_dev());
+	if (pdata->bump_sample_rate) {
+		pr_info("%s: bump_sample_rate is true, re-enabling it\n",
+			__func__);
+		pdata->set_update = true;
+		xiaomi_touch_interfaces.setModeValue(0, 1);
+		xiaomi_touch_interfaces.setModeValue(1, 1);
+		xiaomi_touch_interfaces.setModeValue(3, 34);
+		xiaomi_touch_interfaces.setModeValue(2, 99);
+		xiaomi_touch_interfaces.setModeValue(7, 0);
+	} else {
+		pr_info("%s: bump_sample_rate is false\n", __func__);
+	}
+#endif
 
 	fts_ts_resume(ts_data->dev);
 }
@@ -2330,7 +2353,9 @@ static int fts_ts_suspend(struct device *dev)
 {
 	int ret = 0;
 	struct fts_ts_data *ts_data = fts_data;
-
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
+	struct xiaomi_touch_pdata *pdata;
+#endif
 	FTS_FUNC_ENTER();
 	if (ts_data->suspended) {
 		FTS_INFO("Already in suspend state");
@@ -2349,6 +2374,13 @@ static int fts_ts_suspend(struct device *dev)
 		update_palm_sensor_value(0);
 		fts_palm_sensor_cmd(0);
 		fts_data->palm_sensor_switch = false;
+	}
+	pdata = dev_get_drvdata(get_xiaomi_touch_dev());
+	if (pdata->bump_sample_rate) {
+		pr_info("%s: bump_sample_rate is true, resetting mode\n",
+			__func__);
+		pdata->set_update = false;
+		xiaomi_touch_interfaces.resetMode(0);
 	}
 #endif
 /*End Modify*/
@@ -2481,7 +2513,6 @@ static const struct dev_pm_ops fts_dev_pm_ops = {
 
 /*BSP.TP - 2022.6.24 - Add for palm senser - Start Modify*/
 #ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-static struct xiaomi_touch_interface xiaomi_touch_interfaces;
 
 int fts_palm_sensor_cmd(int on)
 {
