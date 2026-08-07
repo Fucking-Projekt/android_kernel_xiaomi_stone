@@ -883,6 +883,7 @@ static FORCE_INLINE int LZ4_decompress_generic(
 	const BYTE *ip = (const BYTE *) src;
 
 	BYTE *op = (BYTE *) dst;
+	int decoded;
 
 	DEBUGLOG(5, "%s (srcSize:%i, dstSize:%i)", __func__,
 		 srcSize, outputSize);
@@ -901,7 +902,7 @@ static FORCE_INLINE int LZ4_decompress_generic(
 	if ((endOnInput) && unlikely(srcSize == 0))
 		return -1;
 
-	int decoded = lz4p_decompress(ip, op, srcSize, outputSize, true, false);
+	decoded = lz4p_decompress(ip, op, srcSize, outputSize, true, false);
 
 	if (decoded <= 0) {
 		pr_err("lz4raw_decode_buffer err decode\n");
