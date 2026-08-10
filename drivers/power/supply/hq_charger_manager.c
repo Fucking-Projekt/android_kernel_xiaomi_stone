@@ -530,7 +530,7 @@ static int batt_psy_get_prop(struct power_supply *psy,
 		rc = batt_get_time_to_full(chg, &pval->intval);
 		break;
 	default:
-		pr_err("batt power supply prop %d not supported\n", psp);
+		pr_debug("batt power supply prop %d not supported\n", psp);
 		rc = -EINVAL;
 		break;
 	}
@@ -616,7 +616,7 @@ static int judge_need_to_stop_charge(struct batt_chg *chg, int temp, int vbat)
 			chg->is_stop_charge = 0;
 	}
 
-	pr_err("temp : %d, vbat: %d, is_stop: %d\n", temp, vbat, chg->is_stop_charge);
+	pr_debug("temp : %d, vbat: %d, is_stop: %d\n", temp, vbat, chg->is_stop_charge);
 
 	return chg->is_stop_charge;
 }
@@ -642,7 +642,7 @@ static int swchg_termination_current_adjust(struct batt_chg *chg, int temp, int 
 	}
 
 	pval.intval = sw_iterm;
-	pr_err("sw_iterm=%d\n", sw_iterm);
+	pr_debug("sw_iterm=%d\n", sw_iterm);
 	rc = power_supply_set_property(
 		chg->sw_psy, POWER_SUPPLY_PROP_CHARGE_TERM_CURRENT, &pval);
 	return rc;
@@ -680,7 +680,7 @@ static int sw_battery_set_cv(struct batt_chg *chg, int temp, int type)
 
 	pval.intval = sw_vreg;
 
-	pr_err("sw_vreg=%d, chg->is_pps_on=%d\n", sw_vreg, chg->is_pps_on);
+	pr_debug("sw_vreg=%d, chg->is_pps_on=%d\n", sw_vreg, chg->is_pps_on);
 	rc = power_supply_set_property(
 		chg->sw_psy, POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE, &pval);
 
@@ -821,7 +821,7 @@ static int swchg_select_charging_current_limit(struct batt_chg *chg, int temp,
 			chg->sw_psy, POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
 			&val);
 
-		pr_err("%s: charger state is %d, temp %d, jeita_cur %d, thermal_cur %d, type_icl %d, type_ibat %d, icl %d, ibat %d, is_mtbf %d\n", 
+		pr_debug("%s: charger state is %d, temp %d, jeita_cur %d, thermal_cur %d, type_icl %d, type_ibat %d, icl %d, ibat %d, is_mtbf %d\n", 
 			__func__, type, chg->battery_temp, chg->jeita_cur, chg->therm_cur, chg->input_limit_cur,  chg->charge_limit_cur, icl, ibat, is_mtbf_mode_func());
 	} else {
 		if (!chg->is_pps_on) {
@@ -852,11 +852,11 @@ static int swchg_select_charging_current_limit(struct batt_chg *chg, int temp,
 				chg->sw_psy,
 				POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
 				&val);
-			pr_err("%s: charger state is pd, temp %d, jeita_cur %d, thermal_cur %d, icl %d, ibat %d, pd_cur_max %d\n",
+			pr_debug("%s: charger state is pd, temp %d, jeita_cur %d, thermal_cur %d, icl %d, ibat %d, pd_cur_max %d\n",
 			       __func__, chg->battery_temp, chg->jeita_cur,
 			       chg->therm_cur, icl, ibat, chg->pd_cur_max);
 		} else
-			pr_err("%s: charger state is pps, hq cm can not set sw current limit\n",
+			pr_debug("%s: charger state is pps, hq cm can not set sw current limit\n",
 			       __func__);
 	}
 	return rc;
@@ -1122,7 +1122,7 @@ static void batt_chg_main(struct work_struct *work)
 	rc = batt_get_battery_temp(chg, &chg->battery_temp);
 	rc = batt_get_battery_capacity(chg, &chg->ui_soc);
 	rc = batt_get_batt_verify_state(chg);
-	pr_err("real_type %d, temp %d, soc %d, batt_id %d, batt_auth %d\n",
+	pr_debug("real_type %d, temp %d, soc %d, batt_id %d, batt_auth %d\n",
 	       chg->real_type, chg->battery_temp, chg->ui_soc, chg->batt_id,
 	       chg->batt_auth);
 
