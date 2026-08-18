@@ -91,7 +91,7 @@ enum ln8000_fault1_sts_desc {
 	LN8000_MASK_VAC_UNPLUG_STS      = BIT(4),
 	LN8000_MASK_VAC_OV_STS          = BIT(3),
 	LN8000_MASK_VIN_OV_STS          = BIT(1),
-	LN8000_MASK_VFAULTS             = ASSIGNED_BITS(6, 0),
+        LN8000_MASK_VFAULTS             = ASSIGNED_BITS(6, 0),
 };
 
 enum ln8000_fault2_sts_desc {

@@ -688,7 +688,7 @@
 #define SC8551_IBUS_REG_MASK                0x0F
 #define SC8551_IBUS_REG_SHIFT				0
 #define SC8551_IBUS_REG_BASE				1000
-#define SC8551_IBUS_REG_LSB					250
+#define SC8551_IBUS_REG_LSB					250 
 
 #define SC8551_REG_31						0x31
 #define SC8551_CHARGE_MODE_MASK				0x01

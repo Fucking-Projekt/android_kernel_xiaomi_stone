@@ -2,7 +2,6 @@
 /*
 * Copyright (c) 2022 Southchip Semiconductor Technology(Shanghai) Co., Ltd.
 */
-#define pr_fmt(fmt)	"[SC-USBPD-PM]: %s: " fmt, __func__
 
 #include <linux/slab.h>
 #include <linux/module.h>
@@ -18,6 +17,8 @@
 #include <linux/iio/consumer.h>
 //#include <linux/usb/usbpd.h>
 #include "pd_policy_manager.h"
+
+#include <linux/quiet_logs.h>
 
 //config battery charge full voltage
 #define BATT_MAX_CHG_VOLT           4460
@@ -88,10 +89,9 @@ static struct usbpd_pm *__pdpm;
 int is_pps_en;
 int switch_chg_ic;
 
-
 static int thermal_mitigation[] = {
-	6000000, 5400000, 5000000, 4500000, 4000000, 3500000, 3000000, 2700000,
-	2600000, 2400000, 2200000, 2000000, 1800000, 1600000, 1400000, 500000, 300000,
+	6000000,5400000,5000000,4500000,4000000,3500000,3000000,2700000,
+	2500000,2300000,2100000,1800000,1500000,900000,800000,500000,300000,
 };
 
 enum cp_iio_type {
@@ -123,7 +123,7 @@ static bool is_apdo_chan_valid(struct usbpd_pm *pdpm,
 			rc = PTR_ERR(pdpm->apdo_iio[chan]);
 			if (rc == -EPROBE_DEFER)
 				pdpm->apdo_iio[chan] = NULL;
-			pr_debug("Failed to get IIO channel %s, rc=%d\n",
+			pr_err("Failed to get IIO channel %s, rc=%d\n",
 				apdo_iio_chan_name[chan], rc);
 			return false;
 		}
@@ -135,21 +135,21 @@ static bool is_apdo_chan_valid(struct usbpd_pm *pdpm,
 int usbpd_set_iio_channel(struct usbpd_pm *pdpm,
 			enum cp_iio_type type, int channel, int val)
 {
-		struct iio_channel *iio_chan_list;
+    	struct iio_channel *iio_chan_list;
 	int rc;
 
-	if (pdpm->shutdown_flag)
+	if(pdpm->shutdown_flag)
 		return -ENODEV;
 
 	switch (type) {
-	case APDO:
-		if (!is_apdo_chan_valid(pdpm, channel))
-			return -ENODEV;
-		iio_chan_list = pdpm->apdo_iio[channel];
-		break;
-	default:
-		pr_debug_ratelimited("iio_type %d is not supported\n", type);
-		return -EINVAL;
+        case APDO:
+            if (!is_apdo_chan_valid(pdpm, channel))
+                return -ENODEV;
+            iio_chan_list = pdpm->apdo_iio[channel];
+            break;
+        default:
+            pr_err_ratelimited("iio_type %d is not supported\n", type);
+            return -EINVAL;
 	}
 
 	rc = iio_write_channel_raw(iio_chan_list, val);
@@ -163,7 +163,7 @@ int usbpd_get_iio_channel(struct usbpd_pm *pdpm,
 	struct iio_channel *iio_chan_list;
 	int rc;
 
-	if (pdpm->shutdown_flag)
+	if(pdpm->shutdown_flag)
 		return -ENODEV;
 
 	switch (type) {
@@ -173,7 +173,7 @@ int usbpd_get_iio_channel(struct usbpd_pm *pdpm,
 		iio_chan_list = pdpm->apdo_iio[channel];
 		break;
 	default:
-		pr_debug_ratelimited("iio_type %d is not supported\n", type);
+		pr_err_ratelimited("iio_type %d is not supported\n", type);
 		return -EINVAL;
 	}
 
@@ -199,20 +199,20 @@ EXPORT_SYMBOL(back_to_main_charge);
 static void usbpd_check_cp_psy(struct usbpd_pm *pdpm)
 {
     if (!pdpm->cp_psy) {
-		pdpm->cp_psy = power_supply_get_by_name("sc8551_standalone");
-		if (!pdpm->cp_psy) {
-			pdpm->cp_psy = power_supply_get_by_name("ln8000_standalone");
-			if (!pdpm->cp_psy)
-			pr_debug("cp_psy not found\n");
-			else {
-				pr_debug("find ln8000-standalone psy\n");
-				pdpm->cp_isln8000_flag = 1;
-			}
-		} else {
-			pr_debug("find sc8551-standalone psy\n");
-			pdpm->cp_isln8000_flag = 0;
-		}
-	}
+            pdpm->cp_psy = power_supply_get_by_name("sc8551_standalone");
+            if (!pdpm->cp_psy) {
+                pdpm->cp_psy = power_supply_get_by_name("ln8000_standalone");
+                if(!pdpm->cp_psy)
+                    pr_debug("cp_psy not found\n");
+                else {
+                    pr_debug("find ln8000-standalone psy\n");
+                    pdpm->cp_isln8000_flag = 1;
+                }
+            } else {
+                pr_debug("find sc8551-standalone psy\n");
+                pdpm->cp_isln8000_flag = 0;
+            }
+    }
 }
 
 static void usbpd_enable_ln8000_ovp_check(struct usbpd_pm *pdpm, int enable)
@@ -222,18 +222,19 @@ static void usbpd_enable_ln8000_ovp_check(struct usbpd_pm *pdpm, int enable)
     val.intval = enable;
 
     if (pdpm->cp_psy != NULL && pdpm->cp_isln8000_flag) {
-	power_supply_set_property(pdpm->cp_psy, POWER_SUPPLY_PROP_STATUS, &val);
-	pr_debug("LN8000, enable check ovp %d\n", enable);
-    } else
-	pr_debug("not LN8000,  need not check ovp\n");
+        power_supply_set_property(pdpm->cp_psy, POWER_SUPPLY_PROP_STATUS, &val);
+        pr_debug("LN8000, enable check ovp %d\n", enable);
+    }
+    else
+        pr_debug("not LN8000,  need not check ovp\n");
 }
 
 static void usbpd_check_cp_sec_psy(struct usbpd_pm *pdpm)
 {
     if (!pdpm->cp_sec_psy) {
-	pdpm->cp_sec_psy = power_supply_get_by_name("sc8551-slave");
-	if (!pdpm->cp_sec_psy)
-		pr_debug("cp_sec_psy not found\n");
+        pdpm->cp_sec_psy = power_supply_get_by_name("sc8551-slave");
+        if (!pdpm->cp_sec_psy)
+            pr_debug("cp_sec_psy not found\n");
     }
 }
 
@@ -245,32 +246,32 @@ static void usbpd_pm_update_cp_status(struct usbpd_pm *pdpm)
     usbpd_check_cp_psy(pdpm);
 
     if (!pdpm->cp_psy)
-	return;
+        return;
 
     ret = power_supply_get_property(pdpm->cp_psy,
-		POWER_SUPPLY_PROP_VOLTAGE_NOW, &val);
+            POWER_SUPPLY_PROP_VOLTAGE_NOW, &val);
     if (!ret)
-	pdpm->cp.vbus_volt = val.intval;
+        pdpm->cp.vbus_volt = val.intval; 
 
     ret = power_supply_get_property(pdpm->cp_psy,
-		POWER_SUPPLY_PROP_CURRENT_NOW, &val);
+            POWER_SUPPLY_PROP_CURRENT_NOW, &val);
     if (!ret)
-	pdpm->cp.ibus_curr = val.intval;
+        pdpm->cp.ibus_curr = val.intval;
 
     ret = power_supply_get_property(pdpm->cp_psy,
-		POWER_SUPPLY_PROP_CHARGE_COUNTER, &val);
+            POWER_SUPPLY_PROP_CHARGE_COUNTER, &val);
     if (!ret) {
-	pdpm->cp.vbus_err_low = !!(val.intval & 0x20);
-	pdpm->cp.vbus_err_high = !!(val.intval & 0x10);
+        pdpm->cp.vbus_err_low = !!(val.intval & 0x20);
+        pdpm->cp.vbus_err_high = !!(val.intval & 0x10);
     }
 
     ret = power_supply_get_property(pdpm->cp_psy,
-		POWER_SUPPLY_PROP_TEMP, &val);
+            POWER_SUPPLY_PROP_TEMP, &val);
     if (!ret)
-	pdpm->cp.die_temp = val.intval;
+        pdpm->cp.die_temp = val.intval; 
 
     ret = power_supply_get_property(pdpm->cp_psy,
-		POWER_SUPPLY_PROP_ONLINE, &val);
+            POWER_SUPPLY_PROP_ONLINE, &val);
     if (!ret)
         pdpm->cp.charge_enabled = val.intval;
 
@@ -286,22 +287,22 @@ static void usbpd_pm_update_cp_sec_status(struct usbpd_pm *pdpm)
     union power_supply_propval val = {0,};
 
     if (!pm_config.cp_sec_enable)
-	return;
+        return;
 
     usbpd_check_cp_sec_psy(pdpm);
-
+    
     if (!pdpm->cp_sec_psy)
-	return;
+        return;
 
     ret = power_supply_get_property(pdpm->cp_sec_psy,
-			POWER_SUPPLY_PROP_CURRENT_NOW, &val);
+            POWER_SUPPLY_PROP_CURRENT_NOW, &val);
     if (!ret)
-	pdpm->cp_sec.ibus_curr = val.intval;
+        pdpm->cp_sec.ibus_curr = val.intval; 
 
     ret = power_supply_get_property(pdpm->cp_sec_psy,
-			POWER_SUPPLY_PROP_ONLINE, &val);
+            POWER_SUPPLY_PROP_ONLINE, &val);
     if (!ret)
-	pdpm->cp_sec.charge_enabled = val.intval;
+        pdpm->cp_sec.charge_enabled = val.intval;
 }
 
 static int usbpd_pm_enable_cp(struct usbpd_pm *pdpm, bool enable)
@@ -312,11 +313,11 @@ static int usbpd_pm_enable_cp(struct usbpd_pm *pdpm, bool enable)
     usbpd_check_cp_psy(pdpm);
 
     if (!pdpm->cp_psy)
-	return -ENODEV;
+        return -ENODEV;
 
     val.intval = enable;
-    ret = power_supply_set_property(pdpm->cp_psy,
-			POWER_SUPPLY_PROP_ONLINE, &val);
+    ret = power_supply_set_property(pdpm->cp_psy, 
+            POWER_SUPPLY_PROP_ONLINE, &val);
 
     return ret;
 }
@@ -327,14 +328,14 @@ static int usbpd_pm_enable_cp_sec(struct usbpd_pm *pdpm, bool enable)
     union power_supply_propval val = {0,};
 
     usbpd_check_cp_sec_psy(pdpm);
-
+    
     if (!pdpm->cp_sec_psy)
-	return -ENODEV;
+        return -ENODEV;
 
     val.intval = enable;
-	ret = power_supply_set_property(pdpm->cp_sec_psy,
-			POWER_SUPPLY_PROP_ONLINE, &val);
-
+    ret = power_supply_set_property(pdpm->cp_sec_psy, 
+            POWER_SUPPLY_PROP_ONLINE, &val);
+    
     return ret;
 }
 
@@ -346,12 +347,12 @@ static int usbpd_pm_check_cp_enabled(struct usbpd_pm *pdpm)
     usbpd_check_cp_psy(pdpm);
 
     if (!pdpm->cp_psy)
-	return -ENODEV;
+        return -ENODEV;
 
-    ret = power_supply_get_property(pdpm->cp_psy,
-			POWER_SUPPLY_PROP_ONLINE, &val);
+    ret = power_supply_get_property(pdpm->cp_psy, 
+            POWER_SUPPLY_PROP_ONLINE, &val);
     if (!ret)
-	pdpm->cp.charge_enabled = !!val.intval;
+        pdpm->cp.charge_enabled = !!val.intval;
 
     return ret;
 }
@@ -363,14 +364,14 @@ static int usbpd_pm_check_cp_sec_enabled(struct usbpd_pm *pdpm)
 
     usbpd_check_cp_sec_psy(pdpm);
 
-    if (!pdpm->cp_sec_psy)
-	return -ENODEV;
+    if (!pdpm->cp_sec_psy) 
+        return -ENODEV;
 
-    ret = power_supply_get_property(pdpm->cp_sec_psy,
-			POWER_SUPPLY_PROP_ONLINE, &val);
+    ret = power_supply_get_property(pdpm->cp_sec_psy, 
+            POWER_SUPPLY_PROP_ONLINE, &val);
     if (!ret)
-	pdpm->cp_sec.charge_enabled = !!val.intval;
-
+        pdpm->cp_sec.charge_enabled = !!val.intval;
+    
     return ret;
 }
 
@@ -382,66 +383,68 @@ static int select_sw_charger_current(struct usbpd_pm *pdpm, bool enable)
     int vbat = 0;
     int curr = 3000000;
 
-	if (!pdpm->bms_psy) {
-		pdpm->bms_psy = power_supply_get_by_name("sm5602_bat");
-		if (!pdpm->bms_psy)
-			return -ENODEV;
-	}
+    if (!pdpm->bms_psy) {
+        pdpm->bms_psy = power_supply_get_by_name("sm5602_bat");
+        if(!pdpm->bms_psy)
+            return -ENODEV;
+    }
 
-    ret = power_supply_get_property(pdpm->bms_psy, POWER_SUPPLY_PROP_TEMP, &val);
+    ret = power_supply_get_property(pdpm->bms_psy, 
+            POWER_SUPPLY_PROP_TEMP, &val);
     temp = val.intval;
 
-    ret = power_supply_get_property(pdpm->bms_psy, POWER_SUPPLY_PROP_VOLTAGE_NOW, &val);
+    ret = power_supply_get_property(pdpm->bms_psy,
+            POWER_SUPPLY_PROP_VOLTAGE_NOW, &val);
     vbat = (int)(val.intval/1000);
 
     if (temp <= -100)
-		curr = 0;
+        curr = 0;
     else if (temp > -100 && temp <= 0)
-		curr = 490000;
+        curr = 490000;
     else if (temp > 0 && temp <= 50)
-		curr = 980000;
+        curr = 980000;
     else if (temp > 480) {
-		if (vbat > 4100)
-			curr = 0;
-	}
+        if (vbat > 4100)
+            curr = 0;
+    }
 
-    if (!enable)
-	curr = 100000;
-
-	return curr;
+    if(!enable)
+        curr = 100000;
+    
+    return curr;
 }
 
 static int usbpd_pm_enable_sw(struct usbpd_pm *pdpm, bool enable)
 {
     /*TODO: config main charger enable or disable
-    If the main charger needs to take 100mA current when the CC charging, you
+    If the main charger needs to take 100mA current when the CC charging, you 
     can set the max current to 100mA when disable
     */
 
-	int ret;
-	union power_supply_propval val = {0,};
+    int ret;
+    union power_supply_propval val = {0,};
 
-	if (!pdpm->sw_psy) {
-		pdpm->sw_psy = power_supply_get_by_name("bq25890_charger");
-		if (!pdpm->sw_psy)
-			return -ENODEV;
-	}
+    if (!pdpm->sw_psy) {
+        pdpm->sw_psy = power_supply_get_by_name("bq25890_charger");
+        if (!pdpm->sw_psy)
+            return -ENODEV;
+    }
 
-	if (enable)
-		val.intval = 3000000;
-	else
-		val.intval = 100000;
+    if(enable)
+        val.intval = 3000000;
+    else
+        val.intval = 100000;
 
-	ret = power_supply_set_property(pdpm->sw_psy,
-			POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT, &val);
+    ret = power_supply_set_property(pdpm->sw_psy, 
+            POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT, &val);
 
-	val.intval = select_sw_charger_current(pdpm, enable);
-	ret = power_supply_set_property(pdpm->sw_psy,
-			POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT, &val);
+    val.intval = select_sw_charger_current(pdpm, enable);
+    ret = power_supply_set_property(pdpm->sw_psy, 
+            POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT, &val);
 
-	pr_info("usbpd_pm_enable_sw,set sw_charger %d, set ichg = %duA\n", val.intval, select_sw_charger_current(pdpm, enable));
-
-	return ret;
+	pr_info("usbpd_pm_enable_sw,set sw_charger %d, set ichg = %duA\n",val.intval, select_sw_charger_current(pdpm, enable));
+    
+    return ret;
 }
 
 static int usbpd_pm_check_sw_enabled(struct usbpd_pm *pdpm)
@@ -451,23 +454,24 @@ static int usbpd_pm_check_sw_enabled(struct usbpd_pm *pdpm)
     int ret;
     union power_supply_propval val = {0,};
 
-	if (!pdpm->sw_psy) {
-		pdpm->sw_psy = power_supply_get_by_name("bq25890_charger");
-		if (!pdpm->sw_psy) {
-			return -ENODEV;
-		}
-	}
+    if (!pdpm->sw_psy) {
+        pdpm->sw_psy = power_supply_get_by_name("bq25890_charger");
+        if (!pdpm->sw_psy) {
+            return -ENODEV;
+        }
+    }
 
-	ret = power_supply_get_property(pdpm->sw_psy,
-			POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT, &val);
-	if (!ret) {
-		if (val.intval == 100000)
+    ret = power_supply_get_property(pdpm->sw_psy, 
+            POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT, &val);
+    if (!ret)
+    {
+        if(val.intval == 100000)
 			pdpm->sw.charge_enabled = false;
-		else
+        else
 			pdpm->sw.charge_enabled = true;
-	}
+    }
 	pr_info("usbpd_pm_check_sw_enabled, enabled = %d\n", pdpm->sw.charge_enabled);
-	return ret;
+    return ret;
 }
 
 static void usbpd_pm_update_sw_status(struct usbpd_pm *pdpm)
@@ -479,24 +483,24 @@ static void usbpd_pm_update_sw_status(struct usbpd_pm *pdpm)
 static inline int check_typec_attached_snk(struct tcpc_device *tcpc)
 {
     if (tcpm_inquire_typec_attach_state(tcpc) != TYPEC_ATTACHED_SNK)
-	return -EINVAL;
-
+        return -EINVAL;
     return 0;
 }
 
-static int usbpd_pps_enable_charging(struct usbpd_pm *pdpm, bool en, u32 mV, u32 mA)
+static int usbpd_pps_enable_charging(struct usbpd_pm *pdpm, bool en,
+                u32 mV, u32 mA)
 {
     int ret, cnt = 0;
 
     if (check_typec_attached_snk(pdpm->tcpc) < 0)
-	return -EINVAL;
-    pr_debug("en = %d, %dmV, %dmA\n", en, mV, mA);
+        return -EINVAL;
+    pr_err("en = %d, %dmV, %dmA\n", en, mV, mA);
 
     do {
         if (en) {
             ret = tcpm_set_apdo_charging_policy(pdpm->tcpc,
                 DPM_CHARGING_POLICY_PPS | DPM_CHARGING_POLICY_IGNORE_MISMATCH_CURR, mV, mA, NULL);
-            pr_debug("tcpm_set_apdo_charging_policy null\n", ret);
+            pr_err("tcpm_set_apdo_charging_policy null\n", ret);
         } else {
             ret = tcpm_reset_pd_charging_policy(pdpm->tcpc, NULL);
         }
@@ -504,10 +508,9 @@ static int usbpd_pps_enable_charging(struct usbpd_pm *pdpm, bool en, u32 mV, u32
     } while (ret != TCP_DPM_RET_SUCCESS && cnt < 3);
 
     if (ret != TCP_DPM_RET_SUCCESS)
-	pr_debug("fail(%d)\n", ret);
+        pr_err("fail(%d)\n", ret);
     return ret > 0 ? -ret : ret;
 }
-
 
 static bool usbpd_get_pps_status(struct usbpd_pm *pdpm)
 {
@@ -515,235 +518,226 @@ static bool usbpd_get_pps_status(struct usbpd_pm *pdpm)
     struct tcpm_power_cap_val apdo_cap = {0};
     u8 cap_idx;
 
-    pr_debug("++\n");
+    pr_err("++\n");
     if (check_typec_attached_snk(pdpm->tcpc) < 0)
-	return false;
+        return false;
 
     if (!pdpm->is_pps_en_unlock) {
-	pr_debug("pps en is locked\n");
-	return false;
+        pr_err("pps en is locked\n");
+        return false;
     }
 
     if (!tcpm_inquire_pd_pe_ready(pdpm->tcpc)) {
-	pr_debug("PD PE not ready\n");
-	return false;
+        pr_err("PD PE not ready\n");
+        return false;
     }
 
     /* select TA boundary */
     cap_idx = 0;
     while (1) {
+        ret = tcpm_inquire_pd_source_apdo(pdpm->tcpc,
+                        TCPM_POWER_CAP_APDO_TYPE_PPS,
+                        &cap_idx, &apdo_cap);
+        if (ret != TCP_DPM_RET_SUCCESS) {
+            pr_err("inquire pd apdo fail(%d)\n", ret);
+            break;
+        }
 
-		ret = tcpm_inquire_pd_source_apdo(pdpm->tcpc,
-						TCPM_POWER_CAP_APDO_TYPE_PPS,
-						&cap_idx, &apdo_cap);
-		if (ret != TCP_DPM_RET_SUCCESS) {
-			pr_debug("inquire pd apdo fail(%d)\n", ret);
-			break;
-		}
+        pr_err("cap_idx[%d], %d mv ~ %d mv, %d ma, pl: %d\n", cap_idx,
+            apdo_cap.min_mv, apdo_cap.max_mv, apdo_cap.ma,
+            apdo_cap.pwr_limit);
 
-
-		pr_debug("cap_idx[%d], %d mv ~ %d mv, %d ma, pl: %d\n", cap_idx,
-			apdo_cap.min_mv, apdo_cap.max_mv, apdo_cap.ma,
-			apdo_cap.pwr_limit);
-
-		/*
-		* !(apdo_cap.min_mv <= data->vcap_min &&
-		*   apdo_cap.max_mv >= data->vcap_max &&
-		*   apdo_cap.ma >= data->icap_min)
-		*/
-		if (apdo_cap.max_mv < pm_config.min_adapter_volt_required ||
-			apdo_cap.ma < pm_config.min_adapter_curr_required)
-			continue;
-		if (apdo_idx == -1) {
-			apdo_idx = cap_idx;
-			pdpm->apdo_max_volt = apdo_cap.max_mv;
-			pdpm->apdo_max_curr = apdo_cap.ma;
-		} else {
-			if (apdo_cap.ma > pdpm->apdo_max_curr) {
-				apdo_idx = cap_idx;
-				pdpm->apdo_max_volt = apdo_cap.max_mv;
-				pdpm->apdo_max_curr = apdo_cap.ma;
-			}
-		}
-		ret = usbpd_set_iio_channel(pdpm, APDO, APDO_MAX_VOLT, pdpm->apdo_max_volt);
-		if (ret < 0) {
-			pr_debug("set APDO_MAX_VOLT fail(%d)\n", ret);
-			return ret;
-		}
-		ret = usbpd_set_iio_channel(pdpm, APDO, APDO_MAX_CURR, pdpm->apdo_max_curr);
-		if (ret < 0) {
-			pr_debug("set APDO_MAX_CURR fail(%d)\n", ret);
-			return ret;
-		}
-	}
-	if (apdo_idx != -1) {
-		ret = usbpd_pps_enable_charging(pdpm, true, 5000, 3000);
-		if (ret != TCP_DPM_RET_SUCCESS)
-			return false;
-		pr_debug("select potential cap_idx[%d]\n", cap_idx);
-		return true;
-	}
-	return false;
+        /*
+        * !(apdo_cap.min_mv <= data->vcap_min &&
+        *   apdo_cap.max_mv >= data->vcap_max &&
+        *   apdo_cap.ma >= data->icap_min)
+        */
+        if (apdo_cap.max_mv < pm_config.min_adapter_volt_required ||
+            apdo_cap.ma < pm_config.min_adapter_curr_required)
+            continue;
+        if (apdo_idx == -1) {
+            apdo_idx = cap_idx;
+            pdpm->apdo_max_volt = apdo_cap.max_mv;
+            pdpm->apdo_max_curr = apdo_cap.ma;
+        } else {
+            if (apdo_cap.ma > pdpm->apdo_max_curr) {
+                apdo_idx = cap_idx;
+                pdpm->apdo_max_volt = apdo_cap.max_mv;
+                pdpm->apdo_max_curr = apdo_cap.ma;
+            }
+        }
+        ret = usbpd_set_iio_channel(pdpm, APDO, APDO_MAX_VOLT, pdpm->apdo_max_volt);
+        if (ret < 0) {
+            pr_err("set APDO_MAX_VOLT fail(%d)\n", ret);
+            return ret;
+        }
+        ret = usbpd_set_iio_channel(pdpm, APDO, APDO_MAX_CURR, pdpm->apdo_max_curr);
+        if (ret < 0) {
+            pr_err("set APDO_MAX_CURR fail(%d)\n", ret);
+            return ret;
+        }
+    }
+    if (apdo_idx != -1){
+        ret = usbpd_pps_enable_charging(pdpm, true, 5000, 3000);
+        if (ret != TCP_DPM_RET_SUCCESS)
+            return false;
+		pr_err("select potential cap_idx[%d]\n", cap_idx);
+        return true;
+    }
+    return false;
 }
 
 static int usbpd_select_pdo(struct usbpd_pm *pdpm, u32 mV, u32 mA)
 {
-	int ret, cnt = 0;
+    int ret, cnt = 0;
 
-	if (check_typec_attached_snk(pdpm->tcpc) < 0)
-		return -EINVAL;
-	pr_debug("%dmV, %dmA\n", mV, mA);
+    if (check_typec_attached_snk(pdpm->tcpc) < 0)
+        return -EINVAL;
+    pr_err("%dmV, %dmA\n", mV, mA);
 
+    if (!tcpm_inquire_pd_connected(pdpm->tcpc)) {
+        pr_err("pd not connected\n");
+        return -EINVAL;
+    }
 
-	if (!tcpm_inquire_pd_connected(pdpm->tcpc)) {
-		pr_debug("pd not connected\n");
-		return -EINVAL;
-	}
+    do {
+        ret = tcpm_dpm_pd_request(pdpm->tcpc, mV, mA, NULL);
+        cnt++;
+    } while (ret != TCP_DPM_RET_SUCCESS && cnt < 3);
 
-
-
-	do {
-		ret = tcpm_dpm_pd_request(pdpm->tcpc, mV, mA, NULL);
-		cnt++;
-	} while (ret != TCP_DPM_RET_SUCCESS && cnt < 3);
-
-
-	if (ret != TCP_DPM_RET_SUCCESS)
-		pr_debug("fail(%d)\n", ret);
-	return ret > 0 ? -ret : ret;
+    if (ret != TCP_DPM_RET_SUCCESS)
+        pr_err("fail(%d)\n", ret);
+    return ret > 0 ? -ret : ret;
 }
 
 static int pca_pps_tcp_notifier_call(struct notifier_block *nb,
-					unsigned long event, void *data)
+                    unsigned long event, void *data)
 {
-	struct usbpd_pm *pdpm = container_of(nb, struct usbpd_pm, tcp_nb);
-	struct tcp_notify *noti = data;
+    struct usbpd_pm *pdpm = container_of(nb, struct usbpd_pm, tcp_nb);
+    struct tcp_notify *noti = data;
 
-	switch (event) {
-	case TCP_NOTIFY_PD_STATE:
-		switch (noti->pd_state.connected) {
-		case PD_CONNECT_NONE:
-			pr_debug("detached\n");
-			pdpm->is_pps_en_unlock = false;
-			pdpm->hrst_cnt = 0;
-			pdpm->psy_change_running = 0;
-			break;
-		case PD_CONNECT_HARD_RESET:
-			pdpm->hrst_cnt++;
-			pr_debug("pd hardreset, cnt = %d\n",
-			pdpm->hrst_cnt);
-			pdpm->is_pps_en_unlock = false;
-			pdpm->psy_change_running = 0;
-			break;
-		case PD_CONNECT_PE_READY_SNK_PD30:
-			tcpm_dpm_pd_request(pdpm->tcpc, 5000, 3000, NULL);
-			break;
-		case PD_CONNECT_PE_READY_SNK_APDO:
-			if (pdpm->hrst_cnt < 5) {
-				pr_debug("en unlock\n");
-				pdpm->is_pps_en_unlock = true;
-				pdpm->pd_active = 0;
-				pdpm->psy_change_running = 0;
-				switch_chg_ic = false;
-			}
-			break;
-		default:
-			break;
-		}
-	default:
-		break;
-	}
-	if (pdpm->usb_psy)
-		power_supply_changed(pdpm->usb_psy);
-	return NOTIFY_OK;
+    switch (event) {
+    case TCP_NOTIFY_PD_STATE:
+        switch (noti->pd_state.connected) {
+        case PD_CONNECT_NONE:
+            pr_err("detached\n");
+            pdpm->is_pps_en_unlock = false;
+            pdpm->hrst_cnt = 0;
+            pdpm->psy_change_running = 0;
+            break;
+        case PD_CONNECT_HARD_RESET:
+            pdpm->hrst_cnt++;
+            pr_err("pd hardreset, cnt = %d\n",
+                pdpm->hrst_cnt);
+            pdpm->is_pps_en_unlock = false;
+            pdpm->psy_change_running = 0;
+            break;
+        case PD_CONNECT_PE_READY_SNK_PD30:
+            tcpm_dpm_pd_request(pdpm->tcpc, 5000, 3000, NULL);
+            break;
+        case PD_CONNECT_PE_READY_SNK_APDO:
+            if (pdpm->hrst_cnt < 5) {
+                pr_err("en unlock\n");
+                pdpm->is_pps_en_unlock = true;
+                pdpm->pd_active = 0;
+                pdpm->psy_change_running = 0;
+                switch_chg_ic = false;
+            }
+            break;
+        default:
+            break;
+        }
+    default:
+        break;
+    }
+    if(pdpm->usb_psy)
+        power_supply_changed(pdpm->usb_psy);
+    return NOTIFY_OK;
 }
 static void usbpd_check_tcpc(struct usbpd_pm *pdpm)
 {
-	int ret;
+    int ret;
 
-	if (!pdpm->tcpc) {
+    if (!pdpm->tcpc) {
+        pdpm->tcpc = tcpc_dev_get_by_name("type_c_port0");
+        if (!pdpm->tcpc) {
+            pr_err("get tcpc dev fail\n");
+            return;
+        }
 
-		pdpm->tcpc = tcpc_dev_get_by_name("type_c_port0");
-		if (!pdpm->tcpc) {
-			pr_debug("get tcpc dev fail\n");
-		return;
-		}
-
-		pdpm->tcp_nb.notifier_call = pca_pps_tcp_notifier_call;
-
-		ret = register_tcp_dev_notifier(pdpm->tcpc, &pdpm->tcp_nb,
-						TCP_NOTIFY_TYPE_USB);
-		if (ret < 0) {
-			pr_debug("register tcpc notifier fail\n");
-		}
-
-	}
+        pdpm->tcp_nb.notifier_call = pca_pps_tcp_notifier_call;
+        ret = register_tcp_dev_notifier(pdpm->tcpc, &pdpm->tcp_nb,
+                        TCP_NOTIFY_TYPE_USB);
+        if (ret < 0) {
+            pr_err("register tcpc notifier fail\n");
+        }
+    }
 }
 /*******************main charger API********************/
 static void usbpd_check_usb_psy(struct usbpd_pm *pdpm)
 {
-	if (!pdpm->usb_psy) {
-		pdpm->usb_psy = power_supply_get_by_name("usb");
-		if (!pdpm->usb_psy)
-			pr_debug("usb psy not found!\n");
-	}
+    if (!pdpm->usb_psy) {
+        pdpm->usb_psy = power_supply_get_by_name("usb");
+        if (!pdpm->usb_psy)
+            pr_err("usb psy not found!\n");
+    }
 }
 
 static void usbpd_check_batverify(struct usbpd_pm *pdpm)
 {
-	int rc, batt_id;
-	union power_supply_propval val = {0,};
+    int rc, batt_id;
+    union power_supply_propval val = {0,};
 
-	pdpm->verify_psy = power_supply_get_by_name("batt_verify");
-	if (!pdpm->verify_psy) {
-		pr_debug("verify psy not found!\n");
-	} else {
-		rc = power_supply_get_property(pdpm->verify_psy,
-					POWER_SUPPLY_PROP_AUTHENTIC, &val);
-		if (rc)
-			pdpm->batt_auth = 0;
-		else {
-			if (val.intval) {
-				rc = power_supply_get_property(pdpm->verify_psy, POWER_SUPPLY_PROP_MODEL_NAME, &val);
-				if (rc) {
-					pr_debug("get bat id err.");
-					batt_id = UNKNOW_SUPPLIER;
-				} else {
-					if (strcmp (val.strval, "First supplier") == 0)
-						batt_id = FIRST_SUPPLIER;
-					else if (strcmp (val.strval, "Second supplier") == 0)
-						batt_id = SECOND_SUPPLIER;
-					else if (strcmp (val.strval, "Third supplier") == 0)
-						batt_id = THIRD_SUPPLIER;
-					else
-						batt_id = UNKNOW_SUPPLIER;
-				}
-				if (batt_id != UNKNOW_SUPPLIER)
-					pdpm->batt_auth = 1;
-			} else
-				pdpm->batt_auth = 0;
-		}
-	}
+    pdpm->verify_psy = power_supply_get_by_name("batt_verify");
+    if (!pdpm->verify_psy) {
+        pr_err("verify psy not found!\n");
+    } else {
+        rc = power_supply_get_property(pdpm->verify_psy,
+                POWER_SUPPLY_PROP_AUTHENTIC, &val);
+        if (rc)
+            pdpm->batt_auth = 0;
+        else {
+            if (val.intval) {
+                rc = power_supply_get_property(pdpm->verify_psy, POWER_SUPPLY_PROP_MODEL_NAME, &val);
+                if (rc) {
+                    pr_err("get bat id err.");
+                    batt_id = UNKNOW_SUPPLIER;
+                } else {
+                    if(strcmp(val.strval,"First supplier") == 0)
+                    batt_id = FIRST_SUPPLIER;
+                    else if(strcmp(val.strval,"Second supplier") == 0)
+                        batt_id = SECOND_SUPPLIER;
+                    else if(strcmp(val.strval,"Third supplier") == 0)
+                        batt_id = THIRD_SUPPLIER;
+                    else
+                        batt_id = UNKNOW_SUPPLIER;
+                }
+                if (batt_id != UNKNOW_SUPPLIER)
+                    pdpm->batt_auth = 1;
+            } else
+                pdpm->batt_auth = 0;
+        }
+    }
 }
 
 static int usbpd_update_ibat_curr(struct usbpd_pm *pdpm)
 {
-	/*TODO: update ibat and vbat by gauge
-	*/
-	int ret;
-	union power_supply_propval val = {0,};
+    /*TODO: update ibat and vbat by gauge
+    */
+    int ret;
+    union power_supply_propval val = {0,};
 
-	if (!pdpm->bms_psy) {
-		pdpm->bms_psy = power_supply_get_by_name("sm5602_bat");
-		if (!pdpm->bms_psy) {
-			return -ENODEV;
-		}
-	}
+    if (!pdpm->bms_psy) {
+        pdpm->bms_psy = power_supply_get_by_name("sm5602_bat");
+        if (!pdpm->bms_psy) {
+            return -ENODEV;
+        }
+    }
 
-	ret = power_supply_get_property(pdpm->bms_psy,
-					POWER_SUPPLY_PROP_CURRENT_NOW, &val);
-	if (!ret)
-		pdpm->sw.ibat_curr = -(int)(val.intval/1000);
+    ret = power_supply_get_property(pdpm->bms_psy, 
+            POWER_SUPPLY_PROP_CURRENT_NOW, &val);
+    if (!ret)
+        pdpm->sw.ibat_curr= -(int)(val.intval/1000);
 
     /*
     ret = power_supply_get_property(pdpm->bms_psy, 
@@ -752,8 +746,8 @@ static int usbpd_update_ibat_curr(struct usbpd_pm *pdpm)
         pdpm->sw.vbat_volt = (int)(val.intval/1000);
     */
 
-	return ret;
-	return 0;
+    return ret;
+    return 0;
 }
 
 static int usbpd_update_ibus_curr(struct usbpd_pm *pdpm)
@@ -764,18 +758,18 @@ static int usbpd_update_ibus_curr(struct usbpd_pm *pdpm)
     union power_supply_propval val = {0,};
 
     if (!pdpm->sw_psy) {
-		pdpm->sw_psy = power_supply_get_by_name("bq25890_charger");
-		if (!pdpm->sw_psy) {
-			return -ENODEV;
-		}
-	}
+        pdpm->sw_psy = power_supply_get_by_name("bq25890_charger");
+        if (!pdpm->sw_psy) {
+            return -ENODEV;
+        }
+    }
 
-	ret = power_supply_get_property(pdpm->sw_psy,
-			POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT, &val);
-	if (!ret)
-		pdpm->sw.ibus_curr = (int)(val.intval/1000);
+    ret = power_supply_get_property(pdpm->sw_psy, 
+            POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT, &val);
+    if (!ret)
+        pdpm->sw.ibus_curr = (int)(val.intval/1000);
 
-	return ret;
+    return ret;
 }
 
 static void usbpd_pm_evaluate_src_caps(struct usbpd_pm *pdpm)
@@ -784,18 +778,18 @@ static void usbpd_pm_evaluate_src_caps(struct usbpd_pm *pdpm)
 
     retValue = usbpd_get_pps_status(pdpm);
     if (retValue)
-		pdpm->pps_supported = true;
+        pdpm->pps_supported = true;
 
-
+    
     if (pdpm->pps_supported)
-		pr_debug("PPS supported, preferred APDO pos:%d, max volt:%d, current:%d\n",
-				pdpm->apdo_selected_pdo,
-				pdpm->apdo_max_volt,
-				pdpm->apdo_max_curr);
-	else {
-		is_pps_en = false;
-		pr_debug("Not qualified PPS adapter\n");
-	}
+        pr_err("PPS supported, preferred APDO pos:%d, max volt:%d, current:%d\n",
+                pdpm->apdo_selected_pdo,
+                pdpm->apdo_max_volt,
+                pdpm->apdo_max_curr);
+    else {
+        is_pps_en = false;
+        pr_err("Not qualified PPS adapter\n");
+    }
 }
 
 static int  get_batt_temp_thermal_curr(struct usbpd_pm *pdpm)
@@ -804,35 +798,35 @@ static int  get_batt_temp_thermal_curr(struct usbpd_pm *pdpm)
     int ret;
 
     if (!pdpm->bms_psy) {
-		pdpm->bms_psy = power_supply_get_by_name("sm5602_bat");
-		if (!pdpm->bms_psy) {
-			return -ENODEV;
-		}
+        pdpm->bms_psy = power_supply_get_by_name("sm5602_bat");
+        if (!pdpm->bms_psy) {
+            return -ENODEV;
+        }
     }
 
     if (!pdpm->batt_psy) {
-		pdpm->batt_psy = power_supply_get_by_name("battery");
-		if (!pdpm->batt_psy) {
-			return -ENODEV;
-		}
+        pdpm->batt_psy = power_supply_get_by_name("battery");
+        if (!pdpm->batt_psy) {
+            return -ENODEV;
+        }
     }
 
     ret = power_supply_get_property(pdpm->bms_psy,
-					POWER_SUPPLY_PROP_CYCLE_COUNT, &val);
+            POWER_SUPPLY_PROP_CYCLE_COUNT, &val);
     if (!ret)
-		pdpm->bat_cycle = val.intval;
+        pdpm->bat_cycle = val.intval;
 
     ret = power_supply_get_property(pdpm->bms_psy,
-					POWER_SUPPLY_PROP_TEMP, &val);
+            POWER_SUPPLY_PROP_TEMP, &val);
     if (!ret)
-		pdpm->bat_temp = val.intval;
+        pdpm->bat_temp = val.intval;
 
     ret = power_supply_get_property(pdpm->batt_psy,
-					POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT, &val);
+            POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT, &val);
     if (!ret)
-		pdpm->therm_curr = thermal_mitigation[val.intval]/1000;
+        pdpm->therm_curr = thermal_mitigation[val.intval]/1000;
 
-	return 0;
+    return 0;
 }
 
 extern int get_usbpd_verifed_state(void);
@@ -846,9 +840,9 @@ static int battery_sw_jeita(struct usbpd_pm *pdpm)
     usbpd_check_batverify(pdpm);
 
     if (pdpm->bat_cycle <= 100)
-	cycle_volt = 4240;
+        cycle_volt = 4240;
     else
-	cycle_volt = 4200;
+        cycle_volt = 4200;
 
     if (pdpm->bat_temp >= CHG_BAT_TEMP_MIN && pdpm->bat_temp < CHG_BAT_TEMP_48) {
         pdpm->pps_temp_flag = 1;
@@ -877,7 +871,10 @@ static int battery_sw_jeita(struct usbpd_pm *pdpm)
             pdpm->pps_temp_flag = 0;
 
     } else
-	pdpm->pps_temp_flag = 0;
+        pdpm->pps_temp_flag = 0;
+
+    pr_err("battery_sw_jeita, bat_temp = %d, jeita_curr = %d, therm_curr = %d, pps_temp_flag = %d, pd_auth = %d, cycle_count = %d, batt_auth = %d\n",
+                        pdpm->bat_temp,  jeita_curr, pdpm->therm_curr, pdpm->pps_temp_flag, pd_auth, pdpm->bat_cycle, pdpm->batt_auth);
 
     return min(pdpm->therm_curr, jeita_curr);
 }
@@ -902,26 +899,26 @@ static int usbpd_pm_fc2_charge_algo(struct usbpd_pm *pdpm)
     vbat_now = pdpm->sw.vbat_volt;
 
     if (ibus_limit == 0)
-		ibus_limit = pm_config.bus_curr_lp_lmt;
+        ibus_limit = pm_config.bus_curr_lp_lmt;
 
     /* reduce bus current in cv loop */
     if (vbat_now > pm_config.bat_volt_lp_lmt - 50) {
-		if (pdpm->ibus_lmt_change_timer++ > IBUS_CHANGE_TIMEOUT) {
-			pdpm->ibus_lmt_change_timer = 0;
-			ibus_limit = pm_config.bus_curr_lp_lmt;
-		}
+        if (pdpm->ibus_lmt_change_timer++ > IBUS_CHANGE_TIMEOUT) {
+            pdpm->ibus_lmt_change_timer = 0;
+            ibus_limit = pm_config.bus_curr_lp_lmt;
+        }
     } else if (vbat_now < pm_config.bat_volt_lp_lmt - 250) {
-		ibus_limit = pm_config.bus_curr_lp_lmt;
-		pdpm->ibus_lmt_change_timer = 0;
+        ibus_limit = pm_config.bus_curr_lp_lmt;
+        pdpm->ibus_lmt_change_timer = 0;
     } else {
-		pdpm->ibus_lmt_change_timer = 0;
+        pdpm->ibus_lmt_change_timer = 0;
     }
 
     /* battery voltage loop*/
     if (vbat_now > pm_config.bat_volt_lp_lmt)
-	step_vbat = -pm_config.fc2_steps;
+        step_vbat = -pm_config.fc2_steps;
     else if (vbat_now < pm_config.bat_volt_lp_lmt - 7)
-	step_vbat = pm_config.fc2_steps;
+        step_vbat = pm_config.fc2_steps;
 
 
     /* battery charge current loop*/
@@ -935,58 +932,58 @@ static int usbpd_pm_fc2_charge_algo(struct usbpd_pm *pdpm)
  //   ibat_limit = pm_config.bat_curr_lp_lmt;
     ibat_now = pdpm->sw.ibat_curr;
     if (ibat_now < ibat_limit)
-	step_ibat = pm_config.fc2_steps;
+        step_ibat = pm_config.fc2_steps;
     else if (pdpm->sw.ibat_curr > ibat_limit + 100)
-	step_ibat = -pm_config.fc2_steps;
+        step_ibat = -pm_config.fc2_steps;
 
     /* bus current loop*/
     ibus_total = pdpm->cp.ibus_curr + pdpm->sw.ibus_curr;
 
     if (pm_config.cp_sec_enable)
-	ibus_total += pdpm->cp_sec.ibus_curr;
+        ibus_total += pdpm->cp_sec.ibus_curr;
 
     if (ibus_total < ibus_limit - 50)
-	step_ibus = pm_config.fc2_steps;
+        step_ibus = pm_config.fc2_steps;
     else if (ibus_total > ibus_limit)
-	step_ibus = -pm_config.fc2_steps;
+        step_ibus = -pm_config.fc2_steps;
 
     steps = min(min(step_vbat, step_ibus), step_ibat);
 
     /* check if cp disabled due to other reason*/
     usbpd_pm_check_cp_enabled(pdpm);
     if (pm_config.cp_sec_enable) {
-	usbpd_pm_check_cp_sec_enabled(pdpm);
+        usbpd_pm_check_cp_sec_enabled(pdpm);
     }
 
-    if (!pdpm->cp.charge_enabled || (pm_config.cp_sec_enable &&
-	!pdpm->cp_sec_stopped && !pdpm->cp_sec.charge_enabled)) {
-	pr_debug("cp.charge_enabled:%d  %d  %d\n",
-			pdpm->cp.charge_enabled, pdpm->cp.vbus_err_low, pdpm->cp.vbus_err_high);
-	return PM_ALGO_RET_CHG_DISABLED;
+    if (!pdpm->cp.charge_enabled || (pm_config.cp_sec_enable && 
+        !pdpm->cp_sec_stopped && !pdpm->cp_sec.charge_enabled)) {
+        pr_err("cp.charge_enabled:%d  %d  %d\n",
+                pdpm->cp.charge_enabled, pdpm->cp.vbus_err_low, pdpm->cp.vbus_err_high);
+        return PM_ALGO_RET_CHG_DISABLED;
     }
 
     /* charge pump taper charge */
-    if (vbat_now > pm_config.bat_volt_lp_lmt - 50
-			&& ibat_now < pm_config.fc2_taper_current) {
-		if (pdpm->fc2_taper_timer++ > TAPER_TIMEOUT) {
-			pr_debug("charge pump taper charging done\n");
-			pdpm->fc2_taper_timer = 0;
-			return PM_ALGO_RET_TAPER_DONE;
-		}
+    if (vbat_now > pm_config.bat_volt_lp_lmt - 50 
+            && ibat_now < pm_config.fc2_taper_current) {
+        if (pdpm->fc2_taper_timer++ > TAPER_TIMEOUT) {
+            pr_err("charge pump taper charging done\n");
+            pdpm->fc2_taper_timer = 0;
+            return PM_ALGO_RET_TAPER_DONE;
+        }
     } else {
-		pdpm->fc2_taper_timer = 0;
+        pdpm->fc2_taper_timer = 0;
     }
+        
+    /*TODO: customer can add hook here to check system level 
+        * thermal mitigation*/
 
-    /*TODO: customer can add hook here to check system level
-		* thermal mitigation*/
-
-    pr_debug("%s %d %d %d all %d\n", __func__,
-			step_vbat, step_ibat, step_ibus, steps);
+    pr_err("%s %d %d %d all %d\n", __func__,  
+            step_vbat, step_ibat, step_ibus, steps);
 
     pdpm->request_voltage += steps * 20;
 
     if (pdpm->request_voltage > pdpm->apdo_max_volt - 1000)
-	pdpm->request_voltage = pdpm->apdo_max_volt - 1000;
+        pdpm->request_voltage = pdpm->apdo_max_volt - 1000;
 
 
     return PM_ALGO_RET_OK;
@@ -1004,15 +1001,13 @@ static const unsigned char *pm_str[] = {
 
 static void usbpd_pm_move_state(struct usbpd_pm *pdpm, enum pm_state state)
 {
-    pr_debug("state change:%s -> %s\n",
-	pm_str[pdpm->state], pm_str[state]);
+    pr_err("state change:%s -> %s\n", 
+        pm_str[pdpm->state], pm_str[state]);
     pdpm->state = state;
 }
 
-#ifdef CONFIG_HQ_QGKI
 extern int get_input_suspend_flag(void);
 extern int get_is_stop_charge(void);
-#endif
 static int usbpd_pm_sm(struct usbpd_pm *pdpm)
 {
     int ret;
@@ -1021,201 +1016,194 @@ static int usbpd_pm_sm(struct usbpd_pm *pdpm)
     static bool stop_sw;
     static bool recover;
 
-#ifdef CONFIG_HQ_QGKI
     pdpm->input_suspend = get_input_suspend_flag();
     pdpm->is_stop_charge = get_is_stop_charge();
-#else
-    pdpm->input_suspend = 0;
-    pdpm->is_stop_charge = 0;
-#endif
-    pr_debug("state phase :%d\n", pdpm->state);
-    pr_debug("vbus_vol %d  sw vbat_vol %d\n", pdpm->cp.vbus_volt, pdpm->sw.vbat_volt);
-    pr_debug("cp m ibus_curr %d  cp s ibus_curr %d sw ibus_curr %d ibat_curr %d\n",
-			pdpm->cp.ibus_curr, pdpm->cp_sec.ibus_curr, pdpm->sw.ibus_curr,
-			pdpm->sw.ibat_curr);
+    pr_err("state phase :%d\n", pdpm->state);
+    pr_err("vbus_vol %d  sw vbat_vol %d\n", pdpm->cp.vbus_volt, pdpm->sw.vbat_volt);
+    pr_err("cp m ibus_curr %d  cp s ibus_curr %d sw ibus_curr %d ibat_curr %d\n", 
+            pdpm->cp.ibus_curr, pdpm->cp_sec.ibus_curr, pdpm->sw.ibus_curr, 
+            pdpm->sw.ibat_curr);
     get_batt_temp_thermal_curr(pdpm);
     switch (pdpm->state) {
     case PD_PM_STATE_ENTRY:
-
-		stop_sw = false;
-		recover = false;
-		if (pdpm->sw.vbat_volt < pm_config.min_vbat_for_cp) {
-			is_pps_en = false;
-			pr_debug("batt_volt-%d, waiting...\n", pdpm->sw.vbat_volt);
-		} else if (pdpm->bat_temp >= CHG_BAT_TEMP_48 || pdpm->bat_temp < CHG_BAT_TEMP_MIN
-				||  pdpm->therm_curr < 2000 || pdpm->input_suspend == 1 || pdpm->is_stop_charge == 1) {
-			is_pps_en = false;
-			pr_debug("bat_temp:%d or pdpm->therm_curr :%d or input_suspend :%d or is_stop_charge:%d",
-					pdpm->bat_temp, pdpm->therm_curr, pdpm->input_suspend, pdpm->is_stop_charge);
-		} else if (pdpm->sw.vbat_volt > pm_config.bat_volt_lp_lmt - 100) {
-			pr_debug("batt_volt-%d is too high for cp,\
-					charging with switch charger\n", 
-					pdpm->sw.vbat_volt);
-			usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_EXIT);
-		} else {
-			pr_debug("batt_volt-%d is ok, start flash charging\n", 
-					pdpm->sw.vbat_volt);
-			is_pps_en = true;
-			usbpd_enable_ln8000_ovp_check(pdpm, true);
-			usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_ENTRY);
-		}
-
+        stop_sw = false;
+        recover = false;
+        if (pdpm->sw.vbat_volt < pm_config.min_vbat_for_cp) {
+            is_pps_en = false;
+            pr_err("batt_volt-%d, waiting...\n", pdpm->sw.vbat_volt);
+        } else if (pdpm->bat_temp >= CHG_BAT_TEMP_48 || pdpm->bat_temp < CHG_BAT_TEMP_MIN
+                ||  pdpm->therm_curr < 2000 || pdpm->input_suspend == 1 || pdpm->is_stop_charge == 1) {
+            is_pps_en = false;
+            pr_err("bat_temp:%d or pdpm->therm_curr :%d or input_suspend :%d or is_stop_charge:%d",
+                    pdpm->bat_temp, pdpm->therm_curr, pdpm->input_suspend, pdpm->is_stop_charge);
+        } else if (pdpm->sw.vbat_volt > pm_config.bat_volt_lp_lmt - 100) {
+            pr_err("batt_volt-%d is too high for cp,\
+                    charging with switch charger\n", 
+                    pdpm->sw.vbat_volt);
+            usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_EXIT);
+        } else {
+            pr_err("batt_volt-%d is ok, start flash charging\n", 
+                    pdpm->sw.vbat_volt);
+            is_pps_en = true;
+            usbpd_enable_ln8000_ovp_check(pdpm, true);
+            usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_ENTRY);
+        }
         break;
 
     case PD_PM_STATE_FC2_ENTRY:
-		if (pm_config.fc2_disable_sw) {
-			if (pdpm->sw.charge_enabled) {
-				usbpd_pm_enable_sw(pdpm, false);
-				usbpd_pm_check_sw_enabled(pdpm);
-			}
-			if (!pdpm->sw.charge_enabled)
-				usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_ENTRY_1);
-		} else {
-			usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_ENTRY_1);
-		}
-		break;
+        if (pm_config.fc2_disable_sw) {
+            if (pdpm->sw.charge_enabled) {
+                usbpd_pm_enable_sw(pdpm, false);
+                usbpd_pm_check_sw_enabled(pdpm);
+            }
+            if (!pdpm->sw.charge_enabled)
+                usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_ENTRY_1);
+        } else {
+            usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_ENTRY_1);
+        }
+        break;
 
     case PD_PM_STATE_FC2_ENTRY_1:
-		if (pm_config.cp_sec_enable)
-			pdpm->request_voltage = pdpm->sw.vbat_volt * BUS_VOLT_INIT_UP + 200;
-		else
-			pdpm->request_voltage = pdpm->sw.vbat_volt * BUS_VOLT_INIT_UP;
+        if (pm_config.cp_sec_enable)
+            pdpm->request_voltage = pdpm->sw.vbat_volt * BUS_VOLT_INIT_UP + 200;
+        else
+            pdpm->request_voltage = pdpm->sw.vbat_volt * BUS_VOLT_INIT_UP;
 
-		pdpm->request_current = min(pdpm->apdo_max_curr, pm_config.bus_curr_lp_lmt);
-		usbpd_select_pdo(pdpm, pdpm->request_voltage, pdpm->request_current);
-		pr_debug("request_voltage:%d, request_current:%d\n",
-				pdpm->request_voltage, pdpm->request_current);
+        pdpm->request_current = min(pdpm->apdo_max_curr, pm_config.bus_curr_lp_lmt);
+        usbpd_select_pdo(pdpm, pdpm->request_voltage, pdpm->request_current);
+        pr_err("request_voltage:%d, request_current:%d\n",
+                pdpm->request_voltage, pdpm->request_current);
 
-		usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_ENTRY_2);
-		tune_vbus_retry = 0;
-		break;
+        usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_ENTRY_2);
+        tune_vbus_retry = 0;
+        break;
 
     case PD_PM_STATE_FC2_ENTRY_2:
-		pr_debug("tune_vbus_retry %d\n", tune_vbus_retry);
-		if (pdpm->cp.vbus_err_low || (pdpm->cp.vbus_volt <
-				pdpm->sw.vbat_volt * BUS_VOLT_MIN)) {
-			tune_vbus_retry++;
-			pdpm->request_voltage += 20;
-			usbpd_select_pdo(pdpm, pdpm->request_voltage, pdpm->request_current);
-			pr_debug("request_voltage:%d, request_current:%d,cp.vbus_err_high:%d,cp.vbus_volt:%d\n",
-					pdpm->request_voltage, pdpm->request_current, pdpm->cp.vbus_err_high, pdpm->cp.vbus_volt);
-		} else if (pdpm->cp.vbus_err_high || (pdpm->cp.vbus_volt >
-				pdpm->sw.vbat_volt * BUS_VOLT_MAX)) {
-			tune_vbus_retry++;
-			pdpm->request_voltage -= 20;
-			usbpd_select_pdo(pdpm, pdpm->request_voltage, pdpm->request_current);
-			pr_debug("request_voltage:%d, request_current:%d\n",
-					pdpm->request_voltage, pdpm->request_current);
-		} else {
-			pr_debug("adapter volt tune ok, retry %d times\n", tune_vbus_retry);
-			usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_ENTRY_3);
-			break;
-		}
-
-		if (tune_vbus_retry > 30) {
-			pr_debug("Failed to tune adapter volt into valid range, \
-					charge with switching charger\n");
-			usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_EXIT);
-		}
-		break;
+        pr_err("tune_vbus_retry %d\n", tune_vbus_retry);
+        if (pdpm->cp.vbus_err_low || (pdpm->cp.vbus_volt < 
+                pdpm->sw.vbat_volt * BUS_VOLT_MIN)) {
+            tune_vbus_retry++;
+            pdpm->request_voltage += 20;
+            usbpd_select_pdo(pdpm, pdpm->request_voltage, pdpm->request_current);
+            pr_err("request_voltage:%d, request_current:%d,cp.vbus_err_high:%d,cp.vbus_volt:%d\n",
+                    pdpm->request_voltage, pdpm->request_current,pdpm->cp.vbus_err_high,pdpm->cp.vbus_volt);
+        } else if (pdpm->cp.vbus_err_high || (pdpm->cp.vbus_volt > 
+                pdpm->sw.vbat_volt * BUS_VOLT_MAX)) {
+            tune_vbus_retry++;
+            pdpm->request_voltage -= 20;
+            usbpd_select_pdo(pdpm, pdpm->request_voltage, pdpm->request_current);
+            pr_err("request_voltage:%d, request_current:%d\n",
+                    pdpm->request_voltage, pdpm->request_current);
+        } else {
+            pr_err("adapter volt tune ok, retry %d times\n", tune_vbus_retry);
+            usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_ENTRY_3);
+            break;
+        }
+        
+        if (tune_vbus_retry > 30) {
+            pr_err("Failed to tune adapter volt into valid range, \
+                    charge with switching charger\n");
+            usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_EXIT);
+        }	
+        break;
     case PD_PM_STATE_FC2_ENTRY_3:
-		usbpd_pm_check_cp_enabled(pdpm);
-		if (!pdpm->cp.charge_enabled) {
-			usbpd_pm_enable_cp(pdpm, true);
-			msleep(100);
-			usbpd_pm_check_cp_enabled(pdpm);
-		}
+        usbpd_pm_check_cp_enabled(pdpm);
+        if (!pdpm->cp.charge_enabled) {
+            usbpd_pm_enable_cp(pdpm, true);
+            msleep(100);
+            usbpd_pm_check_cp_enabled(pdpm);
+        }
 
-		if (pm_config.cp_sec_enable) {
-			usbpd_pm_check_cp_sec_enabled(pdpm);
-			if (!pdpm->cp_sec.charge_enabled) {
-				usbpd_pm_enable_cp_sec(pdpm, true);
-				msleep(100);
-				usbpd_pm_check_cp_sec_enabled(pdpm);
-			}
-		}
+        if (pm_config.cp_sec_enable) {
+            usbpd_pm_check_cp_sec_enabled(pdpm);
+            if(!pdpm->cp_sec.charge_enabled) {
+                usbpd_pm_enable_cp_sec(pdpm, true);
+                msleep(100);
+                usbpd_pm_check_cp_sec_enabled(pdpm);
+            }
+        }
 
-		if (pdpm->cp.charge_enabled) {
-			if ((pm_config.cp_sec_enable && pdpm->cp_sec.charge_enabled)
-					|| !pm_config.cp_sec_enable) {
-				usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_TUNE);
-				pdpm->ibus_lmt_change_timer = 0;
-				pdpm->fc2_taper_timer = 0;
-			}
-		}
-		break;
+        if (pdpm->cp.charge_enabled) {
+            if ((pm_config.cp_sec_enable && pdpm->cp_sec.charge_enabled)
+                    || !pm_config.cp_sec_enable) {
+                usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_TUNE);
+                pdpm->ibus_lmt_change_timer = 0;
+                pdpm->fc2_taper_timer = 0;
+            }
+        }
+        break;
 
     case PD_PM_STATE_FC2_TUNE:
-		ret = usbpd_pm_fc2_charge_algo(pdpm);
-		if (ret == PM_ALGO_RET_TAPER_DONE) {
-			pr_debug("Move to switch charging:%d\n", ret);
-			switch_chg_ic = true;
-			stop_sw = false;
-			usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_EXIT);
-			break;
-		} else if (ret == PM_ALGO_RET_CHG_DISABLED) {
-			pr_debug("Move to switch charging, will try to recover \
-					flash charging:%d\n", ret);
-			recover = true;
-			stop_sw = false;
-			usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_EXIT);
-			break;
-		} else {
-			usbpd_select_pdo(pdpm, pdpm->request_voltage, pdpm->request_current);
-			pr_debug("request_voltage:%d, request_current:%d\n",
-					pdpm->request_voltage, pdpm->request_current);
-			if (!pdpm->pps_temp_flag) {
-				pr_notice("temp high or lower,stop charging\n");
-				stop_sw = false;
-				recover = true;
-				pdpm->sw.charge_enabled = false;
-				is_pps_en = false;
-				usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_EXIT);
-				break;
-			}
-		}
-
-		/*stop second charge pump if either of ibus is lower than 750ma during CV*/
-		if (pm_config.cp_sec_enable && pdpm->cp_sec.charge_enabled
-				&& pdpm->sw.vbat_volt > pm_config.bat_volt_lp_lmt - 50
-				&& (pdpm->cp.ibus_curr < 750 || pdpm->cp_sec.ibus_curr < 750)) {
-			pr_debug("second cp is disabled due to ibus < 750mA\n");
-			usbpd_pm_enable_cp_sec(pdpm, false);
-			usbpd_pm_check_cp_sec_enabled(pdpm);
-			pdpm->cp_sec_stopped = true;
-		}
-		break;
+        ret = usbpd_pm_fc2_charge_algo(pdpm);
+        if (ret == PM_ALGO_RET_TAPER_DONE) {
+            pr_err("Move to switch charging:%d\n", ret);
+            switch_chg_ic = true;
+            stop_sw = false;
+            usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_EXIT);
+            break;
+        } else if (ret == PM_ALGO_RET_CHG_DISABLED) {
+            pr_err("Move to switch charging, will try to recover \
+                    flash charging:%d\n", ret);
+            recover = true;
+            stop_sw = false;
+            usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_EXIT);
+            break;
+        } else {
+            usbpd_select_pdo(pdpm, pdpm->request_voltage, pdpm->request_current);
+            pr_err("request_voltage:%d, request_current:%d\n",
+                    pdpm->request_voltage, pdpm->request_current);
+            if (!pdpm->pps_temp_flag) {
+                pr_notice("temp high or lower,stop charging\n");
+                stop_sw = false;
+                recover = true;
+                pdpm->sw.charge_enabled = false;
+                is_pps_en = false;
+                usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_EXIT);
+                break;
+            }
+        }
+        
+        /*stop second charge pump if either of ibus is lower than 750ma during CV*/
+        if (pm_config.cp_sec_enable && pdpm->cp_sec.charge_enabled 
+                && pdpm->sw.vbat_volt > pm_config.bat_volt_lp_lmt - 50
+                && (pdpm->cp.ibus_curr < 750 || pdpm->cp_sec.ibus_curr < 750)) {
+            pr_err("second cp is disabled due to ibus < 750mA\n");
+            usbpd_pm_enable_cp_sec(pdpm, false);
+            usbpd_pm_check_cp_sec_enabled(pdpm);
+            pdpm->cp_sec_stopped = true;
+        }
+        break;
 
     case PD_PM_STATE_FC2_EXIT:
-		/* select default 5V*/
-		is_pps_en = false;
-		usbpd_enable_ln8000_ovp_check(pdpm, false);
-		usbpd_select_pdo(pdpm, 5000, 3000);
+        /* select default 5V*/
+        is_pps_en = false;
+        usbpd_enable_ln8000_ovp_check(pdpm, false);
+        usbpd_select_pdo(pdpm, 5000, 3000);
 
-		if (pdpm->cp.charge_enabled) {
-			usbpd_pm_enable_cp(pdpm, false);
-			usbpd_pm_check_cp_enabled(pdpm);
-		}
+        if (pdpm->cp.charge_enabled) {
+            usbpd_pm_enable_cp(pdpm, false);
+            usbpd_pm_check_cp_enabled(pdpm);
+        }
 
-		if (pm_config.cp_sec_enable && pdpm->cp_sec.charge_enabled) {
-			usbpd_pm_enable_cp_sec(pdpm, false);
-			usbpd_pm_check_cp_sec_enabled(pdpm);
-		}
+        if (pm_config.cp_sec_enable && pdpm->cp_sec.charge_enabled) {
+            usbpd_pm_enable_cp_sec(pdpm, false);
+            usbpd_pm_check_cp_sec_enabled(pdpm);
+        }
 
-		pr_debug(">>>sw state %d   %d\n", stop_sw, pdpm->sw.charge_enabled);
-		if (stop_sw && pdpm->sw.charge_enabled)
-			usbpd_pm_enable_sw(pdpm, false);
-		else if (!stop_sw && !pdpm->sw.charge_enabled)
-			usbpd_pm_enable_sw(pdpm, true);
+        pr_err(">>>sw state %d   %d\n", stop_sw, pdpm->sw.charge_enabled);
+        if (stop_sw && pdpm->sw.charge_enabled)
+            usbpd_pm_enable_sw(pdpm, false);
+        else if (!stop_sw && !pdpm->sw.charge_enabled)
+            usbpd_pm_enable_sw(pdpm, true);
+            
+        usbpd_pm_check_sw_enabled(pdpm);
 
-		usbpd_pm_check_sw_enabled(pdpm);
-
-		if (recover)
-			usbpd_pm_move_state(pdpm, PD_PM_STATE_ENTRY);
-		else
-			rc = 1;
-
-		break;
+        if (recover)
+            usbpd_pm_move_state(pdpm, PD_PM_STATE_ENTRY);
+        else
+            rc = 1;
+        
+        break;
     }
 
     return rc;
@@ -1232,8 +1220,8 @@ static void usbpd_pm_workfunc(struct work_struct *work)
     usbpd_update_ibat_curr(pdpm);
 
     if (!usbpd_pm_sm(pdpm) && pdpm->pd_active)
-	schedule_delayed_work(&pdpm->pm_work,
-		msecs_to_jiffies(PM_WORK_RUN_INTERVAL));
+        schedule_delayed_work(&pdpm->pm_work,
+            msecs_to_jiffies(PM_WORK_RUN_INTERVAL));
 
 }
 
@@ -1242,14 +1230,14 @@ static void usbpd_pm_disconnect(struct usbpd_pm *pdpm)
     usbpd_pm_enable_cp(pdpm, false);
     usbpd_pm_check_cp_enabled(pdpm);
     if (pm_config.cp_sec_enable) {
-	usbpd_pm_enable_cp_sec(pdpm, false);
-	usbpd_pm_check_cp_sec_enabled(pdpm);
+        usbpd_pm_enable_cp_sec(pdpm, false);
+        usbpd_pm_check_cp_sec_enabled(pdpm);
     }
     cancel_delayed_work_sync(&pdpm->pm_work);
 
     if (!pdpm->sw.charge_enabled) {
-	usbpd_pm_enable_sw(pdpm, true);
-	usbpd_pm_check_sw_enabled(pdpm);
+        usbpd_pm_enable_sw(pdpm, true);
+        usbpd_pm_check_sw_enabled(pdpm);
     }
 
     pdpm->pps_supported = false;
@@ -1263,94 +1251,107 @@ static void usbpd_pm_disconnect(struct usbpd_pm *pdpm)
 static void usbpd_pd_contact(struct usbpd_pm *pdpm, bool connected)
 {
     pdpm->pd_active = connected;
-    pr_debug("[SC manager] >> pd_active %d\n", pdpm->pd_active);
+    pr_err("[SC manager] >> pd_active %d\n", pdpm->pd_active);
     if (connected) {
-	msleep(10);
-	usbpd_pm_evaluate_src_caps(pdpm);
-	usbpd_pm_enable_sw(pdpm, true);
-	usbpd_pm_check_sw_enabled(pdpm);
-	pr_debug("[SC manager] >>start cp charging pps support %d\n",
-		pdpm->pps_supported);
-	if (pdpm->pps_supported)
-		schedule_delayed_work(&pdpm->pm_work, 0);
+        msleep(10);
+        usbpd_pm_evaluate_src_caps(pdpm);
+        usbpd_pm_enable_sw(pdpm, true);
+        usbpd_pm_check_sw_enabled(pdpm);
+        pr_err("[SC manager] >>start cp charging pps support %d\n", 
+            pdpm->pps_supported);
+        if (pdpm->pps_supported)
+            schedule_delayed_work(&pdpm->pm_work, 0);
+        else
+            pdpm->pd_active = false;
+        power_supply_changed(pdpm->usb_psy);
     } else {
-	usbpd_pm_disconnect(pdpm);
+        usbpd_pm_disconnect(pdpm);
     }
 }
 
 static void cp_psy_change_work(struct work_struct *work)
 {
     struct usbpd_pm *pdpm = container_of(work, struct usbpd_pm,
-					cp_psy_change_work);
+                    cp_psy_change_work);
 
     pdpm->psy_change_running = false;
 }
 
 static void usb_psy_change_work(struct work_struct *work)
 {
+    int ret;
     struct usbpd_pm *pdpm = container_of(work, struct usbpd_pm,
-					usb_psy_change_work);
+                    usb_psy_change_work);
+    union power_supply_propval val = {0,};
 
-    pr_info("[SC manager] >> usb change work\n");
+    pr_err("[SC manager] >> usb change work\n");
 
 	#if 0
     if (check_typec_attached_snk(pdpm->tcpc) < 0) {
-		if (pdpm->pd_active) {
-			usbpd_pd_contact(pdpm, false);
-		}
-		goto out;
+        if (pdpm->pd_active) {
+            usbpd_pd_contact(pdpm, false);
+        }
+        goto out;
     }
 	#endif
 
-    pr_info("[SC manager] >> pd_active %d,  pps_en_unlock %d\n",
-		pdpm->pd_active, pdpm->is_pps_en_unlock);
+    ret = power_supply_get_property(pdpm->usb_psy,
+            POWER_SUPPLY_PROP_USB_TYPE, &val);
+    if (ret) {
+        pr_err("Failed to get usb pd active state\n");
+        goto out;
+    }
+
+    pr_err("[SC manager] >> pd_active %d,  val.intval %d\n",
+        pdpm->pd_active, val.intval);
 
     if ((!pdpm->pd_active) && (pdpm->is_pps_en_unlock))
-		usbpd_pd_contact(pdpm, true);
+        usbpd_pd_contact(pdpm, true);
     else if (pdpm->pd_active && (!pdpm->is_pps_en_unlock))
-		usbpd_pd_contact(pdpm, false);
-
+        usbpd_pd_contact(pdpm, false);
+out:
+    pdpm->psy_change_running = false;
 }
 
-static int usbpd_psy_notifier_cb(struct notifier_block *nb,
-			unsigned long event, void *data)
+static int usbpd_psy_notifier_cb(struct notifier_block *nb, 
+            unsigned long event, void *data)
 {
     struct usbpd_pm *pdpm = container_of(nb, struct usbpd_pm, nb);
     struct power_supply *psy = data;
     unsigned long flags;
 
-	pr_debug("[SC manager] >>>enter usbpd_psy_notifier_cb psy = %s, event = %d\n", psy->desc->name, event);
+	pr_err("[SC manager] >>>enter usbpd_psy_notifier_cb psy = %s,event = %d\n",psy->desc->name,event);
     if (event != PSY_EVENT_PROP_CHANGED)
-	return NOTIFY_OK;
+        return NOTIFY_OK;
 
     usbpd_check_cp_psy(pdpm);
     usbpd_check_usb_psy(pdpm);
     usbpd_check_tcpc(pdpm);
 
     if (!pdpm->usb_psy)
-		return NOTIFY_OK;
+        return NOTIFY_OK;
 
     if (psy == pdpm->usb_psy) {
-		spin_lock_irqsave(&pdpm->psy_change_lock, flags);
-		if (!pdpm->psy_change_running) {
-			pdpm->psy_change_running = true;
-			pr_debug("[SC manager] >>>pdpm->psy_change_running : %d\n", pdpm->psy_change_running);
-			schedule_work(&pdpm->usb_psy_change_work);
-		}
-		spin_unlock_irqrestore(&pdpm->psy_change_lock, flags);
+        spin_lock_irqsave(&pdpm->psy_change_lock, flags);
+        if (!pdpm->psy_change_running) {
+            pdpm->psy_change_running = true;
+             pr_err("[SC manager] >>>pdpm->psy_change_running : %d\n", pdpm->psy_change_running);
+             schedule_work(&pdpm->usb_psy_change_work);
+        }
+        spin_unlock_irqrestore(&pdpm->psy_change_lock, flags);
     }
     return NOTIFY_OK;
 }
 
 static int  usbpd_iio_init(struct usbpd_pm *pdpm)
 {
-	pr_debug("usbpd_iio_init start\n");
+	pr_err("usbpd_iio_init start\n");
     pdpm->shutdown_flag = false;
 	pdpm->apdo_iio = devm_kcalloc(pdpm->dev,
 		ARRAY_SIZE(apdo_iio_chan_name), sizeof(*pdpm->apdo_iio), GFP_KERNEL);
 	if (!pdpm->apdo_iio)
 		return -ENOMEM;
-	pr_debug("usbpd_iio_init end\n");
+	pr_err("usbpd_iio_init end\n");
 	return 0;
 }
 
@@ -1359,13 +1360,13 @@ static int usbpd_pm_probe(struct platform_device *pdev)
     struct usbpd_pm *pdpm;
 
     if (!pdev->dev.of_node)
-		return -ENODEV;
+	    return -ENODEV;
 
 	if (pdev->dev.of_node) {
 		pdpm = devm_kzalloc(&pdev->dev,
 			sizeof(struct usbpd_pm), GFP_KERNEL);
 		if (!pdpm) {
-			pr_debug("Failed to allocate memory\n");
+			pr_err("Failed to allocate memory\n");
 			return -ENOMEM;
 		}
 	} else {
@@ -1411,8 +1412,8 @@ static void usbpd_pm_shutdown(struct platform_device *pdev)
 {
 	struct usbpd_pm *pdpm = platform_get_drvdata(pdev);
 
-	pr_debug("%s usbpd_pm_shutdown\n", __func__);
-	if (!pdpm)
+	pr_err("%s usbpd_pm_shutdown\n", __func__);
+	if(!pdpm)
 		return;
 	pdpm->shutdown_flag = true;
 	return;
@@ -1438,7 +1439,7 @@ static struct platform_driver usbpd_pm_driver = {
 static int __init usbpd_pm_init(void)
 {
     platform_driver_register(&usbpd_pm_driver);
-	pr_debug("usbpd_pm_init end\n");
+	pr_err("usbpd_pm_init end\n");
 
     return 0;
 }

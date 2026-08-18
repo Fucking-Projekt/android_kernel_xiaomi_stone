@@ -5,28 +5,28 @@
 #include <linux/power_supply.h>
 #include <linux/iio/iio.h>
 
-#define MAX_STR_LEN 128
+#define MAX_STR_LEN                    128
 
 /* opcode for battery charger */
-#define BC_XM_STATUS_GET 0x50
-#define BC_XM_STATUS_SET 0x51
-#define BC_SET_NOTIFY_REQ 0x04
-#define BC_NOTIFY_IND 0x07
-#define BC_BATTERY_STATUS_GET 0x30
-#define BC_BATTERY_STATUS_SET 0x31
-#define BC_USB_STATUS_GET 0x32
-#define BC_USB_STATUS_SET 0x33
-#define BC_WLS_STATUS_GET 0x34
-#define BC_WLS_STATUS_SET 0x35
-#define BC_SHIP_MODE_REQ_SET 0x36
-#define BC_SHUTDOWN_REQ_SET 0x37
-#define BC_WLS_FW_CHECK_UPDATE 0x40
-#define BC_WLS_FW_PUSH_BUF_REQ 0x41
-#define BC_WLS_FW_UPDATE_STATUS_RESP 0x42
-#define BC_WLS_FW_PUSH_BUF_RESP 0x43
-#define BC_WLS_FW_GET_VERSION 0x44
-#define BC_SHUTDOWN_NOTIFY 0x47
-#define BC_GENERIC_NOTIFY 0x80
+#define BC_XM_STATUS_GET		0x50
+#define BC_XM_STATUS_SET		0x51
+#define BC_SET_NOTIFY_REQ		0x04
+#define BC_NOTIFY_IND			0x07
+#define BC_BATTERY_STATUS_GET		0x30
+#define BC_BATTERY_STATUS_SET		0x31
+#define BC_USB_STATUS_GET		0x32
+#define BC_USB_STATUS_SET		0x33
+#define BC_WLS_STATUS_GET		0x34
+#define BC_WLS_STATUS_SET		0x35
+#define BC_SHIP_MODE_REQ_SET		0x36
+#define BC_SHUTDOWN_REQ_SET		0x37
+#define BC_WLS_FW_CHECK_UPDATE		0x40
+#define BC_WLS_FW_PUSH_BUF_REQ		0x41
+#define BC_WLS_FW_UPDATE_STATUS_RESP	0x42
+#define BC_WLS_FW_PUSH_BUF_RESP		0x43
+#define BC_WLS_FW_GET_VERSION		0x44
+#define BC_SHUTDOWN_NOTIFY		0x47
+#define BC_GENERIC_NOTIFY		0x80
 
 #if defined(CONFIG_BQ_FG_1S)
 #define BATTERY_DIGEST_LEN 32
@@ -35,28 +35,28 @@
 #endif
 #define BATTERY_SS_AUTH_DATA_LEN 4
 
-#define USBPD_UVDM_SS_LEN 4
-#define USBPD_UVDM_VERIFIED_LEN 1
+#define USBPD_UVDM_SS_LEN		4
+#define USBPD_UVDM_VERIFIED_LEN		1
 
-#define MAX_THERMAL_LEVEL 20
+#define MAX_THERMAL_LEVEL		20
 
-#define BATTERY_VOLTAGET_PRE 3500000
-#define BATTERY_VOLTAGET_OFFSET 20000
+#define BATTERY_VOLTAGET_PRE     3500000
+#define BATTERY_VOLTAGET_OFFSET  20000
 
-#define PROBE_CNT_MAX 10
+#define PROBE_CNT_MAX			10
 
 #define CM_HIGH_TEMP_CHARGE_SW_VREG 4100000
 #define CM_FFC_SW_VREG_HIGH 4608000
 #define CM_FFC_SW_VREG_LOW 4480000
 
-#define CHARGING_PERIOD_S 30
-#define DISCHARGE_PERIOD_S 300
+#define CHARGING_PERIOD_S		30
+#define DISCHARGE_PERIOD_S		300
 
-#define SHUTDOWN_DELAY_VOL_LOW 3300
-#define SHUTDOWN_DELAY_VOL_HIGH 3400
+#define SHUTDOWN_DELAY_VOL_LOW	3300
+#define SHUTDOWN_DELAY_VOL_HIGH	3400
 
-#define CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD 2900000
-#define CM_UVLO_CALIBRATION_CNT_THRESHOLD 5
+#define CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD	2900000
+#define CM_UVLO_CALIBRATION_CNT_THRESHOLD	5
 
 struct batt_dt_props {
 	int usb_icl_ua;
@@ -88,9 +88,9 @@ struct batt_chg {
 	struct power_supply *fg_psy;
 	struct power_supply *verify_psy;
 
-	struct iio_dev *indio_dev;
-	struct iio_chan_spec *iio_chan;
-	struct iio_channel *int_iio_chans;
+	struct iio_dev          *indio_dev;
+	struct iio_chan_spec    *iio_chan;
+	struct iio_channel	*int_iio_chans;
 
 	struct class battery_class;
 	struct device batt_device;
@@ -190,18 +190,14 @@ struct batt_chg {
 	bool last_shutdown_delay;
 	int sw_chg_chip_id;
 };
-/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 start*/
-extern struct batt_chg *g_batt_chg;
-/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 end*/
+
+struct batt_chg *g_batt_chg;
+
 static int thermal_mitigation[] = {
 	6000000,5400000,5000000,4500000,4000000,3500000,3000000,2700000,
-	2600000,2400000,2200000,2000000,1800000,1600000,1400000,500000,300000,
+	2500000,2300000,2100000,1800000,1500000,900000,800000,500000,300000,
 };
 
-static int thermal_mitigation_qc2[] = {
-	3000000,2700000,2500000,2300000,2100000,1900000,1700000,1500000,
-	1000000,1000000,1000000,1000000,1000000,900000,500000,300000,
-};
 
 struct charger_type {
 	int type;
@@ -212,7 +208,7 @@ static struct charger_type charger_type[16] = {
 	{POWER_SUPPLY_USB_TYPE_SDP, POWER_SUPPLY_TYPE_USB},
 	{POWER_SUPPLY_USB_TYPE_DCP, POWER_SUPPLY_TYPE_USB_DCP},
 	{POWER_SUPPLY_USB_TYPE_CDP, POWER_SUPPLY_TYPE_USB_CDP},
-	{POWER_SUPPLY_USB_TYPE_ACA, POWER_SUPPLY_TYPE_USB_HVDCP},
+	{POWER_SUPPLY_USB_TYPE_ACA, POWER_SUPPLY_TYPE_USB_ACA},
 	{POWER_SUPPLY_USB_TYPE_C, POWER_SUPPLY_TYPE_USB_FLOAT},
 	{POWER_SUPPLY_USB_TYPE_PD, POWER_SUPPLY_TYPE_USB_PD},
 	{POWER_SUPPLY_USB_TYPE_PD_DRP, POWER_SUPPLY_TYPE_USB_PD_DRP},
@@ -220,7 +216,7 @@ static struct charger_type charger_type[16] = {
 	{0, 0},
 };
 
-enum battery_id {
+enum battery_id{
 	FIRST_SUPPLIER,
 	SECOND_SUPPLIER,
 	THIRD_SUPPLIER,

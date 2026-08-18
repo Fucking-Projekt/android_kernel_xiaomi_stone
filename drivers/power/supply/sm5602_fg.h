@@ -82,13 +82,9 @@
 //#define ENABLE_MAP_SOC
 //#define ENABLE_MIX_NTC_BATTDET
 //#define ENABLE_WAIT_SOC_FULL
-#define ENABLE_LTIM_ACT
+//#define ENABLE_LTIM_ACT
 #define ENABLE_HCIC_ACT
 #define ENABLE_HCRSM_MODE
-#define ENABLE_TEM_RATE_CONTROL
-#ifdef CONFIG_HQ_QGKI
-#define CHECK_ABNORMAL_TABLE
-#endif
 
 #define EX_TEMP_MIN			(-20)
 #define EX_TEMP_MAX			80
@@ -113,7 +109,7 @@
 #endif
 
 #ifdef ENABLE_TEMBASE_ZDSCON
-#define ZDSCON_ACT_TEMP_GAP 	14
+#define ZDSCON_ACT_TEMP_GAP 	15
 #define T_GAP_DENOM 			5
 #define HMINMAN_T_VALUE_FACT 	125
 #define I_GAP_DENOM 			1000
@@ -135,26 +131,20 @@
 #endif
 
 #ifdef ENABLE_HCRSM_MODE
-#define ENABLE_FCHG_VSOC_MODE
-#ifdef ENABLE_FCHG_VSOC_MODE
-#define FCHG_VSOC_VOLT 4460
-#define FCHG_VSOC_SOC 700
-#endif
 #define HCRSM_VOLT 4460
-#define HCRSM_CURR 3500
+#define HCRSM_CURR 1200
 #endif
 
 #ifdef ENABLE_WAIT_SOC_FULL
 #define WAIT_SOC_GAP 			1
 #endif
 
-#ifdef SHUTDOWN_DELAY
+#ifdef SHUTDOWN_DELAY	
 #define SHUTDOWN_DELAY_H_VOL	3400
 #define SHUTDOWN_DELAY_L_VOL	3300
 #endif
 
 #define SOC_DECIMAL_2_POINT
-#define FCC_FROM_CYCLE_COUNT
 
 enum sm_fg_reg_idx {
 	SM_FG_REG_DEVICE_ID = 0,
@@ -169,19 +159,19 @@ enum sm_fg_reg_idx {
 	SM_FG_REG_TEMPERATURE_IN,
 	SM_FG_REG_TEMPERATURE_EX,
 	SM_FG_REG_V_L_ALARM,
-	SM_FG_REG_V_H_ALARM,
+	SM_FG_REG_V_H_ALARM,	
 	SM_FG_REG_A_H_ALARM,
 	SM_FG_REG_T_IN_H_ALARM,
 	SM_FG_REG_SOC_L_ALARM,
 	SM_FG_REG_FG_OP_STATUS,
 	SM_FG_REG_TOPOFFSOC,
 	SM_FG_REG_PARAM_CTRL,
-	SM_FG_REG_SHUTDOWN,
+	SM_FG_REG_SHUTDOWN,	
 	SM_FG_REG_VIT_PERIOD,
 	SM_FG_REG_CURRENT_RATE,
 	SM_FG_REG_BAT_CAP,
 	SM_FG_REG_CURR_OFFSET,
-	SM_FG_REG_CURR_SLOPE,
+	SM_FG_REG_CURR_SLOPE,	
 	SM_FG_REG_MISC,
 	SM_FG_REG_RESET,
 	SM_FG_REG_RSNS_SEL,
@@ -202,7 +192,7 @@ static u8 sm5602_regs[NUM_REGS] = {
 	0x09, /* TEMPERATURE_IN */
 	0x0A, /* TEMPERATURE_EX */
 	0x0C, /* V_L_ALARM */
-	0x0D, /* V_H_ALARM */
+	0x0D, /* V_H_ALARM */	
 	0x0E, /* A_H_ALARM */
 	0x0F, /* T_IN_H_ALARM */
 	0x10, /* SOC_L_ALARM */
@@ -212,8 +202,8 @@ static u8 sm5602_regs[NUM_REGS] = {
 	0x14, /* SHUTDOWN */
 	0x1A, /* VIT_PERIOD */
 	0x1B, /* CURRENT_RATE */
-	0x62, /* BAT_CAP */
-	0x73, /* CURR_OFFSET */
+	0x62, /* BAT_CAP */	
+	0x73, /* CURR_OFFSET */	
 	0x74, /* CURR_SLOPE */
 	0x90, /* MISC */
 	0x91, /* RESET */
@@ -281,7 +271,7 @@ struct sm_fg_chip {
 	u8 regs[NUM_REGS];
 	int	batt_id;
 	int gpio_int;
-
+	
 	/* Status Tracking */
 	bool batt_present;
 	bool batt_fc;	/* Battery Full Condition */
@@ -321,7 +311,7 @@ struct sm_fg_chip {
     int p_batt_voltage;
     int p_batt_current;
 	int p_report_soc;
-
+	
 	/* DT */
 	bool en_temp_ex;
 	bool en_temp_in;
@@ -340,11 +330,11 @@ struct sm_fg_chip {
     int batt_v_max;
 	int min_cap;
 	u32 common_param_version;
-	int t_l_alarm_in;
+	int t_l_alarm_in; 
 	int t_h_alarm_in;
 	u32 t_l_alarm_ex;
 	u32 t_h_alarm_ex;
-
+	
 	/* Battery Data */
 	int battery_table[BATTERY_TABLE_MAX][FG_TABLE_LEN];
 	signed short battery_temp_table[FG_TEMP_TABLE_CNT_MAX]; /* Degree */
@@ -390,17 +380,17 @@ struct sm_fg_chip {
     int low_temp_n_cal_denom;
     int low_temp_n_cal_fact;
 	u32 battery_param_version;
-#ifdef ENABLE_NTC_COMPENSATION_1
+#ifdef ENABLE_NTC_COMPENSATION_1	
 	int rtrace;
 #endif
-
+	
 	struct delayed_work monitor_work;
-#ifdef ENABLE_INIT_DELAY_TEMP
+#ifdef ENABLE_INIT_DELAY_TEMP	
 	struct delayed_work init_delay_temp_work;
 #endif
 
-#ifdef SOC_SMOOTH_TRACKING
-#if 0
+#ifdef SOC_SMOOTH_TRACKING	
+#if 0	
 	struct delayed_work soc_monitor_work;
 #endif
 	int charge_full;
@@ -417,7 +407,7 @@ struct sm_fg_chip {
 	struct dentry *debug_root;
 	struct power_supply *batt_psy;
 	struct power_supply *fg_psy;
-#ifdef SOC_SMOOTH_TRACKING
+#ifdef SOC_SMOOTH_TRACKING	
 	struct batt_params	param;
 #endif
 #ifdef ENABLE_TEMP_AVG
@@ -431,34 +421,5 @@ struct sm_fg_chip {
 	//add verify_psy
 	struct power_supply		*verify_psy;
 };
-
-// after-sales automatic detection interface
-#ifdef FCC_FROM_CYCLE_COUNT
-static int nvt_battery_aging_capacity[] = {
-	//NVT
-	4900,//  0≤ batt_cycle < 100
-	4860,//100≤ batt_cycle < 200
-	4802,//200≤ batt_cycle < 300
-	4752,//300≤ batt_cycle < 400
-	4714,//400≤ batt_cycle < 500
-	4669,//500≤ batt_cycle < 600
-	4631,//600≤ batt_cycle < 700
-	4587,//700≤ batt_cycle < 800
-	4559,//800≤ batt_cycle
-};
-
-static int cosmx_battery_aging_capacity[] = {
-	//COSMX
-	4900,//  0≤ batt_cycle < 100
-	4846,//100≤ batt_cycle < 200
-	4765,//200≤ batt_cycle < 300
-	4691,//300≤ batt_cycle < 400
-	4642,//400≤ batt_cycle < 500
-	4595,//500≤ batt_cycle < 600
-	4560,//600≤ batt_cycle < 700
-	4506,//700≤ batt_cycle < 800
-	4467,//800≤ batt_cycle
-};
-#endif
 
 #endif /* SM5602_FG_H */

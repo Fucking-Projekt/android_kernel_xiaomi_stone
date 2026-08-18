@@ -28,12 +28,7 @@
 #include <linux/power/charger-manager.h>
 #include "sc8551_reg.h"
 
-/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 start*/
-#if IS_ENABLED(CONFIG_MIEV)
-#include "hq_notify.h"
-#include "xm_chg_dfs.h"
-#endif
-/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 end*/
+#include <linux/quiet_logs.h>
 
 extern void power_supply_unregister(struct power_supply *psy);
 
@@ -48,7 +43,7 @@ typedef enum {
 	ADC_TBAT,
 	ADC_TDIE,
 	ADC_MAX_NUM,
-} ADC_CH;
+}ADC_CH;
 
 #define SC8551_ROLE_STDALONE   	0
 #define SC8551_ROLE_SLAVE		1
@@ -125,23 +120,29 @@ static int sc8551_mode_data[] = {
 #define VBAT_REG_STATUS_MASK		(1 << VBAT_REG_STATUS_SHIFT)
 #define IBAT_REG_STATUS_MASK		(1 << VBAT_REG_STATUS_SHIFT)
 
-#define sc_err(fmt, ...)                                                                \
-do {                                                                                    \
-} while (0)
+#define sc_err(fmt, ...)								\
+do {											\
+	if (sc->mode == SC8551_ROLE_MASTER)						\
+		printk(KERN_ERR "[sc8551-MASTER]:%s:" fmt, __func__, ##__VA_ARGS__);	\
+	else if (sc->mode == SC8551_ROLE_SLAVE)					\
+		printk(KERN_ERR "[sc8551-SLAVE]:%s:" fmt, __func__, ##__VA_ARGS__);	\
+} while(0);
 
-#define sc_info(fmt, ...)                                                               \
-do {                                                                                    \
-} while (0)
+#define sc_info(fmt, ...)								\
+do {											\
+	if (sc->mode == SC8551_ROLE_MASTER)						\
+		printk(KERN_INFO "[sc8551-MASTER]:%s:" fmt, __func__, ##__VA_ARGS__);	\
+	else if (sc->mode == SC8551_ROLE_SLAVE)					\
+		printk(KERN_INFO "[sc8551-SLAVE]:%s:" fmt, __func__, ##__VA_ARGS__);	\
+} while(0);
 
-#define sc_dbg(fmt, ...)                                                                \
-do {                                                                                    \
-} while (0)
-
-enum {
-	VBUS_ERROR_NONE,
-	VBUS_ERROR_LOW,
-	VBUS_ERROR_HIGHT,
-};
+#define sc_dbg(fmt, ...)								\
+do {											\
+	if (sc->mode == SC8551_ROLE_MASTER)						\
+		printk(KERN_DEBUG "[sc8551-MASTER]:%s:" fmt, __func__, ##__VA_ARGS__);	\
+	else if (sc->mode == SC8551_ROLE_SLAVE)					\
+		printk(KERN_DEBUG "[sc8551-SLAVE]:%s:" fmt, __func__, ##__VA_ARGS__);	\
+} while(0);
 
 struct sc8551_cfg {
 	bool bat_ovp_disable;
@@ -327,7 +328,7 @@ static int sc8551_write_byte(struct sc8551 *sc, u8 reg, u8 data)
 	return ret;
 }
 
-static int sc8551_update_bits(struct sc8551 *sc, u8 reg,
+static int sc8551_update_bits(struct sc8551*sc, u8 reg,
 				    u8 mask, u8 data)
 {
 	int ret;
@@ -370,13 +371,7 @@ int sc8551_enable_charge(struct sc8551 *sc, bool enable)
 	sc_info("sc8551 charger %s\n", enable == false ? "disable" : "enable");
 	ret = sc8551_update_bits(sc, SC8551_REG_0C,
 				SC8551_CHG_EN_MASK, val);
-	/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 start*/
-	#if IS_ENABLED(CONFIG_MIEV)
-	if((enable) && (ret < 0)){
-		hq_cp_notifier_call_chain(CP_EVENT_ENABLE_ERR,NULL);
-	}
-	#endif
-	/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 end*/
+
 	return ret;
 }
 EXPORT_SYMBOL_GPL(sc8551_enable_charge);
@@ -388,14 +383,14 @@ static int sc8551_check_charge_enabled(struct sc8551 *sc, bool *enable)
 
 	ret = sc8551_read_byte(sc, SC8551_REG_0C, &val);
 	if (!ret) {
-		ret = sc8551_read_byte(sc, SC8551_REG_0A, &val1);
-		if (!ret) {
-			if ((val & SC8551_CHG_EN_MASK) && (val1 & SC8551_CONV_SWITCHING_STAT_MASK)) {
-				*enable = true;
-				return ret;
-			}
-		}
-	}
+        ret = sc8551_read_byte(sc, SC8551_REG_0A, &val1);
+        if (!ret) {
+            if ((val & SC8551_CHG_EN_MASK) && (val1 & SC8551_CONV_SWITCHING_STAT_MASK)) {
+                *enable = true;
+                return ret;
+            }
+        }
+    }
 	*enable = false;
 	return ret;
 }
@@ -437,14 +432,8 @@ int sc8551_enable_batovp(struct sc8551 *sc, bool enable)
 	int ret;
 	u8 val;
 
-	if (enable){
+	if (enable)
 		val = SC8551_BAT_OVP_ENABLE;
-		/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 start*/
-		#if IS_ENABLED(CONFIG_MIEV)
-		hq_cp_notifier_call_chain(CP_EVENT_VBAT_OVP,NULL);
-		#endif
-		/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 end*/
-	}
 	else
 		val = SC8551_BAT_OVP_DISABLE;
 
@@ -516,15 +505,7 @@ int sc8551_enable_batocp(struct sc8551 *sc, bool enable)
 	u8 val;
 
 	if (enable)
-	{
-	val = SC8551_BAT_OCP_ENABLE;
-	/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 start*/
-	#if IS_ENABLED(CONFIG_MIEV)
-		hq_cp_notifier_call_chain(CP_EVENT_IBAT_OCP,NULL);
-	#endif
-	/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 end*/
-	}
-
+		val = SC8551_BAT_OCP_ENABLE;
 	else
 		val = SC8551_BAT_OCP_DISABLE;
 
@@ -614,15 +595,7 @@ int sc8551_enable_busovp_alarm(struct sc8551 *sc, bool enable)
 	u8 val;
 
 	if (enable)
-	{
 		val = SC8551_BUS_OVP_ALM_ENABLE;
-		/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 start*/
-		#if IS_ENABLED(CONFIG_MIEV)
-		hq_cp_notifier_call_chain(CP_EVENT_VBUS_OVP,NULL);
-		#endif
-		/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 end*/
-	}
-
 	else
 		val = SC8551_BUS_OVP_ALM_DISABLE;
 
@@ -658,16 +631,7 @@ int sc8551_enable_busocp(struct sc8551 *sc, bool enable)
 	u8 val;
 
 	if (enable)
-	{
 		val = SC8551_BUS_OCP_ENABLE;
-		/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 start*/
-		#if IS_ENABLED(CONFIG_MIEV)
-		hq_cp_notifier_call_chain(CP_EVENT_IBUS_OCP,NULL);
-		#endif
-		/* M17 code for HQ-450173 at 2025/08/04 by p-mazhuang3 end*/
-
-	}
-
 	else
 		val = SC8551_BUS_OCP_DISABLE;
 
@@ -950,8 +914,7 @@ int sc8551_get_adc_data(struct sc8551 *sc, int channel,  int *result)
 	u8 val_l, val_h;
 	u16 val;
 
-	if (channel >= ADC_MAX_NUM)
-		return 0;
+	if(channel >= ADC_MAX_NUM) return 0;
 
 	ret = sc8551_read_byte(sc, ADC_REG_BASE + (channel << 1), &val_h);
 	ret = sc8551_read_byte(sc, ADC_REG_BASE + (channel << 1) + 1, &val_l);
@@ -960,24 +923,15 @@ int sc8551_get_adc_data(struct sc8551 *sc, int channel,  int *result)
 		return ret;
 	val = (val_h << 8) | val_l;
 
-    if (channel == ADC_IBUS)
-		val = val * 15625/10000;
-    else if (channel == ADC_VBUS)
-		val = val * 375/100;
-    else if (channel == ADC_VAC)
-		val = val * 5;
-    else if (channel == ADC_VOUT)
-		val = val * 125 / 100;
-    else if (channel == ADC_VBAT)
-		val = val * 125/100;
-    else if (channel == ADC_IBAT)
-		val = val * 3125/1000 ;
-    else if (channel == ADC_TBUS)
-		val = val * 9766/100000;
-    else if (channel == ADC_TBAT)
-		val = val * 9766/100000;
-    else if (channel == ADC_TDIE)
-		val = val * 5/10;
+    if(channel == ADC_IBUS) 			val = val * 15625/10000;
+    else if(channel == ADC_VBUS)		val = val * 375/100;
+    else if(channel == ADC_VAC)			val = val * 5;
+    else if(channel == ADC_VOUT)		val = val * 125 / 100;
+    else if(channel == ADC_VBAT)		val = val * 125/100;
+    else if(channel == ADC_IBAT)		val = val * 3125/1000 ;
+    else if(channel == ADC_TBUS)		val = val * 9766/100000;
+    else if(channel == ADC_TBAT)		val = val * 9766/100000;
+    else if(channel == ADC_TDIE)		val = val * 5/10;
 
 	*result = val;
 
@@ -1192,19 +1146,15 @@ static int sc8551_get_work_mode(struct sc8551 *sc, int *mode)
 static int sc8551_check_vbus_error_status(struct sc8551 *sc)
 {
 	int ret;
-	int result;
+	u8 data;
 
-	ret = sc8551_get_adc_data(sc, ADC_VBUS, &result);
-	if (!ret)
-		sc->vbus_volt = result;
-	
-	if (sc->vbus_volt < 6000) {
-		return VBUS_ERROR_LOW;
-	} else if (sc->vbus_volt > 13000) {
-		return VBUS_ERROR_HIGHT;
+	ret = sc8551_read_byte(sc, SC8551_REG_0A, &data);
+	if(ret == 0){
+		sc_err("vbus error >>>>%02x\n", data);
+		sc->vbus_error = data;
 	}
 
-	return VBUS_ERROR_NONE;
+	return ret;
 }
 
 static int sc8551_detect_device(struct sc8551 *sc)
@@ -1635,7 +1585,8 @@ static int sc8551_charger_get_property(struct power_supply *psy,
 		val->intval = sc->die_temp;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
-		val->intval = sc8551_check_vbus_error_status(sc);
+		sc8551_check_vbus_error_status(sc);
+		val->intval = sc->vbus_error;
 		break;
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 		break;
@@ -1754,7 +1705,8 @@ static irqreturn_t sc8551_charger_interrupt(int irq, void *dev_id)
 
 	sc_dbg("Enter sc8551_charger_interrupt\n");
 
-	for (i = 0; i < 0x13; i++) {
+	for(i=0; i<0x13; i++)
+	{
 		sc8551_read_byte(sc, SC8551_REG_10, &data);
 		sc_dbg("reg[0x%02x]----->0x%x\n", i, data);
 	}
@@ -1921,7 +1873,7 @@ static int sc8551_suspend_noirq(struct device *dev)
 	struct sc8551 *sc = i2c_get_clientdata(client);
 
 	if (sc->irq_waiting) {
-		pr_debug_ratelimited("Aborting suspend, an interrupt was detected while suspending\n");
+		pr_err_ratelimited("Aborting suspend, an interrupt was detected while suspending\n");
 		return -EBUSY;
 	}
 	return 0;
@@ -1968,7 +1920,7 @@ static void sc8551_charger_shutdown(struct i2c_client *client)
 	struct sc8551 *sc = i2c_get_clientdata(client);
 
 	sc8551_enable_adc(sc, false);
-	pr_debug("sc8551 shutdown success\n");
+	pr_err("sc8551 shutdown success\n");
 }
 
 static const struct dev_pm_ops sc8551_pm_ops = {

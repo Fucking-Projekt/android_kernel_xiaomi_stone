@@ -1,4 +1,4 @@
-#define pr_fmt(fmt) "[slg] %s: " fmt, __func__
+#define pr_fmt(fmt)	"[slg] %s: " fmt, __func__
 
 #include <linux/slab.h> /* kfree() */
 #include <linux/module.h>
@@ -21,45 +21,33 @@
 #include <linux/regmap.h>
 #include <linux/random.h>
 
-#ifdef CONFIG_HQ_QGKI
 #include <misc/hqsys_pcba.h>
 #include "w1_slg.h"
-#endif
 
-#define ds_info pr_debug
-#define ds_dbg pr_debug
-#define ds_err pr_debug
-#define ds_log pr_debug
+#define ds_info	pr_debug
+#define ds_dbg	pr_debug
+#define ds_err	pr_debug
+#define ds_log	pr_debug
 
-enum { FIRST_SUPPLIER,
-       SECOND_SUPPLIER,
-       THIRD_SUPPLIER,
-       UNKNOW_SUPPLIER,
+enum {
+	FIRST_SUPPLIER,
+	SECOND_SUPPLIER,
+	THIRD_SUPPLIER,
+	UNKNOW_SUPPLIER,
 };
 
-#ifdef CONFIG_HQ_QGKI
 static const char *battery_id_name[] = {
 	"First supplier",
 	"Second supplier",
 	"Third supplier",
 	"Unknow",
 };
-#endif
-
-int slg_flag;
-int get_slg_authenice_id(void)
-{
-	return slg_flag;
-}
-EXPORT_SYMBOL(get_slg_authenice_id);
 
 static int slg_probe(struct platform_device *pdev);
 static int slg_remove(struct platform_device *pdev);
 bool slg_Auth_Result_b;
-#ifdef CONFIG_HQ_QGKI
 extern int authenticate_battery(void);
 extern PCBA_CONFIG get_huaqin_pcba_config(void);
-#endif
 struct mutex slg_cmd_lock;
 struct slg_data {
 	struct platform_device *pdev;
@@ -67,7 +55,7 @@ struct slg_data {
 	int version;
 	struct power_supply *verify_psy;
 	struct power_supply_desc verify_psy_d;
-	struct delayed_work authentic_work;
+	struct delayed_work	authentic_work;
 };
 
 int slgbatid = UNKNOW_SUPPLIER;
@@ -76,10 +64,10 @@ static struct of_device_id slg_dt_match[] = {
 	{ .compatible = "maxim,slg", },
 	{}
 };
-static ssize_t slg_show(struct device *dev, struct device_attribute *attr,
-			char *buf)
+static ssize_t slg_show(struct device *dev,
+				     struct device_attribute *attr, char *buf)
 {
-	if (slg_Auth_Result_b) {
+	if(slg_Auth_Result_b){
 		return scnprintf(buf, PAGE_SIZE, "Authenticate success.\n");
 	} else {
 		return scnprintf(buf, PAGE_SIZE, "Authenticate failed.\n");
@@ -88,29 +76,31 @@ static ssize_t slg_show(struct device *dev, struct device_attribute *attr,
 
 static DEVICE_ATTR(slg, S_IRUGO, slg_show, NULL);
 
-static struct attribute *attributes[] = { &dev_attr_slg.attr, NULL };
+static struct attribute *attributes[] = {
+	&dev_attr_slg.attr,
+	NULL
+};
 static const struct attribute_group attribute_group = {
 	.attrs = attributes,
 };
-static struct platform_driver slg_driver = {
+static struct platform_driver slg_driver =
+{
 	.driver = {
-			.owner = THIS_MODULE,
-			.name = "slg_battery_secrete",
-			.of_match_table = slg_dt_match,
+		.owner = THIS_MODULE,
+		.name = "slg_battery_secrete",
+		.of_match_table = slg_dt_match,
 	},
 	.probe = slg_probe,
 	.remove = slg_remove,
 };
 
-#ifdef CONFIG_HQ_QGKI
 static enum power_supply_property verify_props[] = {
 	POWER_SUPPLY_PROP_AUTHENTIC,
 	POWER_SUPPLY_PROP_MODEL_NAME,
 };
 
-static int verify_get_property(struct power_supply *psy,
-			       enum power_supply_property psp,
-			       union power_supply_propval *val)
+static int verify_get_property(struct power_supply *psy, enum power_supply_property psp,
+					union power_supply_propval *val)
 {
 	//int ret;
 	//unsigned int cycle_count;
@@ -119,18 +109,10 @@ static int verify_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_AUTHENTIC:
-		if (slg_Auth_Result_b) {
-			val->intval = 1;
-		} else {
-			val->intval = 1; /* Override fake battery to authentic */
-		}
+		val->intval = slg_Auth_Result_b;
 		break;
 	case POWER_SUPPLY_PROP_MODEL_NAME:
-		if (slgbatid == UNKNOW_SUPPLIER) {
-			val->strval = "Second supplier"; /* Override unknown battery supplier */
-		} else {
-			val->strval = battery_id_name[slgbatid];
-		}
+		val->strval = battery_id_name[slgbatid];
 		break;
 	default:
 		ds_err("unsupported property %d\n", psp);
@@ -157,7 +139,7 @@ static int verify_set_property(struct power_supply *psy,
 }
 
 static int verify_prop_is_writeable(struct power_supply *psy,
-				    enum power_supply_property prop)
+				       enum power_supply_property prop)
 {
 	int ret;
 
@@ -184,27 +166,26 @@ static int verify_psy_register(struct slg_data *ds)
 	verify_psy_cfg.drv_data = ds;
 	verify_psy_cfg.of_node = ds->dev->of_node;
 	verify_psy_cfg.num_supplicants = 0;
-	ds->verify_psy = devm_power_supply_register(ds->dev, &ds->verify_psy_d,
-						    &verify_psy_cfg);
-        if (IS_ERR_OR_NULL(ds->verify_psy)) {
+	ds->verify_psy = devm_power_supply_register(ds->dev,
+						&ds->verify_psy_d,
+						&verify_psy_cfg);
+	if (IS_ERR(ds->verify_psy)) {
 		ds_err("Failed to register verify_psy");
-		return -ENODATA;
+		return PTR_ERR(ds->verify_psy);
 	}
 
-	ds_log("%s power supply register successfully\n",
-	       ds->verify_psy_d.name);
+	ds_log("%s power supply register successfully\n", ds->verify_psy_d.name);
 	return 0;
 }
 
 static void verify_psy_unregister(struct slg_data *ds)
 {
-	if (!IS_ERR_OR_NULL(ds->verify_psy))
-		power_supply_unregister(ds->verify_psy);
+	power_supply_unregister(ds->verify_psy);
 }
-#endif
 
 // parse dts
-static int slg_parse_dt(struct device *dev, struct slg_data *pdata)
+static int slg_parse_dt(struct device *dev,
+				struct slg_data *pdata)
 {
 	int error, val;
 	struct device_node *np = dev->of_node;
@@ -220,19 +201,18 @@ static int slg_parse_dt(struct device *dev, struct slg_data *pdata)
 	return 0;
 }
 
-#ifdef CONFIG_HQ_QGKI
 static int authentic_period_ms = 5000;
 #define AUTHENTIC_COUNT_MAX 5
-int retry_authentic_times;
-#endif
+int retry_authentic_times = 0;
+
 static void authentic_work(struct work_struct *work)
 {
-#ifdef CONFIG_HQ_QGKI
 	//int rc;
 	union power_supply_propval pval = {0,};
 
-	struct slg_data *slg_data =
-		container_of(work, struct slg_data, authentic_work.work);
+	struct slg_data *slg_data = container_of(work,
+				struct slg_data,
+				authentic_work.work);
 
 	/*rc = power_supply_get_property(ds28e16_data->verify_psy,
 					POWER_SUPPLY_PROP_AUTHEN_RESULT, &pval);*/
@@ -242,8 +222,7 @@ static void authentic_work(struct work_struct *work)
 		retry_authentic_times++;
 		if (retry_authentic_times < AUTHENTIC_COUNT_MAX) {
 			ds_log("battery authentic work begin to restart.\n");
-			schedule_delayed_work(
-				&slg_data->authentic_work,
+			schedule_delayed_work(&slg_data->authentic_work,
 				msecs_to_jiffies(authentic_period_ms));
 		}
 
@@ -251,13 +230,12 @@ static void authentic_work(struct work_struct *work)
 			ds_log("[Loren1]authentic result is %d\n", pval.intval);
 			slg_Auth_Result_b = false;
 			slgbatid = UNKNOW_SUPPLIER;
-		}
+		} 
 	} else {
-		ds_log("[Loren2]authentic result is %d\n", pval.intval);
-		slg_Auth_Result_b = true;
-		slgbatid = THIRD_SUPPLIER;
+			ds_log("[Loren2]authentic result is %d\n", pval.intval);
+			slg_Auth_Result_b = true;
+			slgbatid = THIRD_SUPPLIER;
 	}
-#endif
 }
 
 static int slg_probe(struct platform_device *pdev)
@@ -265,32 +243,31 @@ static int slg_probe(struct platform_device *pdev)
 	int retval = 0;
 	struct slg_data *slg_data;
 
-#ifdef CONFIG_HQ_QGKI
-	if ((get_huaqin_pcba_config() >= PCBA_UNKNOW) &&
-	    (get_huaqin_pcba_config() <= PCBA_END) &&
-	    (get_huaqin_pcba_config() % 0x10 != 3)) {
+	if ((get_huaqin_pcba_config() >= PCBA_UNKNOW) && (get_huaqin_pcba_config() <= PCBA_END) && (get_huaqin_pcba_config() % 0x10 != 3)){
 		ds_dbg("Loren:No compatable phone!\n");
 		return -ERANGE;
 	}
-#endif
 
-	//mutex_init(&slg_cmd_lock);
+    //mutex_init(&slg_cmd_lock);
 
 	ds_log("%s entry.", __func__);
 	ds_dbg("platform_device is %s", pdev->name);
-	if (strcmp(pdev->name, "soc:maxim_slg") != 0) {
+	if (strcmp(pdev->name, "soc:maxim_slg") != 0)
+	{
 		ds_log("Loren debug strcmp.");
 		return -ENODEV;
 	}
-
-	if (!pdev->dev.of_node || !of_device_is_available(pdev->dev.of_node)) {
+		
+	if (!pdev->dev.of_node || !of_device_is_available(pdev->dev.of_node))
+	{
 		ds_log("Loren debug of_device_is_available.");
 		return -ENODEV;
 	}
 
 	if (pdev->dev.of_node) {
-		slg_data = devm_kzalloc(&pdev->dev, sizeof(struct slg_data),
-					GFP_KERNEL);
+		slg_data = devm_kzalloc(&pdev->dev,
+			sizeof(struct slg_data),
+			GFP_KERNEL);
 		if (!slg_data) {
 			ds_err("Failed to allocate memory\n");
 			return -ENOMEM;
@@ -314,13 +291,11 @@ static int slg_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, slg_data);
 	INIT_DEFERRABLE_WORK(&slg_data->authentic_work, authentic_work);
 
-#ifdef CONFIG_HQ_QGKI
 	retval = verify_psy_register(slg_data);
 	if (retval) {
 		ds_err("Failed to verify_psy_register, err:%d\n", retval);
 		goto slg_psy_register_err;
 	}
-#endif
 	retval = sysfs_create_group(&slg_data->dev->kobj, &attribute_group);
 	if (retval) {
 		ds_err("Failed to register sysfs, err:%d\n", retval);
@@ -328,32 +303,25 @@ static int slg_probe(struct platform_device *pdev)
 	}
 
 	ds_log("Loren authenticate_battery start.");
-#ifdef CONFIG_HQ_QGKI
-	retval = authenticate_battery();
+	
+	retval =	authenticate_battery();
 	if (retval != 0) {
 		ds_log("Loren authenticate_battery failed,create schedule_delayed_work.");
 		schedule_delayed_work(&slg_data->authentic_work,
-				      msecs_to_jiffies(500));
+				msecs_to_jiffies(500));
 	}
-#endif
-
-	slg_flag  =  2;
-	ds_log("slg authentic ok \n");
-
 	return 0;
 
 slg_create_group_err:
-	dev_set_drvdata(slg_data->dev, NULL);
+dev_set_drvdata(slg_data->dev, NULL);
 slg_parse_dt_err:
 	kfree(slg_data);
-#ifdef CONFIG_HQ_QGKI
 slg_psy_register_err:
 	verify_psy_unregister(slg_data);
-#endif
 	return retval;
 }
 
-static int slg_remove(struct platform_device *pdev)
+static 	int slg_remove(struct platform_device *pdev)
 {
 	struct slg_data *slg_data = platform_get_drvdata(pdev);
 
