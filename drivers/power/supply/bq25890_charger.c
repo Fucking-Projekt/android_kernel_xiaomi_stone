@@ -1310,7 +1310,7 @@ int get_quick_charge_type(struct bq25890_device *bq)
 		if(1 == pd_auth)
 			return QUICK_CHARGE_TURBE;
 		else
-			return QUICK_CHARGE_FAST;
+			return QUICK_CHARGE_TURBE;
 	} else {
 		while (adapter_cap[i].adap_type != 0) {
 			if (bq->real_type == adapter_cap[i].adap_type) {
