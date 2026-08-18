@@ -490,7 +490,11 @@ static int batt_psy_get_prop(struct power_supply *psy,
 		rc = batt_get_battery_capacity(chg, &pval->intval);
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
-		pval->intval = chg->system_temp_level;
+		if (chg->battery_temp < 480) {
+			pval->intval = 0;
+		} else {
+			pval->intval = chg->system_temp_level;
+		}
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT_MAX:
 		pval->intval = sizeof(thermal_mitigation)/sizeof(int) - 1;
@@ -775,8 +779,14 @@ static int swchg_select_charging_current_limit(struct batt_chg *chg, int temp, i
 	if(type != POWER_SUPPLY_TYPE_USB_PD) {
 		icl = chg->input_limit_cur;
 		ibat = min(chg->charge_limit_cur, chg->jeita_cur);
-		if(chg->therm_cur != 0)
-			ibat = min(ibat, chg->therm_cur);
+		{
+			int therm_cur = chg->therm_cur;
+			if (chg->battery_temp < 480) {
+				therm_cur = thermal_mitigation[0];
+			}
+			if (therm_cur != 0)
+				ibat = min(ibat, therm_cur);
+		}
 		/*add for mtbf current limit if charge type is sdp or cdp*/
 		if (is_mtbf_mode_func() && (type == POWER_SUPPLY_TYPE_USB || type == POWER_SUPPLY_TYPE_USB_CDP)) {
 			icl = 1500000;
@@ -802,8 +812,14 @@ static int swchg_select_charging_current_limit(struct batt_chg *chg, int temp, i
 		if(!chg->is_pps_on) {
 			icl = chg->input_limit_cur;
 			ibat = min(chg->charge_limit_cur, chg->jeita_cur);
-			if(chg->therm_cur != 0)
-				ibat = min(ibat, chg->therm_cur);
+			{
+				int therm_cur = chg->therm_cur;
+			if (chg->battery_temp < 480) {
+				therm_cur = thermal_mitigation[0];
+			}
+			if (therm_cur != 0)
+				ibat = min(ibat, therm_cur);
+			}
 			//for phone current limit
 		if (ibat == 900000) {
 			if (chg->sw_chg_chip_id == 3)
