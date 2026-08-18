@@ -48,6 +48,17 @@
 static int log_level = 2;
 int get_apdo_regain;
 
+struct xm_pd_adapter_info {
+	struct tcpc_device *tcpc;
+	struct notifier_block pd_nb;
+	struct adapter_device *adapter_dev;
+	struct task_struct *adapter_task;
+	const char *adapter_dev_name;
+	bool enable_kpoc_shdn;
+	struct tcpm_svid_list *adapter_svid_list;
+	struct adapter_device *pd_adapter;
+};
+
 static void usbpd_mi_vdm_received(struct xm_pd_adapter_info *pinfo, struct tcp_ny_uvdm uvdm)
 {
 	int i, cmd;
@@ -384,11 +395,11 @@ static int pd_get_pdos(struct adapter_device *dev)
 	ret = tcpm_inquire_pd_source_cap(info->tcpc, &cap);
 	adapter_err("[%s] test01 tcpm_inquire_pd_source_cap is %d.\n", __func__, ret);
 	if (ret < 0) {
-		for (pd_wait_cnt = 0; pd_wait_cnt < 25; pd_wait_cnt++) {
+		for(pd_wait_cnt = 0; pd_wait_cnt < 25; pd_wait_cnt++){
 			msleep(20);
 			adapter_err("retry [%s] tcpm_inquire_pd_source_cap is %d. cnt =%d\n", __func__, ret, pd_wait_cnt);
 			ret = tcpm_inquire_pd_source_cap(info->tcpc, &cap);
-			if (ret == 0)
+			if(ret == 0)
 				break;
 		}
 	}
@@ -439,7 +450,7 @@ static int pd_get_cap(struct adapter_device *dev,
 		return -EINVAL;
 
 	if (info->adapter_dev->verify_process)
-		return -EINVAL;
+		return -1;
 
 	if (type == XM_PD) {
 APDO_REGAIN:
@@ -521,7 +532,7 @@ static int xm_pd_adapter_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 	struct xm_pd_adapter_info *info = NULL;
-	static int probe_cnt;
+	static int probe_cnt = 0;
 
 	adapter_err("%s probe_cnt = %d\n", __func__, ++probe_cnt);
 

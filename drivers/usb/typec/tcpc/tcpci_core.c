@@ -437,7 +437,6 @@ int tcpc_device_irq_enable(struct tcpc_device *tcpc)
 
 	schedule_delayed_work(&tcpc->event_init_work, 0);
 
-	pr_info("%s : tcpc irq enable OK!\n", __func__);
 	return 0;
 }
 EXPORT_SYMBOL(tcpc_device_irq_enable);
@@ -453,8 +452,6 @@ static void bat_update_work_func(struct work_struct *work)
 	ret = power_supply_get_property(
 			tcpc->bat_psy, POWER_SUPPLY_PROP_CAPACITY, &value);
 	if (ret == 0) {
-		TCPC_INFO("%s battery update soc = %d\n",
-					__func__, value.intval);
 		tcpc->bat_soc = value.intval;
 	} else
 		TCPC_ERR("%s get battery capacity fail\n", __func__);
@@ -463,13 +460,10 @@ static void bat_update_work_func(struct work_struct *work)
 		POWER_SUPPLY_PROP_STATUS, &value);
 	if (ret == 0) {
 		if (value.intval == POWER_SUPPLY_STATUS_CHARGING) {
-			TCPC_INFO("%s Battery Charging\n", __func__);
 			tcpc->charging_status = BSDO_BAT_INFO_CHARGING;
 		} else if (value.intval == POWER_SUPPLY_STATUS_DISCHARGING) {
-			TCPC_INFO("%s Battery Discharging\n", __func__);
 			tcpc->charging_status = BSDO_BAT_INFO_DISCHARGING;
 		} else {
-			TCPC_INFO("%s Battery Idle\n", __func__);
 			tcpc->charging_status = BSDO_BAT_INFO_IDLE;
 		}
 	}
@@ -805,13 +799,6 @@ static void __exit tcpc_class_exit(void)
 
 subsys_initcall(tcpc_class_init);
 module_exit(tcpc_class_exit);
-
-int __attribute__((weak)) sched_set_fifo(struct task_struct *p)
-{
-	struct sched_param sp = { .sched_priority = MAX_RT_PRIO / 2 };
-
-	return sched_setscheduler_nocheck(p, SCHED_FIFO, &sp);
-}
 
 MODULE_DESCRIPTION("Richtek TypeC Port Control Core");
 MODULE_AUTHOR("Jeff Chang <jeff_chang@richtek.com>");

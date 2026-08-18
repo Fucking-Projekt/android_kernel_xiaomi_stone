@@ -50,39 +50,21 @@ void pd_dbg_info_unlock(void)
 
 static inline bool pd_dbg_print_out(void)
 {
-	char temp;
-	int used;
-	unsigned int index, i;
+        int used;
+        unsigned int index;
 
-	mutex_lock(&buff_lock);
-	index = using_buf;
-	using_buf ^= 0x01; /* exchange buffer */
-	mutex_unlock(&buff_lock);
+        mutex_lock(&buff_lock);
+        index = using_buf;
+        using_buf ^= 0x01; /* exchange buffer */
+        mutex_unlock(&buff_lock);
 
-	used = pd_dbg_buffer[index].used;
+        used = pd_dbg_buffer[index].used;
 
-	if (used == 0)
-		return false;
+        if (used == 0)
+                return false;
 
-	pd_dbg_buffer[index].buf[used] = '\0';
-
-	pr_info("///PD dbg info %ud\n", used);
-
-	for (i = 0; i < used; i += OUT_BUF_MAX) {
-		temp = pd_dbg_buffer[index].buf[OUT_BUF_MAX + i];
-		pd_dbg_buffer[index].buf[OUT_BUF_MAX + i] = '\0';
-
-		while (atomic_read(&busy))
-			usleep_range(1000, 2000);
-
-		pr_notice("%s", pd_dbg_buffer[index].buf + i);
-		pd_dbg_buffer[index].buf[OUT_BUF_MAX + i] = temp;
-	}
-
-	/* pr_info("PD dbg info///\n"); */
-	pd_dbg_buffer[index].used = 0;
-	msleep(MSG_POLLING_MS);
-	return true;
+        pd_dbg_buffer[index].used = 0;
+        return true;
 }
 
 static int print_out_thread_fn(void *data)

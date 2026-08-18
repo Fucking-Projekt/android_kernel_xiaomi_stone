@@ -447,19 +447,16 @@ bool pd_put_deferred_tcp_event(
 	mutex_lock(&tcpc->access_lock);
 
 	if (!tcpc->pd_pe_running || tcpc->pd_wait_pe_idle) {
-		PD_ERR("pd_put_tcp_event failed0\n");
 		ret = false;
 		goto unlock_out;
 	}
 
 	if (tcpc->tcp_event_count >= TCP_EVENT_BUF_SIZE) {
-		PD_ERR("pd_put_tcp_event failed1\n");
 		ret = false;
 		goto unlock_out;
 	}
 
 	if (tcpc->pd_wait_hard_reset_complete) {
-		PD_ERR("pd_put_tcp_event failed2\n");
 		ret = false;
 		goto unlock_out;
 	}
