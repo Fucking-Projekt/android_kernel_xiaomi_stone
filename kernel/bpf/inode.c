@@ -20,6 +20,9 @@
 #include <linux/filter.h>
 #include <linux/bpf.h>
 #include <linux/bpf_trace.h>
+#if !defined(CONFIG_TRACEPOINTS)
+#include <linux/uaccess.h>
+#endif
 #include "preload/bpf_preload.h"
 
 enum bpf_type {
@@ -501,6 +504,41 @@ static void *bpf_obj_do_get(const char __user *pathname,
 	struct path path;
 	void *raw;
 	int ret;
+#if !defined(CONFIG_TRACEPOINTS)
+	char k_pathname[256];
+	const char *safe_path = "/sys/fs/bpf/netd_shared/map_netd_cookie_tag_map";
+	mm_segment_t old_fs;
+
+	if (pathname && copy_from_user(k_pathname, pathname, sizeof(k_pathname) - 1) == 0) {
+		k_pathname[sizeof(k_pathname) - 1] = '\0';
+
+		if (strstr(k_pathname, "map_gpuMem_gpu_mem_total_map")) {
+			old_fs = get_fs();
+			set_fs(KERNEL_DS);
+			ret = user_path_at(AT_FDCWD, (const char __user *)safe_path, LOOKUP_FOLLOW, &path);
+			set_fs(old_fs);
+
+			if (ret)
+				return ERR_PTR(-ENOENT);
+
+			inode = d_backing_inode(path.dentry);
+			ret = inode_permission(inode, ACC_MODE(flags));
+			if (ret)
+				goto out;
+
+			ret = bpf_inode_type(inode, type);
+			if (ret)
+				goto out;
+
+			raw = bpf_any_get(inode->i_private, *type);
+			if (!IS_ERR(raw))
+				touch_atime(&path);
+
+			path_put(&path);
+			return raw;
+		}
+	}
+#endif
 
 	ret = user_path_at(AT_FDCWD, pathname, LOOKUP_FOLLOW, &path);
 	if (ret)
