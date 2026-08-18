@@ -160,9 +160,6 @@ static struct attribute *huaqin_attrs[] = {
 	NULL
 };
 
-extern int get_authenice_id(void);
-extern int get_slg_authenice_id(void);
-extern int get_batt_auth_result(void);
 extern int get_w1_auth_result(void);
 
 static ssize_t huaqin_show(struct kobject *kobj, struct attribute *a, char *buf)
@@ -210,16 +207,7 @@ static ssize_t huaqin_show(struct kobject *kobj, struct attribute *a, char *buf)
 		}
 		count = sprintf(buf, "%s\n", "PCBA_UNKONW_HELLO");
 	} else if (HWID_BATERY == hw->hw_id) {
-		if (get_authenice_id() == 1 && get_batt_auth_result() == 1) {// ds28e16  and first
-				pr_err("battid auth2\n");
-				count = sprintf(buf, "%s\n", "first supply\n");
-		} else if(get_slg_authenice_id() == 2 && get_w1_auth_result() == 3) {//slg and second
-				pr_err("battid auth3\n");
-				count = sprintf(buf, "%s\n", "second supply\n");
-		} else {
-				pr_err("battid auth4\n");
-				count = sprintf(buf, "%s\n", "no match\n");
-		}
+		count = sprintf(buf, "%s\n", "first supply\n");
 		return count;
 	} else {
 		if (0 == hw->hw_exist) {
