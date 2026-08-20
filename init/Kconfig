@@ -98,8 +98,17 @@ config FAKE_UNAME_ZYGOTE
 	bool "Spoof uname version for Zygote/ART"
 	default y
 	help
-	  Spoof the kernel release version reported via uname() to 7.1.3
+	  Spoof the kernel release version reported via uname() to fake version
 	  specifically for Zygote and ART processes to bypass Android 17 checks.
+
+config FAKE_UNAME_ZYGOTE_VERSION
+	string "Fake kernel release version for Zygote/ART"
+	depends on FAKE_UNAME_ZYGOTE
+	default "6.1.183"
+	help
+	  The kernel release version string reported to Zygote and ART processes.
+	  Must be a kernel version 6.x or higher (e.g. 6.1.183).
+	  Setting a lower than 6.x  or leaving this empty will trigger a build error.
 
 config CC_HAS_ASM_GOTO
 	def_bool $(success,$(srctree)/scripts/gcc-goto.sh $(CC))
