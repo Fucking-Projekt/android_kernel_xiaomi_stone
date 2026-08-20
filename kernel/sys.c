@@ -1304,7 +1304,6 @@ static __always_inline bool spoof_art_daemon(struct task_struct *task)
 		return true;
 	}
 
-	/* Check actual executable name to catch spoofed package names (KernelSU/Magisk) */
 	exe_file = get_task_exe_file(task);
 	if (exe_file) {
 		const char *name = exe_file->f_path.dentry->d_name.name;
@@ -1351,13 +1350,19 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 	up_read(&uts_sem);
 
 #ifdef CONFIG_FAKE_UNAME_ZYGOTE
+#ifndef CONFIG_FAKE_UNAME_ZYGOTE_VERSION
+#error "CONFIG_FAKE_UNAME_ZYGOTE_VERSION is not defined! It must be configured with a kernel version >= 6.0 (e.g. 6.x)."
+#endif
+	BUILD_BUG_ON_MSG(sizeof(CONFIG_FAKE_UNAME_ZYGOTE_VERSION) <= 1 ||
+			 CONFIG_FAKE_UNAME_ZYGOTE_VERSION[0] < '6',
+			 "CONFIG_FAKE_UNAME_ZYGOTE_VERSION must be kernel 6.x or higher (e.g. 6.x) and cannot be empty or lower than 6.x!");
 	if (unlikely(spoof_art_daemon(current))) {
 		const char *dash = strchr(utsname()->release, '-');
 		if (dash)
-			snprintf(tmp.release, sizeof(tmp.release), "7.1.3%s", dash);
+			snprintf(tmp.release, sizeof(tmp.release), "%s%s", CONFIG_FAKE_UNAME_ZYGOTE_VERSION, dash);
 		else
-			strscpy(tmp.release, "7.1.3", sizeof(tmp.release));
-		
+			strscpy(tmp.release, CONFIG_FAKE_UNAME_ZYGOTE_VERSION, sizeof(tmp.release));
+
 		if (copy_to_user(name, &tmp, sizeof(tmp)))
 			return -EFAULT;
 		return 0;
