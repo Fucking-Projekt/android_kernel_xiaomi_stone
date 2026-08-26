@@ -613,9 +613,31 @@ static int sw_battery_recharge(struct batt_chg *chg)
 	return 0;
 }
 #endif
+int bypass_charging_enabled = 1;
+EXPORT_SYMBOL(bypass_charging_enabled);
+
+static ssize_t battery_charging_enabled_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", bypass_charging_enabled);
+}
+
+static ssize_t battery_charging_enabled_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+{
+	int val;
+	if (kstrtoint(buf, 10, &val) == 0) {
+		bypass_charging_enabled = val;
+	}
+	return count;
+}
+static DEVICE_ATTR_RW(battery_charging_enabled);
 
 static int judge_need_to_stop_charge(struct batt_chg *chg, int temp, int vbat)
 {
+	if (!bypass_charging_enabled) {
+		chg->is_stop_charge = 1;
+		return 1;
+	}
+
 	if (temp >= 480 && vbat >= 4100000)
 			chg->is_stop_charge = 1;
 
@@ -1280,6 +1302,8 @@ static int batt_chg_probe(struct platform_device *pdev)
 	//INIT_DELAYED_WORK( &batt_chg->charger_debug_info_print_work, xm_charger_debug_info_print_work);
 	//schedule_delayed_work(&batt_chg->charger_debug_info_print_work, 30 * HZ);
 	g_batt_chg = batt_chg;
+	if (batt_chg->batt_psy)
+		device_create_file(&batt_chg->batt_psy->dev, &dev_attr_battery_charging_enabled);
 	pr_err("batt_chg probe success\n");
 	return 0;
 
@@ -1296,6 +1320,9 @@ cleanup:
 
 static int batt_chg_remove(struct platform_device *pdev)
 {
+	struct batt_chg *batt_chg = platform_get_drvdata(pdev);
+	if (batt_chg && batt_chg->batt_psy)
+		device_remove_file(&batt_chg->batt_psy->dev, &dev_attr_battery_charging_enabled);
 	return 0;
 }
 
