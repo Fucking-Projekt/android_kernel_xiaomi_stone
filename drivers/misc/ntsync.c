@@ -1229,25 +1229,23 @@ static long ntsync_char_ioctl(struct file *file, unsigned int cmd,
 	}
 }
 
+static int ntsync_fix_count = 0;
+
 static void ntsync_fix_perms_worker(struct work_struct *work)
 {
-    struct path path;
-    char *ctx = "u:object_r:gpu_device:s0";
-    if (!kern_path("/dev/ntsync", LOOKUP_FOLLOW, &path)) {
-        struct inode *inode = d_backing_inode(path.dentry);
-        if (inode) {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,12,0)
-             __vfs_setxattr_noperm(path.dentry, "security.selinux", ctx, strlen(ctx) + 1, 0);
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(6,3,0)
-            __vfs_setxattr_noperm(&init_user_ns, path.dentry, "security.selinux", ctx, strlen(ctx) + 1, 0);
-#else
-            __vfs_setxattr_noperm(&nop_mnt_idmap, path.dentry, "security.selinux", ctx, strlen(ctx) + 1, 0);
-#endif
-            inode->i_mode = (inode->i_mode & ~S_IALLUGO) | 0666;
-            pr_info("ntsync: Applied 0666 and gpu_device context\n");
-        }
-        path_put(&path);
-    }
+	struct path path;
+
+	if (!kern_path("/dev/ntsync", LOOKUP_FOLLOW, &path)) {
+		struct inode *inode = d_backing_inode(path.dentry);
+		if (inode) {
+			inode->i_mode = (inode->i_mode & ~S_IALLUGO) | 0666;
+			pr_info("ntsync: Enforced 0666 permissions (attempt %d)\n", ntsync_fix_count + 1);
+		}
+		path_put(&path);
+	}
+
+	if (++ntsync_fix_count < 20)
+		schedule_delayed_work(&ntsync_perm_work, msecs_to_jiffies(3000));
 }
 
 static const struct file_operations ntsync_fops = {
