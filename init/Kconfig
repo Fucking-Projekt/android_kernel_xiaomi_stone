@@ -894,6 +894,202 @@ config UCLAMP_ASSIST
 	help
 	  This option enabled in-kernel uclamp setting overrides
 
+
+config UCLAMP_ASSIST_AUDIO_MIN
+	string "Value for 'audio' uclamp_min"
+	default "0"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_AUDIO_MAX
+	string "Value for 'audio' uclamp_max"
+	default "max"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_AUDIO_LS
+	int "Value for 'audio' latency_sensitive"
+	default 0
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_BG_MIN
+	string "Value for 'background' uclamp_min"
+	default "0"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_BG_MAX
+	string "Value for 'background' uclamp_max"
+	default "50"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_BG_LS
+	int "Value for 'background' latency_sensitive"
+	default 0
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_CAMERA_MIN
+	string "Value for 'camera-daemon' uclamp_min"
+	default "0"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_CAMERA_MAX
+	string "Value for 'camera-daemon' uclamp_max"
+	default "max"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_CAMERA_LS
+	int "Value for 'camera-daemon' latency_sensitive"
+	default 0
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_DEX2OAT_MIN
+	string "Value for 'dex2oat' uclamp_min"
+	default "0"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_DEX2OAT_MAX
+	string "Value for 'dex2oat' uclamp_max"
+	default "30"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_DEX2OAT_LS
+	int "Value for 'dex2oat' latency_sensitive"
+	default 0
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_DISPLAY_MIN
+	string "Value for 'display' uclamp_min"
+	default "0"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_DISPLAY_MAX
+	string "Value for 'display' uclamp_max"
+	default "max"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_DISPLAY_LS
+	int "Value for 'display' latency_sensitive"
+	default 0
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_FG_MIN
+	string "Value for 'foreground' uclamp_min"
+	default "0"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_FG_MAX
+	string "Value for 'foreground' uclamp_max"
+	default "max"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_FG_LS
+	int "Value for 'foreground' latency_sensitive"
+	default 0
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_FG_WINDOW_MIN
+	string "Value for 'foreground_window' uclamp_min"
+	default "0"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_FG_WINDOW_MAX
+	string "Value for 'foreground_window' uclamp_max"
+	default "max"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_FG_WINDOW_LS
+	int "Value for 'foreground_window' latency_sensitive"
+	default 0
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_NNAPI_HAL_MIN
+	string "Value for 'nnapi-hal' uclamp_min"
+	default "0"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_NNAPI_HAL_MAX
+	string "Value for 'nnapi-hal' uclamp_max"
+	default "max"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_NNAPI_HAL_LS
+	int "Value for 'nnapi-hal' latency_sensitive"
+	default 0
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_RT_MIN
+	string "Value for 'rt' uclamp_min"
+	default "0"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_RT_MAX
+	string "Value for 'rt' uclamp_max"
+	default "max"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_RT_LS
+	int "Value for 'rt' latency_sensitive"
+	default 0
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_SYSTEM_MIN
+	string "Value for 'system' uclamp_min"
+	default "0"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_SYSTEM_MAX
+	string "Value for 'system' uclamp_max"
+	default "max"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_SYSTEM_LS
+	int "Value for 'system' latency_sensitive"
+	default 0
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_SYS_BG_MIN
+	string "Value for 'system-background' uclamp_min"
+	default "0"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_SYS_BG_MAX
+	string "Value for 'system-background' uclamp_max"
+	default "50"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_SYS_BG_LS
+	int "Value for 'system-background' latency_sensitive"
+	default 0
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_TOP_APP_MIN
+	string "Value for 'top-app' uclamp_min"
+	default "0"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_TOP_APP_MAX
+	string "Value for 'top-app' uclamp_max"
+	default "max"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_TOP_APP_LS
+	int "Value for 'top-app' latency_sensitive"
+	default 1
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_TOUCH_MIN
+	string "Value for 'touch' uclamp_min"
+	default "0"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_TOUCH_MAX
+	string "Value for 'touch' uclamp_max"
+	default "max"
+	depends on UCLAMP_ASSIST
+
+config UCLAMP_ASSIST_TOUCH_LS
+	int "Value for 'touch' latency_sensitive"
+	default 0
+	depends on UCLAMP_ASSIST
+
 endmenu
 
 menu "FAIR Scheuler tunables"
