@@ -152,4 +152,10 @@ extern int do_execveat(int, struct filename *,
 		       const char __user * const __user *,
 		       int);
 
+static inline bool task_is_booster(struct task_struct *tsk)
+{
+	return strstr(tsk->comm, "init") || strstr(tsk->comm, "NodeLooper") ||
+	       strstr(tsk->comm, "power") || strstr(tsk->comm, "perf");
+}
+
 #endif /* _LINUX_BINFMTS_H */
