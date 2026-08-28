@@ -763,7 +763,7 @@ int a6xx_preemption_init(struct adreno_device *adreno_dev)
 		preempt->postamble_len = count;
 	}
 
-	set_bit(ADRENO_DEVICE_PREEMPTION, &adreno_dev->priv);
+	// set_bit(ADRENO_DEVICE_PREEMPTION, &adreno_dev->priv);
 	return 0;
 }
 

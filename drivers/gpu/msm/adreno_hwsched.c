@@ -1092,12 +1092,12 @@ static unsigned int _preempt_level_show(struct adreno_device *adreno_dev)
 	return adreno_dev->preempt.preempt_level;
 }
 
-static void change_preemption(struct adreno_device *adreno_dev, void *priv)
+static void __maybe_unused change_preemption(struct adreno_device *adreno_dev, void *priv)
 {
 	change_bit(ADRENO_DEVICE_PREEMPTION, &adreno_dev->priv);
 }
 
-static int _preemption_store(struct adreno_device *adreno_dev, bool val)
+static int __maybe_unused _preemption_store(struct adreno_device *adreno_dev, bool val)
 {
 	if (!(ADRENO_FEATURE(adreno_dev, ADRENO_PREEMPTION)) ||
 		(test_bit(ADRENO_DEVICE_PREEMPTION,
@@ -1144,7 +1144,7 @@ static bool _gmu_log_stream_enable_show(struct adreno_device *adreno_dev)
 	return gmu->log_stream_enable;
 }
 
-static ADRENO_SYSFS_BOOL(preemption);
+static ADRENO_SYSFS_RO_BOOL(preemption);
 static ADRENO_SYSFS_U32(preempt_level);
 static ADRENO_SYSFS_BOOL(usesgmem);
 static ADRENO_SYSFS_BOOL(skipsaverestore);
