@@ -8300,10 +8300,11 @@ static u64 cpu_uclamp_ls_read_u64(struct cgroup_subsys_state *css,
 }
 
 #ifdef CONFIG_UCLAMP_ASSIST
+
 struct uclamp_param {
-	char *name;
-	char uclamp_min[3];
-	char uclamp_max[3];
+	const char *name;
+	const char *uclamp_min;
+	const char *uclamp_max;
 	u64  uclamp_latency_sensitive;
 };
 
@@ -8312,33 +8313,41 @@ static void uclamp_set(struct cgroup_subsys_state *css)
 	int i;
 
 	static struct uclamp_param tgts[] = {
-		{"top-app",             "0", "max",  1},
-       		{"foreground",          "0", "max",  0},
-                {"dex2oat",             "0",  "30",  0},
-        	{"background",          "0",  "30",  0},
-        	{"system-background",   "0",  "50",  0},
+		{"audio", CONFIG_UCLAMP_ASSIST_AUDIO_MIN, CONFIG_UCLAMP_ASSIST_AUDIO_MAX, CONFIG_UCLAMP_ASSIST_AUDIO_LS},
+		{"background", CONFIG_UCLAMP_ASSIST_BG_MIN, CONFIG_UCLAMP_ASSIST_BG_MAX, CONFIG_UCLAMP_ASSIST_BG_LS},
+		{"camera-daemon", CONFIG_UCLAMP_ASSIST_CAMERA_MIN, CONFIG_UCLAMP_ASSIST_CAMERA_MAX, CONFIG_UCLAMP_ASSIST_CAMERA_LS},
+		{"dex2oat", CONFIG_UCLAMP_ASSIST_DEX2OAT_MIN, CONFIG_UCLAMP_ASSIST_DEX2OAT_MAX, CONFIG_UCLAMP_ASSIST_DEX2OAT_LS},
+		{"display", CONFIG_UCLAMP_ASSIST_DISPLAY_MIN, CONFIG_UCLAMP_ASSIST_DISPLAY_MAX, CONFIG_UCLAMP_ASSIST_DISPLAY_LS},
+		{"foreground", CONFIG_UCLAMP_ASSIST_FG_MIN, CONFIG_UCLAMP_ASSIST_FG_MAX, CONFIG_UCLAMP_ASSIST_FG_LS},
+		{"foreground_window", CONFIG_UCLAMP_ASSIST_FG_WINDOW_MIN, CONFIG_UCLAMP_ASSIST_FG_WINDOW_MAX, CONFIG_UCLAMP_ASSIST_FG_WINDOW_LS},
+		{"nnapi-hal", CONFIG_UCLAMP_ASSIST_NNAPI_HAL_MIN, CONFIG_UCLAMP_ASSIST_NNAPI_HAL_MAX, CONFIG_UCLAMP_ASSIST_NNAPI_HAL_LS},
+		{"rt", CONFIG_UCLAMP_ASSIST_RT_MIN, CONFIG_UCLAMP_ASSIST_RT_MAX, CONFIG_UCLAMP_ASSIST_RT_LS},
+		{"system", CONFIG_UCLAMP_ASSIST_SYSTEM_MIN, CONFIG_UCLAMP_ASSIST_SYSTEM_MAX, CONFIG_UCLAMP_ASSIST_SYSTEM_LS},
+		{"system-background", CONFIG_UCLAMP_ASSIST_SYS_BG_MIN, CONFIG_UCLAMP_ASSIST_SYS_BG_MAX, CONFIG_UCLAMP_ASSIST_SYS_BG_LS},
+		{"top-app", CONFIG_UCLAMP_ASSIST_TOP_APP_MIN, CONFIG_UCLAMP_ASSIST_TOP_APP_MAX, CONFIG_UCLAMP_ASSIST_TOP_APP_LS},
+		{"touch", CONFIG_UCLAMP_ASSIST_TOUCH_MIN, CONFIG_UCLAMP_ASSIST_TOUCH_MAX, CONFIG_UCLAMP_ASSIST_TOUCH_LS},
 	};
 
-        if(!css->cgroup->kn)
-                return;
+	if(!css->cgroup->kn)
+		return;
 
 	for (i = 0; i < ARRAY_SIZE(tgts); i++) {
 		struct uclamp_param tgt = tgts[i];
 
 		if (!strcmp(css->cgroup->kn->name, tgt.name)) {
-			cpu_uclamp_write_wrapper(css, tgt.uclamp_min,
-						UCLAMP_MIN);
-			cpu_uclamp_write_wrapper(css, tgt.uclamp_max,
-						UCLAMP_MAX);
-			cpu_uclamp_ls_write_u64(css, NULL,
-						tgt.uclamp_latency_sensitive);
+			char min_buf[16];
+			char max_buf[16];
+			strlcpy(min_buf, tgt.uclamp_min, sizeof(min_buf));
+			strlcpy(max_buf, tgt.uclamp_max, sizeof(max_buf));
+			cpu_uclamp_write_wrapper(css, min_buf, UCLAMP_MIN);
+			cpu_uclamp_write_wrapper(css, max_buf, UCLAMP_MAX);
+			cpu_uclamp_ls_write_u64(css, NULL, tgt.uclamp_latency_sensitive);
 
-			pr_info("uclamp_assist: setting values for %s: uclamp_min=%s uclamp_max=%s uclamp_latency_sensitive=%d\n",
-				tgt.name, tgt.uclamp_min, tgt.uclamp_max,tgt.uclamp_latency_sensitive);
+			pr_info("uclamp_assist: setting values for %s: uclamp_min=%s uclamp_max=%s uclamp_latency_sensitive=%llu\n",
+				tgt.name, tgt.uclamp_min, tgt.uclamp_max, tgt.uclamp_latency_sensitive);
 			return;
 		}
 	}
-
 }
 #endif /* CONFIG_UCLAMP_ASSIST */
 
