@@ -198,6 +198,20 @@ struct cs_target {
 	const char *name;
 	char *cpus;
 };
+
+static struct cs_target cs_targets[] = {
+	{ "audio-app",		CONFIG_CPUSET_AUDIO_APP },
+	{ "background",		CONFIG_CPUSET_BG },
+	{ "camera-daemon",	CONFIG_CPUSET_CAMERA },
+	{ "foreground",		CONFIG_CPUSET_FG },
+	{ "restricted",		CONFIG_CPUSET_RESTRICTED },
+	{ "system-background",	CONFIG_CPUSET_SYSTEM_BG },
+	{ "top-app",		CONFIG_CPUSET_TOP_APP },
+	{ "l-background",	CONFIG_CPUSET_L_BG },
+	{ "foreground_window",	CONFIG_CPUSET_FG_WINDOW },
+	{ "surfaceflinger",	CONFIG_CPUSET_SF },
+	{ "misf",		CONFIG_CPUSET_MISF },
+};
 #endif
 
 static inline struct cpuset *css_cs(struct cgroup_subsys_state *css)
@@ -2468,23 +2482,17 @@ static ssize_t cpuset_write_resmask_wrapper(struct kernfs_open_file *of,
 					 char *buf, size_t nbytes, loff_t off)
 {
 #ifdef CONFIG_CPUSET_ASSIST
-	static struct cs_target cs_targets[] = {
-		{ "audio-app",		CONFIG_CPUSET_AUDIO_APP },
-		{ "background",		CONFIG_CPUSET_BG },
-		{ "camera-daemon",	CONFIG_CPUSET_CAMERA },
-		{ "foreground",		CONFIG_CPUSET_FG },
-		{ "restricted",		CONFIG_CPUSET_RESTRICTED },
-		{ "system-background",	CONFIG_CPUSET_SYSTEM_BG },
-		{ "top-app",		CONFIG_CPUSET_TOP_APP },
-	};
 	struct cpuset *cs = css_cs(of_css(of));
 	int i;
 
 	if (task_is_booster(current)) {
+		if (!cs->css.cgroup || !cs->css.cgroup->kn)
+			return cpuset_write_resmask(of, buf, nbytes, off);
+
 		for (i = 0; i < ARRAY_SIZE(cs_targets); i++) {
 			struct cs_target tgt = cs_targets[i];
 
-			if (!strcmp(cs->css.cgroup->kn->name, tgt.name))
+			if (tgt.cpus && tgt.cpus[0] != '\0' && !strcmp(cs->css.cgroup->kn->name, tgt.name))
 				return cpuset_write_resmask_assist(of, tgt,
 								   nbytes, off);
 		}
@@ -2886,6 +2894,24 @@ static int cpuset_css_online(struct cgroup_subsys_state *css)
 	cpumask_copy(cs->cpus_requested, parent->cpus_requested);
 	cpumask_copy(cs->effective_cpus, parent->cpus_allowed);
 	spin_unlock_irq(&callback_lock);
+
+#ifdef CONFIG_CPUSET_ASSIST
+	if (css->cgroup && css->cgroup->kn) {
+		int i;
+		for (i = 0; i < ARRAY_SIZE(cs_targets); i++) {
+			struct cs_target tgt = cs_targets[i];
+			if (tgt.cpus && tgt.cpus[0] != '\0' && !strcmp(css->cgroup->kn->name, tgt.name)) {
+				struct cpuset *trialcs = alloc_trial_cpuset(cs);
+				if (trialcs) {
+					update_cpumask(cs, trialcs, tgt.cpus);
+					free_cpuset(trialcs);
+					pr_info("cpuset_assist: online injected %s to %s\n", tgt.name, tgt.cpus);
+				}
+				break;
+			}
+		}
+	}
+#endif
 out_unlock:
 	percpu_up_write(&cpuset_rwsem);
 	put_online_cpus();

@@ -1440,6 +1440,34 @@ config CPUSET_TOP_APP
 	help
 	  The CPU mask to use for the top-app cpuset.
 
+
+config CPUSET_L_BG
+	string "Value for 'l-background' cpuset"
+	default "0-3"
+	depends on CPUSET_ASSIST
+	help
+	  The CPU mask to use for the l-background cpuset.
+
+config CPUSET_FG_WINDOW
+	string "Value for 'foreground_window' cpuset"
+	default "0-7"
+	depends on CPUSET_ASSIST
+	help
+	  The CPU mask to use for the foreground_window cpuset.
+
+config CPUSET_SF
+	string "Value for 'surfaceflinger' cpuset"
+	default "0-7"
+	depends on CPUSET_ASSIST
+	help
+	  The CPU mask to use for the surfaceflinger cpuset.
+
+config CPUSET_MISF
+	string "Value for 'misf' cpuset"
+	default "0-7"
+	depends on CPUSET_ASSIST
+	help
+	  The CPU mask to use for the misf cpuset.
 config PROC_PID_CPUSET
 	bool "Include legacy /proc/<pid>/cpuset file"
 	depends on CPUSETS
