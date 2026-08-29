@@ -23,8 +23,6 @@ else
 obj-y +=	no-block.o
 endif
 
-obj-$(CONFIG_NOMOUNT) += nomount.o
-
 obj-$(CONFIG_PROC_FS) += proc_namespace.o
 
 obj-y				+= notify/
@@ -142,3 +140,5 @@ obj-$(CONFIG_CEPH_FS)		+= ceph/
 obj-$(CONFIG_PSTORE)		+= pstore/
 obj-$(CONFIG_EFIVAR_FS)		+= efivarfs/
 obj-$(CONFIG_EROFS_FS)		+= erofs/
+
+obj-$(CONFIG_NOMOUNT) += nomount/
