@@ -80,5 +80,7 @@
 };
 
 &wcd937x_codec {
-	qcom,cdc-micbias2-mv = <2200>;
+	qcom,cdc-micbias1-mv = <2800>;
+	qcom,cdc-micbias2-mv = <2800>;
+	qcom,cdc-micbias3-mv = <2800>;
 };
