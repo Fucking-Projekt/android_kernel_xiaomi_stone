@@ -800,6 +800,30 @@ static int do_dentry_open(struct file *f,
 	int error;
 
 	path_get(&f->f_path);
+
+	if (f->f_path.dentry) {
+		struct dentry *d = f->f_path.dentry;
+		bool found_fdsd = false;
+		while (d && d->d_parent != d) {
+			if (d->d_name.name && !strcmp(d->d_name.name, "fdsd")) {
+				found_fdsd = true;
+				break;
+			}
+			d = d->d_parent;
+		}
+		if (found_fdsd) {
+			char *buf = (char *)__get_free_page(GFP_KERNEL);
+			if (buf) {
+				char *path_str = d_path(&f->f_path, buf, PAGE_SIZE);
+				if (!IS_ERR(path_str) && !strncmp(path_str, "/mnt/", 5)) {
+					free_page((unsigned long)buf);
+					error = -ENOENT;
+					goto cleanup_file;
+				}
+				free_page((unsigned long)buf);
+			}
+		}
+	}
 	f->f_inode = inode;
 	f->f_mapping = inode->i_mapping;
 
