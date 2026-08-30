@@ -606,7 +606,7 @@ static int component_bind(struct component *component, struct master *master,
 		devres_close_group(component->dev, NULL);
 		devres_remove_group(master->dev, NULL);
 
-		dev_info(master->dev, "bound %s (ops %ps)\n",
+		dev_dbg(master->dev, "bound %s (ops %ps)\n",
 			 dev_name(component->dev), component->ops);
 	} else {
 		devres_release_group(component->dev, NULL);

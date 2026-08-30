@@ -852,7 +852,7 @@ static int parse_options(struct super_block *sb, char *options, bool is_remount)
 			kvfree(name);
 			break;
 		case Opt_fsync:
-			f2fs_info(sbi, "changing fsync mode not supported");
+			/* f2fs_info(sbi, "changing fsync mode not supported"); */
 			break;
 		case Opt_test_dummy_encryption:
 			ret = f2fs_set_test_dummy_encryption(sb, p, &args[0],
@@ -3415,7 +3415,7 @@ static int f2fs_setup_casefold(struct f2fs_sb_info *sbi)
 				 encoding_flags);
 			return PTR_ERR(encoding);
 		}
-		f2fs_info(sbi, "Using encoding defined by superblock: "
+		if (0) f2fs_info(sbi, "Using encoding defined by superblock: "
 			 "%s-%s with flags 0x%hx", encoding_info->name,
 			 encoding_info->version?:"\b", encoding_flags);
 
@@ -3858,7 +3858,7 @@ reset_checkpoint:
 
 	f2fs_tuning_parameters(sbi);
 
-	f2fs_notice(sbi, "Mounted with checkpoint version = %llx",
+	if (0) f2fs_notice(sbi, "Mounted with checkpoint version = %llx",
 		    cur_cp_version(F2FS_CKPT(sbi)));
 	f2fs_update_time(sbi, CP_TIME);
 	f2fs_update_time(sbi, REQ_TIME);

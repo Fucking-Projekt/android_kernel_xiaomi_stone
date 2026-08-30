@@ -6274,7 +6274,7 @@ static int ipa3_panic_notifier(struct notifier_block *this,
 	IPA_ACTIVE_CLIENTS_PREP_SPECIAL(log_info, "PANIC_VOTE");
 	res = ipa3_inc_client_enable_clks_no_block(&log_info);
 	if (res) {
-		IPAERR("IPA clk off not saving the IPA registers\n");
+		IPADBG_LOW("IPA clk off not saving the IPA registers\n");
 	} else {
 		ipahal_print_all_regs(false);
 		ipa_save_registers();
@@ -9474,7 +9474,7 @@ void ipa3_plat_drv_shutdown(struct platform_device *pdev_p)
 	IPA_ACTIVE_CLIENTS_PREP_SPECIAL(log_info, "SHUTDOWN_VOTE");
 	res = ipa3_inc_client_enable_clks_no_block(&log_info);
 	if (res) {
-		IPAERR("IPA clk off not saving the IPA registers\n");
+		IPADBG_LOW("IPA clk off not saving the IPA registers\n");
 	} else {
 		ipahal_print_all_regs(false);
 		ipa_save_registers();

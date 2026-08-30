@@ -1239,7 +1239,7 @@ static void ntsync_fix_perms_worker(struct work_struct *work)
 		struct inode *inode = d_backing_inode(path.dentry);
 		if (inode) {
 			inode->i_mode = (inode->i_mode & ~S_IALLUGO) | 0666;
-			pr_info("ntsync: Enforced 0666 permissions (attempt %d)\n", ntsync_fix_count + 1);
+			pr_debug("ntsync: Enforced 0666 permissions (attempt %d)\n", ntsync_fix_count + 1);
 		}
 		path_put(&path);
 	}

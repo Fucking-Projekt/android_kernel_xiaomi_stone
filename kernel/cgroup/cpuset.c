@@ -2474,7 +2474,7 @@ static ssize_t cpuset_write_resmask_assist(struct kernfs_open_file *of,
 					   struct cs_target tgt, size_t nbytes,
 					   loff_t off)
 {
-	pr_info("cpuset_assist: setting %s to %s\n", tgt.name, tgt.cpus);
+	pr_debug("cpuset_assist: setting %s to %s\n", tgt.name, tgt.cpus);
 	return cpuset_write_resmask(of, tgt.cpus, nbytes, off);
 }
 
@@ -2905,7 +2905,7 @@ static int cpuset_css_online(struct cgroup_subsys_state *css)
 				if (trialcs) {
 					update_cpumask(cs, trialcs, tgt.cpus);
 					free_cpuset(trialcs);
-					pr_info("cpuset_assist: online injected %s to %s\n", tgt.name, tgt.cpus);
+					pr_debug("cpuset_assist: online injected %s to %s\n", tgt.name, tgt.cpus);
 				}
 				break;
 			}

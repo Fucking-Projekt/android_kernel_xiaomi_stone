@@ -475,7 +475,7 @@ static void ipa3_del_dflt_wan_rt_tables(void)
 	rt_rule_entry->status = -1;
 	rt_rule_entry->hdl = rmnet_ipa3_ctx->dflt_v4_wan_rt_hdl;
 
-	IPAWANERR("Deleting Route hdl:(0x%x) with ip type: %d\n",
+	IPAWANDBG_LOW("Deleting Route hdl:(0x%x) with ip type: %d\n",
 		rt_rule_entry->hdl, IPA_IP_v4);
 	if (ipa3_del_rt_rule(rt_rule) ||
 			(rt_rule_entry->status)) {
@@ -484,7 +484,7 @@ static void ipa3_del_dflt_wan_rt_tables(void)
 
 	rt_rule->ip = IPA_IP_v6;
 	rt_rule_entry->hdl = rmnet_ipa3_ctx->dflt_v6_wan_rt_hdl;
-	IPAWANERR("Deleting Route hdl:(0x%x) with ip type: %d\n",
+	IPAWANDBG_LOW("Deleting Route hdl:(0x%x) with ip type: %d\n",
 		rt_rule_entry->hdl, IPA_IP_v6);
 	if (ipa3_del_rt_rule(rt_rule) ||
 			(rt_rule_entry->status)) {
@@ -1139,7 +1139,7 @@ static int __ipa_wwan_close(struct net_device *dev)
 		reinit_completion(&wwan_ptr->resource_granted_completion);
 		rc = ipa3_deregister_intf(dev->name);
 		if (rc) {
-			IPAWANERR("[%s]: ipa3_deregister_intf failed %d\n",
+			IPAWANDBG_LOW("[%s]: ipa3_deregister_intf failed %d\n",
 			       dev->name, rc);
 			return rc;
 		}
@@ -2474,19 +2474,19 @@ static int get_ipa_rmnet_dts_configuration(struct platform_device *pdev,
 	ipa_rmnet_drv_res->ipa_rmnet_ssr =
 			of_property_read_bool(pdev->dev.of_node,
 			"qcom,rmnet-ipa-ssr");
-	pr_info("IPA SSR support = %s\n",
+	pr_debug("IPA SSR support = %s\n",
 		ipa_rmnet_drv_res->ipa_rmnet_ssr ? "True" : "False");
 
 	ipa_rmnet_drv_res->ipa_advertise_sg_support =
 		of_property_read_bool(pdev->dev.of_node,
 		"qcom,ipa-advertise-sg-support");
-	pr_info("IPA SG support = %s\n",
+	pr_debug("IPA SG support = %s\n",
 		ipa_rmnet_drv_res->ipa_advertise_sg_support ? "True" : "False");
 
 	ipa_rmnet_drv_res->ipa_napi_enable =
 		of_property_read_bool(pdev->dev.of_node,
 			"qcom,ipa-napi-enable");
-	pr_info("IPA Napi Enable = %s\n",
+	pr_debug("IPA Napi Enable = %s\n",
 		ipa_rmnet_drv_res->ipa_napi_enable ? "True" : "False");
 
 	/* Get IPA WAN RX desc fifo size */
@@ -2561,7 +2561,7 @@ static int ipa3_wwan_register_netdev_pm_client(struct net_device *dev)
 		return result;
 	}
 
-	IPAWANERR("%s register done\n", pm_reg.name);
+	IPAWANDBG("%s register done\n", pm_reg.name);
 
 	return 0;
 }
@@ -2591,7 +2591,7 @@ static int ipa3_wwan_probe(struct platform_device *pdev)
 	struct net_device *dev;
 	int wan_cons_ep;
 
-	pr_info("rmnet_ipa3 started initialization\n");
+	pr_debug("rmnet_ipa3 started initialization\n");
 
 	if (!ipa3_is_ready()) {
 		IPAWANDBG("IPA driver not ready, registering callback\n");
@@ -2737,7 +2737,7 @@ static int ipa3_wwan_probe(struct platform_device *pdev)
 	atomic_set(&rmnet_ipa3_ctx->ap_suspend, 0);
 	ipa3_update_ssr_state(false);
 
-	IPAWANERR("rmnet_ipa completed initialization\n");
+	IPAWANDBG("rmnet_ipa completed initialization\n");
 	return 0;
 config_err:
 	if (ipa3_rmnet_res.ipa_napi_enable)

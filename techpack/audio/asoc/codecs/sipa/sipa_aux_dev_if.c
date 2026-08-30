@@ -1,3 +1,6 @@
+#define MUTE_pr_debug(...)
+#define MUTE_pr_info(...)
+#define MUTE_pr_err(...)
 /*
  * Copyright (C) 2018, SI-IN, Yun Shi (yun.shi@si-in.com).
  *
@@ -177,10 +180,10 @@ int soc_sia81xx_init(
 		codec_conf[i].name_prefix = dev_name_prefix;
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 3, 18))
-		pr_debug("[debug][%s] : aux_dev = %s \r\n",
+		MUTE_pr_debug("[debug][%s] : aux_dev = %s \r\n",
 			__func__, aux_dev[i].dlc.name);
 #else
-		pr_debug("[debug][%s] : aux_dev = %s \r\n",
+		MUTE_pr_debug("[debug][%s] : aux_dev = %s \r\n",
 			__func__, aux_dev[i].name);
 #endif
 	}

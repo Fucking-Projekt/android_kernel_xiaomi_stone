@@ -1049,7 +1049,7 @@ static int dapm_new_mux(struct snd_soc_dapm_widget *w)
 
 	if (list_empty(&w->edges[dir])) {
 	#ifndef CONFIG_SND_SOC_SIPA
-		dev_err(dapm->dev, "ASoC: %s %s has no paths\n", type, w->name);
+		dev_dbg(dapm->dev, "ASoC: %s %s has no paths\n", type, w->name);
 	#endif
 		return -EINVAL;
 	}
@@ -2568,7 +2568,7 @@ static int __snd_soc_dapm_set_pin(struct snd_soc_dapm_context *dapm,
 	dapm_assert_locked(dapm);
 
 	if (!w) {
-		dev_err(dapm->dev, "ASoC: DAPM unknown pin %s\n", pin);
+		dev_dbg(dapm->dev, "ASoC: DAPM unknown pin %s\n", pin);
 		return -EINVAL;
 	}
 
@@ -2997,14 +2997,14 @@ static int snd_soc_dapm_add_route(struct snd_soc_dapm_context *dapm,
 
 	if (wsource == NULL) {
 	#ifndef CONFIG_SND_SOC_SIPA
-		dev_err(dapm->dev, "ASoC: no source widget found for %s\n",
+		dev_dbg(dapm->dev, "ASoC: no source widget found for %s\n",
 			route->source);
 	#endif
 		return -ENODEV;
 	}
 	if (wsink == NULL) {
 	#ifndef CONFIG_SND_SOC_SIPA
-		dev_err(dapm->dev, "ASoC: no sink widget found for %s\n",
+		dev_dbg(dapm->dev, "ASoC: no sink widget found for %s\n",
 			route->sink);
 	#endif
 		return -ENODEV;
@@ -3111,7 +3111,7 @@ int snd_soc_dapm_add_routes(struct snd_soc_dapm_context *dapm,
 		r = snd_soc_dapm_add_route(dapm, route);
 		if (r < 0) {
 		#ifndef CONFIG_SND_SOC_SIPA
-			dev_err(dapm->dev, "ASoC: Failed to add route %s -> %s -> %s\n",
+			dev_dbg(dapm->dev, "ASoC: Failed to add route %s -> %s -> %s\n",
 				route->source,
 				route->control ? route->control : "direct",
 				route->sink);
@@ -3163,13 +3163,13 @@ static int snd_soc_dapm_weak_route(struct snd_soc_dapm_context *dapm,
 	int count = 0;
 
 	if (!source) {
-		dev_err(dapm->dev, "ASoC: Unable to find source %s for weak route\n",
+		dev_dbg(dapm->dev, "ASoC: Unable to find source %s for weak route\n",
 			route->source);
 		return -ENODEV;
 	}
 
 	if (!sink) {
-		dev_err(dapm->dev, "ASoC: Unable to find sink %s for weak route\n",
+		dev_dbg(dapm->dev, "ASoC: Unable to find sink %s for weak route\n",
 			route->sink);
 		return -ENODEV;
 	}
@@ -3186,7 +3186,7 @@ static int snd_soc_dapm_weak_route(struct snd_soc_dapm_context *dapm,
 	}
 
 	if (count == 0)
-		dev_err(dapm->dev, "ASoC: No path found for weak route %s->%s\n",
+		dev_dbg(dapm->dev, "ASoC: No path found for weak route %s->%s\n",
 			route->source, route->sink);
 	if (count > 1)
 		dev_warn(dapm->dev, "ASoC: %d paths found for weak route %s->%s\n",

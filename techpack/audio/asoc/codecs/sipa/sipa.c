@@ -1,3 +1,6 @@
+#define MUTE_pr_debug(...)
+#define MUTE_pr_info(...)
+#define MUTE_pr_err(...)
 /*
  * Copyright (C) 2018, SI-IN, Yun Shi (yun.shi@si-in.com).
  *
@@ -738,7 +741,7 @@ static int sipa_owi_init(
 	else
 		si_pa->owi_cur_mode = DEFAULT_OWI_MODE;
 
-	pr_debug("[debug][%s] %s: running mode = %u \r\n",
+	MUTE_pr_debug("[debug][%s] %s: running mode = %u \r\n",
 		LOG_FLAG, __func__, si_pa->owi_cur_mode);
 
 	return 0;
@@ -810,7 +813,7 @@ static int sipa_resume(
 	unsigned long flags;
 	int default_sia_is_open = 0;
 
-	pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
 
 	if (NULL == si_pa)
 		return -ENODEV;
@@ -877,7 +880,7 @@ static int sipa_suspend(
 {
 	unsigned long flags;
 
-	pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
 
 	if (NULL == si_pa)
 		return -ENODEV;
@@ -964,7 +967,7 @@ static int sipa_dev_init(
 #endif
 	int channel_num = 0;
 
-	pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
 
 	ret = of_property_read_u32(sipa_of_node,
 			"channel_num", &channel_num);
@@ -996,7 +999,7 @@ static int sipa_dev_init(
 static int sipa_dev_remove(
 	sipa_dev_t *si_pa)
 {
-	pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
 
 	si_pa->timer_task_hdl = SIPA_TIMER_TASK_INVALID_HDL;
 
@@ -1012,7 +1015,7 @@ static int sipa_algo_en_write(
 {
 	unsigned long cal_handle = 0;
 
-	pr_debug("[debug][%s] %s: tuning port = %d \r\n",
+	MUTE_pr_debug("[debug][%s] %s: tuning port = %d \r\n",
 		LOG_FLAG, __func__, si_pa->dyn_ud_vdd_port);
 
 	if (NULL == tuning_if_opt.open || NULL == tuning_if_opt.write) {
@@ -1040,7 +1043,7 @@ static int sipa_algo_en_read(
 {
 	unsigned long cal_handle = 0;
 
-	pr_debug("[debug][%s] %s: tuning port = %d \r\n",
+	MUTE_pr_debug("[debug][%s] %s: tuning port = %d \r\n",
 		LOG_FLAG, __func__, si_pa->dyn_ud_vdd_port);
 
 	if (NULL == tuning_if_opt.open || NULL == tuning_if_opt.write) {
@@ -1119,7 +1122,7 @@ static int sia91xx_create_controls(struct snd_soc_component *component)
 		return -ENOMEM;
 	}
 
-	pr_info("[debug][%s]  %s: done\n", LOG_FLAG, __func__);
+	MUTE_pr_info("[debug][%s]  %s: done\n", LOG_FLAG, __func__);
 	return snd_soc_add_component_controls(component,
 		sia91xx_controls, mix_index);
 
@@ -1177,7 +1180,7 @@ static ssize_t sipa_cmd_show(
 			si_pa->regmap, si_pa->chip_type, 0x41, 1, &chip_id);
 		break;
 	case CHIP_TYPE_SIA8100X:
-		pr_debug("[debug][%s] %s: delay = %u \r\n",
+		MUTE_pr_debug("[debug][%s] %s: delay = %u \r\n",
 				LOG_FLAG, __func__, si_pa->owi_delay_us);
 		return 0;
 	default:
@@ -1251,7 +1254,7 @@ static ssize_t sipa_cmd_store(
 		break;
 	case SIPA_CMD_GET_MODE:
 	{
-		pr_debug("[debug][%s] %s: mode = %u \r\n",
+		MUTE_pr_debug("[debug][%s] %s: mode = %u \r\n",
 				LOG_FLAG, __func__, si_pa->owi_cur_mode);
 		break;
 	}
@@ -1268,7 +1271,7 @@ static ssize_t sipa_cmd_store(
 		unsigned int val = 0;
 
 		regmap_read(si_pa->regmap, addr, &val);
-		pr_debug("[debug][%s] %s: addr = 0x%x, val = 0x%x \r\n",
+		MUTE_pr_debug("[debug][%s] %s: addr = 0x%x, val = 0x%x \r\n",
 						LOG_FLAG, __func__, addr, val);
 		break;
 	}
@@ -1332,7 +1335,7 @@ static ssize_t sipa_cmd_store(
 			si_pa->dyn_ud_vdd_port,
 			SIPA_AUTO_VDD_EN_SET(si_pa->en_dyn_ud_vdd) |
 			SIPA_AUTO_PVDD_EN_SET(si_pa->en_dyn_ud_pvdd));
-		pr_debug("[debug][%s] %s: set auto vdd state %u, port 0x%04x \r\n",
+		MUTE_pr_debug("[debug][%s] %s: set auto vdd state %u, port 0x%04x \r\n",
 				LOG_FLAG, __func__,
 				si_pa->en_dyn_ud_vdd,
 				si_pa->dyn_ud_vdd_port);
@@ -1352,7 +1355,7 @@ static ssize_t sipa_cmd_store(
 			si_pa->timer_task_hdl,
 			si_pa->channel_num);
 		//sia81xx_close_set_vdd_server(0x400c/* SLIMBUS_6_RX */);
-		pr_debug("[debug][%s] %s: set auto vdd state %u, port 0x%04x \r\n",
+		MUTE_pr_debug("[debug][%s] %s: set auto vdd state %u, port 0x%04x \r\n",
 				LOG_FLAG, __func__,
 				si_pa->en_dyn_ud_vdd,
 				si_pa->dyn_ud_vdd_port);
@@ -1385,10 +1388,10 @@ static ssize_t sipa_cmd_store(
 	{
 		int32_t algo_en;
 		if (0 != sipa_algo_en_read(si_pa, &algo_en)) {
-			pr_debug("[debug][%s] %s: err sipa_algo_en_read \r\n",
+			MUTE_pr_debug("[debug][%s] %s: err sipa_algo_en_read \r\n",
 				LOG_FLAG, __func__);
 		} else {
-			pr_debug("[debug][%s] %s: algo_en = %d \r\n",
+			MUTE_pr_debug("[debug][%s] %s: algo_en = %d \r\n",
 				LOG_FLAG, __func__, algo_en);
 		}
 		break;
@@ -1400,7 +1403,7 @@ static ssize_t sipa_cmd_store(
 			unsigned int gpio_value = 0xff;
 
 			gpio_value = gpio_get_value(si_pa->rst_pin);
-			pr_debug("[debug][%s] %s: get reset pin value, pin num:%u, value:%u \r\n",
+			MUTE_pr_debug("[debug][%s] %s: get reset pin value, pin num:%u, value:%u \r\n",
 					LOG_FLAG, __func__, si_pa->rst_pin, gpio_value);
 		}
 		break;
@@ -1415,7 +1418,7 @@ static ssize_t sipa_cmd_store(
 			gpio_set_value(si_pa->rst_pin, value);
 			mdelay(1);	/* wait chip power off, the time must be > 1ms */
 
-			pr_debug("[debug][%s] %s: set reset pin %u to %u \r\n",
+			MUTE_pr_debug("[debug][%s] %s: set reset pin %u to %u \r\n",
 					LOG_FLAG, __func__, si_pa->rst_pin, value);
 		}
 		break;
@@ -1659,7 +1662,7 @@ static int sipa_audio_scene_get(
 
 	ucontrol->value.integer.value[0] = si_pa->scene;
 
-	pr_debug("[debug][%s] %s: ucontrol = %ld, channle = %d \r\n",
+	MUTE_pr_debug("[debug][%s] %s: ucontrol = %ld, channle = %d \r\n",
 		LOG_FLAG, __func__, ucontrol->value.integer.value[0], si_pa->channel_num);
 
 	return 0;
@@ -1674,7 +1677,7 @@ static int sipa_audio_scene_set(
 	mutex_lock(&sia81xx_list_mutex);
 	list_for_each_entry(si_pa, &sia81xx_list,list){
 
-	pr_debug("[debug][%s] %s: ucontrol = %ld, rst = %d, channle = %d \r\n",
+	MUTE_pr_debug("[debug][%s] %s: ucontrol = %ld, rst = %d, channle = %d \r\n",
 		LOG_FLAG, __func__, ucontrol->value.integer.value[0],
 		si_pa->rst_pin, si_pa->channel_num);
 
@@ -1715,7 +1718,7 @@ static int sipa_algo_en_get(
 #endif
 	int32_t algo_en = 0;
 
-	pr_debug("[debug][%s] %s: ucontrol = %ld \r\n",
+	MUTE_pr_debug("[debug][%s] %s: ucontrol = %ld \r\n",
 		LOG_FLAG, __func__, ucontrol->value.integer.value[0]);
 
 	if (sipa_is_chip_en(si_pa))
@@ -1737,7 +1740,7 @@ static int sipa_algo_en_set(
 	sipa_dev_t *si_pa = snd_soc_codec_get_drvdata(codec);
 #endif
 
-	pr_debug("[debug][%s] %s: ucontrol = %ld\r\n",
+	MUTE_pr_debug("[debug][%s] %s: ucontrol = %ld\r\n",
 		LOG_FLAG, __func__, ucontrol->value.integer.value[0]);
 
 	if (sipa_is_chip_en(si_pa))
@@ -1816,7 +1819,7 @@ static int sipa_spkr_pa_event(
 	sipa_dev_t *si_pa = snd_soc_codec_get_drvdata(codec);
 #endif
 
-	pr_debug("[debug][%s] %s: msg = %d \r\n", LOG_FLAG, __func__, event);
+	MUTE_pr_debug("[debug][%s] %s: msg = %d \r\n", LOG_FLAG, __func__, event);
 
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
@@ -1853,7 +1856,7 @@ static const struct snd_soc_dapm_widget sipa_dapm_widgets[] = {
 static int sipa_component_probe(
 	struct snd_soc_component *component)
 {
-    pr_info("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
+    MUTE_pr_info("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
 #ifdef SIA91XX_TYPE
 	sia91xx_component_probe(component);
 	snd_soc_add_component_controls(component,sipa_controls, ARRAY_SIZE(sipa_controls));
@@ -1866,14 +1869,14 @@ static int sipa_component_probe(
 static void sipa_component_remove(
 	struct snd_soc_component *component)
 {
-	pr_info("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
+	MUTE_pr_info("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
 	return;
 }
 #else
 static int sipa_codec_probe(
 	struct snd_soc_codec *codec)
 {
-    pr_info("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
+    MUTE_pr_info("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
 #ifdef SIA91XX_TYPE
 	sia91xx_codec_probe(codec);
 #endif
@@ -1883,7 +1886,7 @@ static int sipa_codec_probe(
 static int sipa_codec_remove(
 	struct snd_soc_codec *codec)
 {
-	pr_info("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
+	MUTE_pr_info("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
 	return 0;
 }
 
@@ -2014,7 +2017,7 @@ static void add_sipa_dev(
 	list_add(&si_pa->list, &sia81xx_list);
 	mutex_unlock(&sia81xx_list_mutex);
 
-	pr_debug("[debug][%s] %s: add si_pa dev : %s, count = %u \r\n",
+	MUTE_pr_debug("[debug][%s] %s: add si_pa dev : %s, count = %u \r\n",
 		LOG_FLAG, __func__, si_pa->name, sipa_list_count());
 }
 
@@ -2026,7 +2029,7 @@ static void del_sipa_dev(
 		return ;
 	}
 
-	pr_debug("[debug][%s] %s: del si_pa dev : %s, count = %u \r\n",
+	MUTE_pr_debug("[debug][%s] %s: del si_pa dev : %s, count = %u \r\n",
 		LOG_FLAG, __func__, si_pa->name, sipa_list_count());
 
 	mutex_lock(&sia81xx_list_mutex);
@@ -2090,7 +2093,7 @@ static sipa_dev_t *get_sipa_dev(
 
 	add_sipa_dev(si_pa);
 
-	pr_debug("[debug][%s] %s: get dev name : %s \r\n",
+	MUTE_pr_debug("[debug][%s] %s: get dev name : %s \r\n",
 		LOG_FLAG, __func__, si_pa->name);
 
 	return si_pa;
@@ -2103,7 +2106,7 @@ static void put_sipa_dev(sipa_dev_t *si_pa)
 		return ;
 	}
 
-	pr_debug("[debug][%s] %s: put dev name : %s, pdev = %p, client = %p \r\n",
+	MUTE_pr_debug("[debug][%s] %s: put dev name : %s, pdev = %p, client = %p \r\n",
 				LOG_FLAG, __func__,
 				si_pa->name, si_pa->pdev, si_pa->client);
 
@@ -2504,14 +2507,14 @@ static int sipa_pm_suspend(
 #if 0
 	sipa_dev_t *si_pa = NULL;
 
-	pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
 
 
 	si_pa = (sipa_dev_t *)dev_get_drvdata(dev);
 
 	return sipa_suspend(si_pa);
 #else
-	pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
 
 	return 0;
 #endif
@@ -2522,13 +2525,13 @@ static int sipa_pm_resume(struct device *dev)
 #if 0
 	sipa_dev_t *si_pa = NULL;
 
-	pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
 
 	si_pa = (sipa_dev_t *)dev_get_drvdata(dev);
 
 	return sipa_resume(si_pa);
 #else
-	pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
 
 	return 0;
 #endif
@@ -2821,7 +2824,7 @@ static void sipa_shutdown(struct platform_device *pdev)
 {
 	sipa_dev_t *si_pa = NULL;
 
-	pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: running \r\n", LOG_FLAG, __func__);
 
 	if (NULL == pdev)
 		return ;

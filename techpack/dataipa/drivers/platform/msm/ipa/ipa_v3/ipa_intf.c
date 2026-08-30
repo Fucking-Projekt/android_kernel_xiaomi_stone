@@ -534,7 +534,7 @@ int ipa3_send_msg(struct ipa_msg_meta *meta, void *buff,
 	list_add_tail(&msg->link, &ipa3_ctx->msg_list);
 	/* support for softap client event cache */
 	if (wlan_msg_process(meta, buff))
-		IPAERR_RL("wlan_msg_process failed\n");
+		IPADBG_LOW("wlan_msg_process failed\n");
 
 	/* unlock only after process */
 	mutex_unlock(&ipa3_ctx->msg_lock);

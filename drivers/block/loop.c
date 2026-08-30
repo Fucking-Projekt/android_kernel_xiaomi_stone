@@ -656,7 +656,7 @@ static void loop_reread_partitions(struct loop_device *lo,
 
 	rc = blkdev_reread_part(bdev);
 	if (rc)
-		pr_warn("%s: partition scan of loop%d (%s) failed (rc=%d)\n",
+		pr_debug("%s: partition scan of loop%d (%s) failed (rc=%d)\n",
 			__func__, lo->lo_number, lo->lo_file_name, rc);
 }
 
@@ -1284,7 +1284,7 @@ out_unlock:
 		else
 			err = blkdev_reread_part(bdev);
 		if (err)
-			pr_warn("%s: partition scan of loop%d failed (rc=%d)\n",
+			pr_debug("%s: partition scan of loop%d failed (rc=%d)\n",
 				__func__, lo_number, err);
 		/* Device is gone, no point in returning error */
 		err = 0;

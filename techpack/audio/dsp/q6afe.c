@@ -2368,7 +2368,7 @@ static void afe_send_custom_topology(void)
 	}
 	ret = afe_send_custom_topology_block(cal_block);
 	if (ret < 0) {
-		pr_err("%s: No cal sent for cal_index %d! ret %d\n",
+		pr_debug("%s: No cal sent for cal_index %d! ret %d\n",
 			__func__, cal_index, ret);
 		goto unlock;
 	}
@@ -3794,7 +3794,7 @@ static int send_afe_cal_type(int cal_index, int port_id)
 	}
 	ret = afe_send_cal_block(port_id, cal_block);
 	if (ret < 0)
-		pr_err("%s: No cal sent for cal_index %d, port_id = 0x%x! ret %d\n",
+		pr_debug("%s: No cal sent for cal_index %d, port_id = 0x%x! ret %d\n",
 			__func__, cal_index, port_id, ret);
 
 	cal_utils_mark_cal_used(cal_block);

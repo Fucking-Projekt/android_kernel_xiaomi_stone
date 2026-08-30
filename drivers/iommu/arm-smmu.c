@@ -4661,10 +4661,10 @@ static int arm_smmu_device_cfg_probe(struct arm_smmu_device *smmu)
 	 */
 	cttw_reg = !!(id & ID0_CTTW);
 	if (cttw_fw || cttw_reg)
-		dev_notice(smmu->dev, "\t%scoherent table walk\n",
+		dev_dbg(smmu->dev, "\t%scoherent table walk\n",
 			   cttw_fw ? "" : "non-");
 	if (cttw_fw != cttw_reg)
-		dev_notice(smmu->dev,
+		dev_dbg(smmu->dev,
 			   "\t(IDR0.CTTW overridden by FW configuration)\n");
 
 	/* Max. number of entries we have for stream matching/indexing */
@@ -4690,7 +4690,7 @@ static int arm_smmu_device_cfg_probe(struct arm_smmu_device *smmu)
 		if (!smmu->smrs)
 			return -ENOMEM;
 
-		dev_notice(smmu->dev,
+		dev_dbg(smmu->dev,
 			   "\tstream matching with %u register groups", size);
 	}
 	/* s2cr->type == 0 means translation, so initialise explicitly */
@@ -4719,7 +4719,7 @@ static int arm_smmu_device_cfg_probe(struct arm_smmu_device *smmu)
 	/* Check for size mismatch of SMMU address space from mapped region */
 	size = 1 << (FIELD_GET(ID1_NUMPAGENDXB, id) + 1);
 	if (smmu->numpage != 2 * size << smmu->pgshift)
-		dev_warn(smmu->dev,
+		dev_dbg(smmu->dev,
 			"SMMU address space size (0x%x) differs from mapped region size (0x%x)!\n",
 			2 * size << smmu->pgshift, smmu->numpage);
 	/* Now properly encode NUMPAGE to subsequently derive SMMU_CB_BASE */

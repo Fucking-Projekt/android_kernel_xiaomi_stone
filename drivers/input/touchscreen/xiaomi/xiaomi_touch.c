@@ -8,7 +8,7 @@ static int xiaomi_touch_dev_open(struct inode *inode, struct file *file)
 	int i = MINOR(inode->i_rdev);
 	struct xiaomi_touch_pdata *touch_pdata;
 
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	dev = xiaomi_touch_dev_get(i);
 	if (!dev) {
 		pr_err("%s cant get dev\n", __func__);
@@ -50,7 +50,7 @@ static ssize_t touch_dfs_test_store(struct device *dev,struct device_attribute *
 	else {
 		pr_err("%s has not touch_dfs_test\n", __func__);
 	}
-	pr_info("%s value:%d\n", __func__, input);
+	pr_debug("%s value:%d\n", __func__, input);
 	return count;
 }
 #endif
@@ -64,10 +64,10 @@ void xiaomi_touch_mievent_report_int(unsigned int code, int panel_id, const char
 {
 	struct misight_mievent *event;
 #ifdef CONFIG_TOUCH_FACTORY_BUILD
-	pr_info("factory build,return\n");
+	pr_debug("factory build,return\n");
 	return;
 #endif
-	pr_info("code:%d,fault_name:%s,panel_id:%d,vendor_name:%s,error_code:%ld\n", code, fault_name, panel_id, vendor_name, error_code);
+	pr_debug("code:%d,fault_name:%s,panel_id:%d,vendor_name:%s,error_code:%ld\n", code, fault_name, panel_id, vendor_name, error_code);
 	event = cdev_tevent_alloc(code);
 	if (!event) {
 		pr_err("misight event is error\n");
@@ -85,10 +85,10 @@ void xiaomi_touch_mievent_report_str(unsigned int code, int panel_id, const char
 {
 	struct misight_mievent *event;
 #ifdef CONFIG_TOUCH_FACTORY_BUILD
-	pr_info("factory build,return\n");
+	pr_debug("factory build,return\n");
 	return;
 #endif
-	pr_info("code:%d,fault_name:%s,panel_id:%d,vendor_name:%s\n", code, fault_name, panel_id, vendor_name);
+	pr_debug("code:%d,fault_name:%s,panel_id:%d,vendor_name:%s\n", code, fault_name, panel_id, vendor_name);
 	event = cdev_tevent_alloc(code);
 	if (!event) {
 		pr_err("misight event is error\n");
@@ -134,7 +134,7 @@ static long xiaomi_touch_dev_ioctl(struct file *file, unsigned int cmd,
 	mutex_lock(&dev->mutex);
 	ret = copy_from_user(&buf, (int __user *)argp, sizeof(buf));
 
-	pr_info("%s cmd:%d, mode:%d, value:%d\n", __func__, user_cmd, buf[0], buf[1]);
+	pr_debug("%s cmd:%d, mode:%d, value:%d\n", __func__, user_cmd, buf[0], buf[1]);
 
 	switch (user_cmd) {
 	case SET_CUR_VALUE:
@@ -246,7 +246,7 @@ int xiaomitouch_register_modedata(struct xiaomi_touch_interface *data)
 		return -ENOMEM;
 
 	touch_data = touch_pdata->touch_data;
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 
 	mutex_lock(&xiaomi_touch_dev.mutex);
 
@@ -301,7 +301,7 @@ int update_palm_sensor_value(int value)
 	dev = touch_pdata->device;
 
 	if (value != touch_pdata->palm_value) {
-		pr_info("%s value:%d\n", __func__, value);
+		pr_debug("%s value:%d\n", __func__, value);
 		touch_pdata->palm_value = value;
 		touch_pdata->palm_changed = true;
 		sysfs_notify(&xiaomi_touch_dev.dev->kobj, NULL,
@@ -336,7 +336,7 @@ struct device_attribute *attr, const char *buf, size_t count)
 	else {
 		pr_err("%s has not implement\n", __func__);
 	}
-	pr_info("%s value:%d\n", __func__, !!input);
+	pr_debug("%s value:%d\n", __func__, !!input);
 
 	return count;
 }
@@ -355,7 +355,7 @@ int update_p_sensor_value(int value)
 	dev = touch_pdata->device;
 
 	if (value != touch_pdata->psensor_value) {
-		pr_info("%s value:%d\n", __func__, value);
+		pr_debug("%s value:%d\n", __func__, value);
 		touch_pdata->psensor_value = value;
 		touch_pdata->psensor_changed = true;
 		wake_up(&dev->wait_queue);
@@ -391,7 +391,7 @@ struct device_attribute *attr, const char *buf, size_t count)
 	else {
 		pr_err("%s has not implement\n", __func__);
 	}
-	pr_info("%s value:%d\n", __func__, !!input);
+	pr_debug("%s value:%d\n", __func__, !!input);
 
 	return count;
 }
@@ -577,7 +577,7 @@ static int xiaomi_touch_parse_dt(struct device *dev, struct xiaomi_touch_pdata *
 	if (ret)
 		return ret;
 
-	pr_info("%s touch,name:%s\n", __func__, data->name);
+	pr_debug("%s touch,name:%s\n", __func__, data->name);
 
 	return 0;
 }
@@ -592,7 +592,7 @@ static int xiaomi_touch_probe(struct platform_device *pdev)
 	if (!pdata)
 		return -ENOMEM;
 
-	pr_info("%s enter\n", __func__);
+	pr_debug("%s enter\n", __func__);
 
 	ret = xiaomi_touch_parse_dt(dev, pdata);
 	if (ret < 0) {
@@ -640,7 +640,7 @@ static int xiaomi_touch_probe(struct platform_device *pdev)
 		goto sys_group_err;
 	}
 
-	pr_info("%s over\n", __func__);
+	pr_debug("%s over\n", __func__);
 
 	return ret;
 

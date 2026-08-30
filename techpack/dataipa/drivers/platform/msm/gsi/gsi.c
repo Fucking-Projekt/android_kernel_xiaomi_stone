@@ -1029,7 +1029,7 @@ int gsi_complete_clk_grant(unsigned long dev_hdl)
 	}
 
 	if (!gsi_ctx->per_registered) {
-		GSIERR("no client registered\n");
+		GSIDBG("no client registered\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -1221,7 +1221,7 @@ int gsi_register_device(struct gsi_per_props *props, unsigned long *dev_hdl)
 		if (res)
 			GSIERR("failed to enable wake irq %u\n", props->irq);
 		else
-			GSIERR("GSI irq is wake enabled %u\n", props->irq);
+			GSIDBG("GSI irq is wake enabled %u\n", props->irq);
 
 	} else {
 		GSIERR("do not support interrupt type %u\n", props->intr);
@@ -1395,7 +1395,7 @@ int gsi_write_device_scratch(unsigned long dev_hdl,
 	}
 
 	if (!gsi_ctx->per_registered) {
-		GSIERR("no client registered\n");
+		GSIDBG("no client registered\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -1444,7 +1444,7 @@ int gsi_deregister_device(unsigned long dev_hdl, bool force)
 	}
 
 	if (!gsi_ctx->per_registered) {
-		GSIERR("no client registered\n");
+		GSIDBG("no client registered\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -3064,7 +3064,7 @@ int gsi_pending_irq_type(void)
 	int ee;
 
 	if (!gsi_ctx->per_registered) {
-		GSIERR("no client registered\n");
+		GSIDBG("no client registered\n");
 		return 0;
 	}
 

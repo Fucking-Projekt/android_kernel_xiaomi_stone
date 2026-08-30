@@ -1,3 +1,6 @@
+#define MUTE_pr_debug(...)
+#define MUTE_pr_info(...)
+#define MUTE_pr_err(...)
 /*
  * Copyright (C) 2018, SI-IN, Yun Shi (yun.shi@si-in.com).
  *
@@ -150,7 +153,7 @@ static unsigned long record_cal_module(struct file *filp,
 	if (NULL == module)
 		return 0;
 
-	pr_debug("[debug][%s] %s: cal_id = 0x%08x, module_id = 0x%08x \r\n",
+	MUTE_pr_debug("[debug][%s] %s: cal_id = 0x%08x, module_id = 0x%08x \r\n",
 		LOG_FLAG, __func__, cal_id, module_id);
 
 	spin_lock_init(&module->lock);
@@ -430,7 +433,7 @@ err:
 static ssize_t sipa_tuning_if_dev_read(struct file *fp,
 	char __user *buf, size_t count, loff_t *f_pos)
 {
-	pr_debug("[debug][%s] %s: run !! \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: run !! \r\n", LOG_FLAG, __func__);
 
 	return 0;
 }
@@ -440,7 +443,7 @@ static ssize_t sipa_tuning_if_dev_write(struct file *fp,
 {
 	struct cal_module_unit *module = NULL;
 
-	pr_debug("[debug][%s] %s: run !! \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: run !! \r\n", LOG_FLAG, __func__);
 
 	module = is_file_exist(TUNING_FD_DUMMY);
 	if (NULL == module)

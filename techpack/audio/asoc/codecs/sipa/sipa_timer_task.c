@@ -1,3 +1,6 @@
+#define MUTE_pr_debug(...)
+#define MUTE_pr_info(...)
+#define MUTE_pr_err(...)
 /*
  * Copyright (C) 2018, SI-IN, Yun Shi (yun.shi@si-in.com).
  *
@@ -98,7 +101,7 @@ static int sipa_timer_task_processor(
 	}
 
 	cur_run_cnt++;
-	pr_debug("[debug][%s] %s: cur_run_cnt %u\r\n",
+	MUTE_pr_debug("[debug][%s] %s: cur_run_cnt %u\r\n",
 					LOG_FLAG, __func__, cur_run_cnt);
 
 	while (SIA81XX_TASK_ENABLE == atomic_read(&timer->task_state)) {
@@ -233,7 +236,7 @@ int sipa_timer_task_register(
 				OnlyOnce,
 				first_trigger);
 
-			pr_debug("[debug][%s] %s: i(%d), hdl(%u), "
+			MUTE_pr_debug("[debug][%s] %s: i(%d), hdl(%u), "
 				"user_id(0x%08x), time(%u)\r\n",
 				LOG_FLAG, __func__, i,
 				(unsigned int)hdl,

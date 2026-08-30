@@ -3173,7 +3173,7 @@ static int msm_lsm_close(struct snd_pcm_substream *substream)
 		return -EINVAL;
 	}
 	if (!component || !component->dev) {
-		pr_err("%s: Invalid component\n", __func__);
+		pr_debug("%s: Invalid component\n", __func__);
 		return -EINVAL;
 	}
 	rtd = substream->private_data;
@@ -3326,7 +3326,7 @@ static int msm_lsm_hw_params(struct snd_pcm_substream *substream,
 	rtd = substream->private_data;
 	component = snd_soc_rtdcom_lookup(rtd, DRV_NAME);
 	if (!component || !component->dev) {
-		pr_err("%s: Invalid component\n", __func__);
+		pr_debug("%s: Invalid component\n", __func__);
 		return -EINVAL;
 	}
 	lsm_dev = (struct lsm_char_dev *) dev_get_drvdata(component->dev);

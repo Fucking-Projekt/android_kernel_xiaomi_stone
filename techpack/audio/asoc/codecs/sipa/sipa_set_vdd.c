@@ -1,3 +1,6 @@
+#define MUTE_pr_debug(...)
+#define MUTE_pr_info(...)
+#define MUTE_pr_err(...)
 /*
  * Copyright (C) 2018, SI-IN, Yun Shi (yun.shi@si-in.com).
  *
@@ -126,7 +129,7 @@ static uint32_t sipa_read_cur_battery_voltage(void)
 		vdd_val = val.intval;
 
 end:
-	pr_debug("[debug][%s] %s: current voltage = %u \r\n",
+	MUTE_pr_debug("[debug][%s] %s: current voltage = %u \r\n",
 		LOG_FLAG, __func__, (unsigned int)vdd_val);
 
 	return vdd_val;
@@ -170,7 +173,7 @@ static uint32_t sipa_get_battery_voltage(
 
 	ave_val = ave_val / n;
 
-	pr_debug("[debug][%s] %s: average vdd = %llu, n = %u \r\n",
+	MUTE_pr_debug("[debug][%s] %s: average vdd = %llu, n = %u \r\n",
 		LOG_FLAG, __func__, ave_val, (unsigned int)n);
 
 	return (uint32_t)ave_val;
@@ -292,7 +295,7 @@ static void send_set_vdd_msg(
 		(uint8_t *)&param);
 
 	if (0 > ret) {
-		pr_err("[debug][%s] %s: tuning_if_opt.write failed "
+		MUTE_pr_err("[debug][%s] %s: tuning_if_opt.write failed "
 			"ret = %d \r\n",
 			LOG_FLAG, __func__, ret);
 		return ;

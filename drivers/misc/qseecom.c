@@ -2406,7 +2406,7 @@ static int __qseecom_process_reentrancy_blocked_on_listener(
 		}
 		ptr_app->blocked_on_listener_id = resp->data;
 
-		pr_warn("Lsntr %d in_use %d, block session(%d) app(%d)\n",
+		pr_debug("Lsntr %d in_use %d, block session(%d) app(%d)\n",
 			resp->data, list_ptr->listener_in_use,
 			session_id, data->client.app_id);
 
@@ -2431,7 +2431,7 @@ static int __qseecom_process_reentrancy_blocked_on_listener(
 		sigprocmask(SIG_SETMASK, &old_sigset, NULL);
 
 		ptr_app->blocked_on_listener_id = 0;
-		pr_warn("Lsntr %d is available, unblock session(%d) app(%d)\n",
+		pr_debug("Lsntr %d is available, unblock session(%d) app(%d)\n",
 			resp->data, session_id, data->client.app_id);
 
 		/* notify TZ that listener is available */
@@ -2898,7 +2898,7 @@ static int qseecom_load_app(struct qseecom_dev_handle *data, void __user *argp)
 		ret = 0;
 	} else {
 		first_time = true;
-		pr_warn("App (%s) does'nt exist, loading apps for first time\n",
+		pr_debug("App (%s) does\'nt exist, loading apps for first time\n",
 			(char *)(load_img_req.img_name));
 
 		ret = qseecom_vaddr_map(load_img_req.ifd_data_fd,
@@ -3016,7 +3016,7 @@ static int qseecom_load_app(struct qseecom_dev_handle *data, void __user *argp)
 		spin_unlock_irqrestore(&qseecom.registered_app_list_lock,
 									flags);
 
-		pr_warn("App with id %u (%s) now loaded\n", app_id,
+		pr_debug("App with id %u (%s) now loaded\n", app_id,
 		(char *)(load_img_req.img_name));
 	}
 	data->client.app_id = app_id;
@@ -3098,7 +3098,7 @@ static int __qseecom_unload_app(struct qseecom_dev_handle *data,
 	}
 	switch (resp.result) {
 	case QSEOS_RESULT_SUCCESS:
-		pr_warn("App (%d) is unloaded\n", app_id);
+		pr_debug("App (%d) is unloaded\n", app_id);
 		break;
 	case QSEOS_RESULT_INCOMPLETE:
 		ret = __qseecom_process_incomplete_cmd(data, &resp);
@@ -3106,7 +3106,7 @@ static int __qseecom_unload_app(struct qseecom_dev_handle *data,
 			pr_err("unload app %d fail proc incom cmd: %d,%d,%d\n",
 				app_id, ret, resp.result, resp.data);
 		else
-			pr_warn("App (%d) is unloaded\n", app_id);
+			pr_debug("App (%d) is unloaded\n", app_id);
 		break;
 	case QSEOS_RESULT_FAILURE:
 		pr_err("app (%d) unload_failed!!\n", app_id);
@@ -3679,7 +3679,7 @@ static int __qseecom_process_reentrancy(struct qseecom_command_scm_resp *resp,
 
 	switch (resp->result) {
 	case QSEOS_RESULT_BLOCKED_ON_LISTENER:
-		pr_warn("App(%d) %s is blocked on listener %d\n",
+		pr_debug("App(%d) %s is blocked on listener %d\n",
 			data->client.app_id, data->client.app_name,
 			resp->data);
 		ret = __qseecom_process_reentrancy_blocked_on_listener(

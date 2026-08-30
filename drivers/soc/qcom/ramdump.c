@@ -368,7 +368,7 @@ void *create_ramdump_device(const char *dev_name, struct device *parent)
 		rd_dev->complete_ramdump = of_property_read_bool(
 				parent->of_node, "qcom,complete-ramdump");
 		if (!rd_dev->complete_ramdump)
-			dev_info(parent,
+			dev_dbg(parent,
 			"for %s segments only will be dumped.\n", dev_name);
 	}
 
@@ -451,7 +451,7 @@ static int _do_ramdump(void *handle, struct ramdump_segment *segments,
 	 */
 	mutex_lock(&rd_dev->consumer_lock);
 	if (!rd_dev->consumers) {
-		pr_err("Ramdump(%s): No consumers. Aborting..\n", rd_dev->name);
+		pr_debug("Ramdump(%s): No consumers. Aborting..\n", rd_dev->name);
 		mutex_unlock(&rd_dev->consumer_lock);
 		return -EPIPE;
 	}
@@ -577,7 +577,7 @@ static int _do_minidump(void *handle, struct ramdump_segment *segments,
 	 */
 	mutex_lock(&rd_dev->consumer_lock);
 	if (!rd_dev->consumers) {
-		pr_err("Ramdump(%s): No consumers. Aborting..\n", rd_dev->name);
+		pr_debug("Ramdump(%s): No consumers. Aborting..\n", rd_dev->name);
 		mutex_unlock(&rd_dev->consumer_lock);
 		return -EPIPE;
 	}

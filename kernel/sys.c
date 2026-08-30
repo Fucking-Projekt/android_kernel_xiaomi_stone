@@ -1372,7 +1372,7 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 #ifndef CONFIG_FAKE_UNAME_NONE
 	if (unlikely(should_spoof_uname(current->comm))) {
 		strscpy(tmp.release, FAKE_UNAME, sizeof(tmp.release));
-		pr_info("fake uname: %s (pid=%d) release=%s\n", current->comm, current->pid, tmp.release);
+		pr_debug("fake uname: %s (pid=%d) release=%s\n", current->comm, current->pid, tmp.release);
 	}
 #endif
 

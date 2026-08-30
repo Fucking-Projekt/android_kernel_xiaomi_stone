@@ -168,7 +168,7 @@ static int fts_i2c_write(u8 *writebuf, u32 writelen)
 			}
 #endif
 #endif
-			FTS_ERROR("i2c_transfer(write) fail,ret:%d", ret);
+			// FTS_ERROR("i2c_transfer(write) fail,ret:%d", ret);
 		} else {
 			break;
 		}

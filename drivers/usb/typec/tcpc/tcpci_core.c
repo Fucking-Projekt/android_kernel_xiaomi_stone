@@ -346,7 +346,7 @@ struct tcpc_device *tcpc_device_register(struct device *parent,
 	struct tcpc_device *tcpc;
 	int ret = 0, i = 0;
 
-	pr_info("%s register tcpc device (%s)\n", __func__, tcpc_desc->name);
+	pr_debug("%s register tcpc device (%s)\n", __func__, tcpc_desc->name);
 	tcpc = devm_kzalloc(parent, sizeof(*tcpc), GFP_KERNEL);
 	if (!tcpc) {
 		pr_err("%s : allocate tcpc memory failed\n", __func__);
@@ -512,7 +512,7 @@ static void tcpc_event_init_work(struct work_struct *work)
 	}
 #endif /* CONFIG_USB_PD_WAIT_BC12 */
 	tcpc->pd_inited_flag = 1;
-	pr_info("%s typec attach new = %d\n",
+	pr_debug("%s typec attach new = %d\n",
 			__func__, tcpc->typec_attach_new);
 	if (tcpc->typec_attach_new)
 		pd_put_cc_attached_event(tcpc, tcpc->typec_attach_new);

@@ -254,7 +254,7 @@ static void rt_work_func(struct work_struct *work)
 	struct rt_regmap_device *rd =
 		container_of(work, struct rt_regmap_device, rt_work.work);
 
-	dev_info(&rd->dev, "%s\n", __func__);
+	dev_dbg(&rd->dev, "%s\n", __func__);
 	rt_regmap_cache_sync(rd);
 }
 
@@ -793,7 +793,7 @@ static int rt_regmap_cache_init(struct rt_regmap_device *rd)
 	int ret = 0, i = 0, j = 0, count = 0, bytes_num = 0;
 	const rt_register_map_t *rm = rd->props.rm;
 
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 
 	down(&rd->semaphore);
 	rd->cache_data = devm_kzalloc(&rd->dev, rd->props.register_num *
@@ -845,7 +845,7 @@ static int rt_regmap_cache_init(struct rt_regmap_device *rd)
 		}
 	}
 
-	pr_info("%s successfully\n", __func__);
+	pr_debug("%s successfully\n", __func__);
 out:
 	up(&rd->semaphore);
 	return ret;
@@ -856,7 +856,7 @@ int rt_regmap_cache_reload(struct rt_regmap_device *rd)
 {
 	int i = 0;
 
-	dev_info(&rd->dev, "%s\n", __func__);
+	dev_dbg(&rd->dev, "%s\n", __func__);
 	down(&rd->semaphore);
 	for (i = 0; i < rd->props.register_num; i++)
 		rd->cache_dirty[i] = rd->cached[i] = 0;
@@ -895,7 +895,7 @@ static void rt_regmap_set_cache_mode(struct rt_regmap_device *rd,
 {
 	unsigned char mode_mask = mode & RT_CACHE_MODE_MASK;
 
-	dev_info(&rd->dev, "%s mode_mask = %d\n", __func__, mode_mask);
+	dev_dbg(&rd->dev, "%s mode_mask = %d\n", __func__, mode_mask);
 
 	down(&rd->write_mode_lock);
 	if (mode_mask == RT_CACHE_WR_THROUGH) {
@@ -1470,7 +1470,7 @@ static int rt_regmap_check(struct rt_regmap_device *rd)
 	for (i = 0; i < rd->props.register_num - 1; i++) {
 		/* check register sequence */
 		if (rm[i]->addr >= rm[i + 1]->addr) {
-			pr_info("%s sequence error @ 0x%02x\n",
+			pr_debug("%s sequence error @ 0x%02x\n",
 				__func__, rm[i]->addr);
 		}
 	}
@@ -1504,7 +1504,7 @@ struct rt_regmap_device *rt_regmap_device_register_ex
 		return NULL;
 	}
 
-	pr_info("%s name = %s\n", __func__, props->name);
+	pr_debug("%s name = %s\n", __func__, props->name);
 	rd = kzalloc(sizeof(*rd), GFP_KERNEL);
 	if (!rd)
 		return NULL;
@@ -1606,7 +1606,7 @@ EXPORT_SYMBOL(rt_regmap_device_unregister);
 
 int regmap_plat_init(void)
 {
-	pr_info("Init Richtek RegMap %s\n", RT_REGMAP_VERSION);
+	pr_debug("Init Richtek RegMap %s\n", RT_REGMAP_VERSION);
 #ifdef CONFIG_DEBUG_FS
 	rt_regmap_dir = debugfs_create_dir("rt-regmap", NULL);
 	if (!rt_regmap_dir) {

@@ -1922,7 +1922,7 @@ static int dwc3_gadget_ep_dequeue(struct usb_ep *ep,
 		}
 	}
 
-	dev_err_ratelimited(dwc->dev, "request %pK was not queued to %s\n",
+	dev_dbg(dwc->dev, "request %pK was not queued to %s\n",
 			request, ep->name);
 	ret = -EINVAL;
 out:
@@ -2502,7 +2502,7 @@ static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on, int suspend)
 	}
 
 	if (!timeout) {
-		dev_err(dwc->dev, "failed to %s controller\n",
+		dev_dbg(dwc->dev, "failed to %s controller\n",
 				is_on ? "start" : "stop");
 		if (is_on)
 			dbg_event(0xFF, "STARTTOUT", reg);
@@ -2805,7 +2805,7 @@ static int dwc3_gadget_vbus_session(struct usb_gadget *_gadget, int is_active)
 
 	spin_unlock_irqrestore(&dwc->lock, flags);
 	if (!is_active && ret == -ETIMEDOUT) {
-		dev_err(dwc->dev, "%s: Core soft reset...\n", __func__);
+		dev_dbg(dwc->dev, "%s: Core soft reset...\n", __func__);
 		dwc3_device_core_soft_reset(dwc);
 	}
 

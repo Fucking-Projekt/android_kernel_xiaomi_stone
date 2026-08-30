@@ -8003,7 +8003,7 @@ static void ipa3_write_rsrc_grp_type_reg(int group_index,
 					n, val);
 				break;
 			default:
-				IPAERR(
+				IPADBG(
 				" Invalid source resource group,index #%d\n",
 				group_index);
 				break;
@@ -8054,7 +8054,7 @@ static void ipa3_write_rsrc_grp_type_reg(int group_index,
 					n, val);
 				break;
 			default:
-				IPAERR(
+				IPADBG(
 				" Invalid source resource group,index #%d\n",
 				group_index);
 				break;
@@ -8100,7 +8100,7 @@ static void ipa3_write_rsrc_grp_type_reg(int group_index,
 					n, val);
 				break;
 			default:
-				IPAERR(
+				IPADBG(
 				" Invalid source resource group,index #%d\n",
 				group_index);
 				break;
@@ -8135,7 +8135,7 @@ static void ipa3_write_rsrc_grp_type_reg(int group_index,
 					n, val);
 				break;
 			default:
-				IPAERR(
+				IPADBG(
 				" Invalid source resource group,index #%d\n",
 				group_index);
 				break;
@@ -8178,7 +8178,7 @@ static void ipa3_write_rsrc_grp_type_reg(int group_index,
 					n, val);
 				break;
 			default:
-				IPAERR(
+				IPADBG(
 				" Invalid source resource group,index #%d\n",
 				group_index);
 				break;
@@ -8219,7 +8219,7 @@ static void ipa3_write_rsrc_grp_type_reg(int group_index,
 					n, val);
 				break;
 			default:
-				IPAERR(
+				IPADBG(
 				" Invalid source resource group,index #%d\n",
 				group_index);
 				break;
@@ -8254,7 +8254,7 @@ static void ipa3_write_rsrc_grp_type_reg(int group_index,
 					n, val);
 				break;
 			default:
-				IPAERR(
+				IPADBG(
 				" Invalid source resource group,index #%d\n",
 				group_index);
 				break;
@@ -8290,8 +8290,8 @@ static void ipa3_write_rsrc_grp_type_reg(int group_index,
 						n, val);
 					break;
 				default:
-					IPAERR(
-					" Invalid source resource group,index #%d\n",
+					IPADBG(
+				" Invalid source resource group,index #%d\n",
 					group_index);
 					break;
 				}

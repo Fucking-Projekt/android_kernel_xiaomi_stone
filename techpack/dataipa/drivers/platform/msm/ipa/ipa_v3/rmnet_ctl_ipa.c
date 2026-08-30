@@ -675,7 +675,7 @@ static int ipa3_rmnet_ctl_register_pm_client(void)
 		return result;
 	}
 
-	IPAERR("%s register done\n", pm_reg.name);
+	IPADBG("%s register done\n", pm_reg.name);
 
 	return 0;
 }

@@ -1,3 +1,6 @@
+#define MUTE_pr_debug(...)
+#define MUTE_pr_info(...)
+#define MUTE_pr_err(...)
 /*
  * Copyright (C) 2018, SI-IN, Yun Shi (yun.shi@si-in.com).
  *
@@ -388,7 +391,7 @@ void sipa_regmap_defaults(
 	const SIPA_PARAM_LIST *init_list = NULL;
 	const SIPA_REG_COMMON *init_regs = NULL;
 
-	pr_debug("[debug][%s] %s: running, chip_type = %u, channel_num = %u \r\n",
+	MUTE_pr_debug("[debug][%s] %s: running, chip_type = %u, channel_num = %u \r\n",
 		LOG_FLAG, __func__, chip_type, channel_num);
 
 	if (NULL == regmap) {

@@ -135,7 +135,7 @@ int fts_write(u8 *writebuf, u32 writelen)
 	for (i = 0; i < I2C_RETRY_NUMBER; i++) {
 		ret = i2c_transfer(ts_data->client->adapter, &msgs, 1);
 		if (ret < 0) {
-			FTS_ERROR("i2c_transfer(write) fail,ret:%d", ret);
+			// FTS_ERROR("i2c_transfer(write) fail,ret:%d", ret);
 		} else {
 			break;
 		}

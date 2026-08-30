@@ -1,3 +1,6 @@
+#define MUTE_pr_debug(...)
+#define MUTE_pr_info(...)
+#define MUTE_pr_err(...)
 /*
  * Copyright (C) 2018, SI-IN, Yun Shi (yun.shi@si-in.com).
  *
@@ -518,7 +521,7 @@ static int sipa_apr_cmd_memory_map(
 		goto err;
 	}
 
-	pr_debug("[debug][%s] %s: dsp map success !! ret = %d \r\n",
+	MUTE_pr_debug("[debug][%s] %s: dsp map success !! ret = %d \r\n",
 		LOG_FLAG, __func__, ret);
 
 	return ret;
@@ -570,7 +573,7 @@ static int sipa_apr_cmd_memory_unmap(
 		goto err;
 	}
 
-	pr_debug("[debug][%s] %s: dsp unmap success !! ret = %d \r\n",
+	MUTE_pr_debug("[debug][%s] %s: dsp unmap success !! ret = %d \r\n",
 		LOG_FLAG, __func__, ret);
 
 	return ret;
@@ -631,7 +634,7 @@ static void add_sipa_afe_list(
 	list_add(&afe->list, &sipa_afe_list);
 	mutex_unlock(&sipa_afe_list_mutex);
 
-	pr_debug("[debug][%s] %s: add afe port id : %u, count = %u \r\n",
+	MUTE_pr_debug("[debug][%s] %s: add afe port id : %u, count = %u \r\n",
 		LOG_FLAG, __func__, afe->afe_port_id, sipa_afe_list_count());
 }
 
@@ -643,7 +646,7 @@ static void del_sipa_afe_list(
 		return ;
 	}
 
-	pr_debug("[debug][%s] %s: del fe port id : %u, count = %u \r\n",
+	MUTE_pr_debug("[debug][%s] %s: del fe port id : %u, count = %u \r\n",
 		LOG_FLAG, __func__, afe->afe_port_id, sipa_afe_list_count());
 
 	mutex_lock(&sipa_afe_list_mutex);
@@ -742,7 +745,7 @@ int sipa_afe_send(
 		goto err;
 	}
 
-	pr_debug("[debug][%s] %s: afe send ret = %d, handle 0x%08x, "
+	MUTE_pr_debug("[debug][%s] %s: afe send ret = %d, handle 0x%08x, "
 		"module_id 0x%08x, param_id 0x%08x, size %d \r\n",
 		LOG_FLAG, __func__, ret, afe->cal_block.dsp_mmap_handle,
 		module_id, param_id, param_size);
@@ -870,7 +873,7 @@ int sipa_afe_read(
 		goto err;
 	}
 
-	pr_debug("[debug][%s] %s: afe read ret = %d, handle 0x%08x, "
+	MUTE_pr_debug("[debug][%s] %s: afe read ret = %d, handle 0x%08x, "
 		"module_id 0x%08x, param_id 0x%08x, size %d \r\n",
 		LOG_FLAG, __func__, ret, afe->cal_block.dsp_mmap_handle,
 		module_id, param_id, param_size);

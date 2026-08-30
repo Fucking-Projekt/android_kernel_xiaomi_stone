@@ -1,3 +1,6 @@
+#define MUTE_pr_debug(...)
+#define MUTE_pr_info(...)
+#define MUTE_pr_err(...)
 /*
  * Copyright (C) 2018, SI-IN, Yun Shi (yun.shi@si-in.com).
  *
@@ -282,7 +285,7 @@ int sia91xx_hw_params(
 	pr_info("[ info][%s] %s: i2s width: %u !!! \r\n", 
 		LOG_FLAG, __func__, width);
 
-	pr_debug("[debug][%s] %s: stream = %d, requested rate = %d, sample size = %d,"
+	MUTE_pr_debug("[debug][%s] %s: stream = %d, requested rate = %d, sample size = %d,"
 						"physical size = %d, channel num = %d\n",
 					LOG_FLAG, __func__, substream->stream, rate, 
 					snd_pcm_format_width(params_format(params)), width, channels);
@@ -303,7 +306,7 @@ int sia91xx_startup(
 		return 0;
 	}
 
-	pr_debug("[debug][%s] %s: startup, stream = %d \r\n",
+	MUTE_pr_debug("[debug][%s] %s: startup, stream = %d \r\n",
 			LOG_FLAG, __func__, substream->stream);
 
 #if 0
@@ -345,7 +348,7 @@ int sia91xx_startup(
 
 int sia91xx_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 {
-	pr_debug("[debug][%s] %s: fmt = 0x%x\n", LOG_FLAG, __func__, fmt);
+	MUTE_pr_debug("[debug][%s] %s: fmt = 0x%x\n", LOG_FLAG, __func__, fmt);
 
 	/* Supported mode: regular I2S, slave, or PDM */
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
@@ -392,7 +395,7 @@ int sia91xx_dsp_start(sipa_dev_t *si_pa, int stream)
 			pr_err("[  err][%s] %s: Failed starting device \n",LOG_FLAG, __func__);
 			return -SIPA_ERROR_DEV_START;
 	} else {
-		pr_debug("[debug][%s] %s: device start success! \n", LOG_FLAG, __func__);
+		MUTE_pr_debug("[debug][%s] %s: device start success! \n", LOG_FLAG, __func__);
 #if 0
 		queue_delayed_work(si_pa->sia91xx_wq,
 			&si_pa->monitor_work,
@@ -412,7 +415,7 @@ int sia91xx_mute(
 	sipa_dev_t *si_pa = snd_soc_component_get_drvdata(component);
 
 
-	pr_debug("[debug][%s] %s: mute = %d stream = %d\n", 
+	MUTE_pr_debug("[debug][%s] %s: mute = %d stream = %d\n", 
 		LOG_FLAG, __func__, mute, stream);
 	if (mute) {
 		if (stream == SNDRV_PCM_STREAM_PLAYBACK) {

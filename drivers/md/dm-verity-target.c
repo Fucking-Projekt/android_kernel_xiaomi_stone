@@ -1110,7 +1110,7 @@ retry_dev2:
 	 * algorithm implementation is used.  Help people debug performance
 	 * problems by logging the ->cra_driver_name.
 	 */
-	DMINFO("%s using implementation \"%s\"", v->alg_name,
+	DMDEBUG("%s using implementation \"%s\"", v->alg_name,
 	       crypto_hash_alg_common(v->tfm)->base.cra_driver_name);
 
 	v->digest_size = crypto_ahash_digestsize(v->tfm);

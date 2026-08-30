@@ -278,7 +278,7 @@ static int hw_reset(struct fpc1020_data *fpc1020)
 	int rc;
 	struct device *dev = fpc1020->dev;
 	irq_gpio = gpio_get_value(fpc1020->irq_gpio);
-	dev_info(dev, "IRQ before reset %d\n", irq_gpio);
+	dev_dbg(dev, "IRQ before reset %d\n", irq_gpio);
 	rc = select_pin_ctl(fpc1020, "fpc1020_reset_active");
 
 	if (rc)
@@ -296,7 +296,7 @@ static int hw_reset(struct fpc1020_data *fpc1020)
 	usleep_range(RESET_HIGH_SLEEP2_MIN_US, RESET_HIGH_SLEEP2_MAX_US);
 
 	irq_gpio = gpio_get_value(fpc1020->irq_gpio);
-	dev_info(dev, "IRQ after reset %d\n", irq_gpio);
+	dev_dbg(dev, "IRQ after reset %d\n", irq_gpio);
 
 exit:
 	return rc;
@@ -395,7 +395,7 @@ static int device_prepare(struct fpc1020_data *fpc1020, bool enable)
 	if (enable && !fpc1020->prepared) {
           	rc = 0;
 		fpc1020->prepared = true;
-		printk(" device_prepare fpc gpio power up");
+		pr_debug(" device_prepare fpc gpio power up");
 		select_pin_ctl(fpc1020, "fpc1020_reset_reset");
 		gpio_direction_output(fpc1020->vdd_gpio, 1);
 		gpio_set_value(fpc1020->vdd_gpio, 1);
@@ -549,7 +549,7 @@ static ssize_t compatible_all_set(struct device *dev,
 	int i;
 	int irqf;
 	struct  fpc1020_data *fpc1020 = dev_get_drvdata(dev);
-	dev_err(dev, "compatible all enter %d\n", fpc1020->compatible_enabled);
+	dev_dbg(dev, "compatible all enter %d\n", fpc1020->compatible_enabled);
 	if (!strncmp(buf, "enable", strlen("enable")) && fpc1020->compatible_enabled != 1) {
 		rc = fpc1020_request_named_gpio(fpc1020, "fpc,gpio_irq",
 			&fpc1020->irq_gpio);
@@ -558,14 +558,14 @@ static ssize_t compatible_all_set(struct device *dev,
 
 		rc = fpc1020_request_named_gpio(fpc1020, "fpc,gpio_rst",
 			&fpc1020->rst_gpio);
-		dev_err(dev, "fpc request reset result = %d\n", rc);
+		dev_dbg(dev, "fpc request reset result = %d\n", rc);
 		if (rc)
 			goto exit;
 /* BSP.FP - 2022.6.19 - fpc io gpio request end*/
 #ifdef FINGER_PWR_USE_GPIO
 		rc = fpc1020_request_named_gpio(fpc1020, "fpc,gpio_vdd",
 			&fpc1020->vdd_gpio);
-		dev_err(dev, "fpc request gpio_vdd result = %d\n", rc);
+		dev_dbg(dev, "fpc request gpio_vdd result = %d\n", rc);
 		if (rc)
 			goto exit;
 #endif
@@ -573,7 +573,7 @@ static ssize_t compatible_all_set(struct device *dev,
 		fpc1020->fingerprint_pinctrl = devm_pinctrl_get(dev);
 		if (IS_ERR(fpc1020->fingerprint_pinctrl)) {
 			if (PTR_ERR(fpc1020->fingerprint_pinctrl) == -EPROBE_DEFER) {
-				dev_info(dev, "pinctrl not ready\n");
+				dev_dbg(dev, "pinctrl not ready\n");
 				rc = -EPROBE_DEFER;
 				goto exit;
 			}
@@ -592,7 +592,7 @@ static ssize_t compatible_all_set(struct device *dev,
 				rc = -EINVAL;
 				goto exit;
 			}
-			dev_info(dev, "found pin control %s\n", n);
+			dev_dbg(dev, "found pin control %s\n", n);
 			fpc1020->pinctrl_state[i] = state;
 		}
 		rc = select_pin_ctl(fpc1020, "fpc1020_reset_reset");
@@ -620,7 +620,7 @@ static ssize_t compatible_all_set(struct device *dev,
 		enable_irq_wake(gpio_to_irq(fpc1020->irq_gpio));
 		fpc1020->compatible_enabled = 1;
 		if (of_property_read_bool(dev->of_node, "fpc,enable-on-boot")) {
-			dev_info(dev, "Enabling hardware\n");
+			dev_dbg(dev, "Enabling hardware\n");
 			(void)device_prepare(fpc1020, true);
 
 		}
@@ -689,7 +689,7 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 
 	sysfs_notify(&fpc1020->dev->kobj, NULL, dev_attr_irq.attr.name);
 
-	pr_info("%s %d",__func__,fpc1020->prepared);
+	// pr_info("%s %d",__func__,fpc1020->prepared);
 
 	return IRQ_HANDLED;
 }
@@ -725,18 +725,18 @@ static int fpc_fb_notif_callback(struct notifier_block *nb,
 						    fb_notifier);
 	struct fb_event *evdata = data;
 	unsigned int blank;
-	pr_info("%s start\n", __func__);
+	pr_debug("%s start\n", __func__);
 	if (!fpc1020)
 		return 0;
 
 	if (val != DRM_EVENT_BLANK || fpc1020->prepared == false)
 		return 0;
 
-	pr_info("%s value = %d\n", __func__, (int)val);
+	pr_debug("%s value = %d\n", __func__, (int)val);
 
 	if (evdata && evdata->data && val == DRM_EVENT_BLANK) {
 		blank = *(int *)(evdata->data);
-		pr_info("%s blank = %d\n", __func__, (int)blank);
+		pr_debug("%s blank = %d\n", __func__, (int)blank);
 		switch (blank) {
 		case DRM_BLANK_POWERDOWN:
 			fpc1020->fb_black = true;
@@ -798,7 +798,7 @@ static int fpc1020_probe(struct platform_device *pdev)
 	fpc1020->fingerprint_pinctrl = devm_pinctrl_get(dev);
 	if (IS_ERR(fpc1020->fingerprint_pinctrl)) {
 		if (PTR_ERR(fpc1020->fingerprint_pinctrl) == -EPROBE_DEFER) {
-			dev_info(dev, "pinctrl not ready\n");
+			dev_dbg(dev, "pinctrl not ready\n");
 			rc = -EPROBE_DEFER;
 			goto exit;
 		}
@@ -817,7 +817,7 @@ static int fpc1020_probe(struct platform_device *pdev)
 			rc = -EINVAL;
 			goto exit;
 		}
-		dev_info(dev, "found pin control %s\n", n);
+		dev_dbg(dev, "found pin control %s\n", n);
 		fpc1020->pinctrl_state[i] = state;
 	}
 
@@ -862,7 +862,7 @@ static int fpc1020_probe(struct platform_device *pdev)
 	}
 
 	if (of_property_read_bool(dev->of_node, "fpc,enable-on-boot")) {
-		dev_info(dev, "Enabling hardware\n");
+		dev_dbg(dev, "Enabling hardware\n");
 		(void)device_prepare(fpc1020, true);
 	}
 
@@ -875,7 +875,7 @@ static int fpc1020_probe(struct platform_device *pdev)
 	mutex_init(&fpc1020->lock);
 /* BSP.FP - 2022.6.19 - fpc HWID_FP add statrt*/
 #ifdef CONFIG_HQ_SYSFS_SUPPORT
-		dev_info(dev, "%s hq_regiser_hw_info\n", __func__);
+		dev_dbg(dev, "%s hq_regiser_hw_info\n", __func__);
 		hq_regiser_hw_info(HWID_FP, "FPC");
 #endif
 /* BSP.FP - 2022.6.19 - fpc HWID_FP add end*/
@@ -889,7 +889,7 @@ static int fpc1020_probe(struct platform_device *pdev)
 		goto exit;
 	}
 #endif
-	dev_info(dev, "%s: ok\n", __func__);
+	dev_dbg(dev, "%s: ok\n", __func__);
 #if defined(CONFIG_BUILD_QGKI)
 	INIT_WORK(&fpc1020->work, notification_work);
         fpc1020->fb_notifier = fpc_notif_block;
@@ -913,7 +913,7 @@ static int fpc1020_remove(struct platform_device *pdev)
 	(void)vreg_setup(fpc1020, "vdd_ana", false);
 	(void)vreg_setup(fpc1020, "vdd_io", false);
 	(void)vreg_setup(fpc1020, "vcc_spi", false);
-	dev_info(&pdev->dev, "%s\n", __func__);
+	dev_dbg(&pdev->dev, "%s\n", __func__);
 
 	return 0;
 }

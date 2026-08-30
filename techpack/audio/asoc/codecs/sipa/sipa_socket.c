@@ -1,3 +1,6 @@
+#define MUTE_pr_debug(...)
+#define MUTE_pr_info(...)
+#define MUTE_pr_err(...)
 /*
  * Copyright (C) 2018, SI-IN, Yun Shi (yun.shi@si-in.com).
  *
@@ -167,7 +170,7 @@ static int sipa_sock_write(
     struct kvec vec;
     struct msghdr msg;
 
-	//pr_debug("[debug][%s] %s: \r\n", LOG_FLAG, __func__);
+	//MUTE_pr_debug("[debug][%s] %s: \r\n", LOG_FLAG, __func__);
 
 	memset(&vec, 0, sizeof(vec));
 	memset(&msg, 0, sizeof(msg));
@@ -186,7 +189,7 @@ static int sipa_sock_read(
     struct kvec vec;
     struct msghdr msg;
 
-	//pr_debug("[debug][%s] %s: \r\n", LOG_FLAG, __func__);
+	//MUTE_pr_debug("[debug][%s] %s: \r\n", LOG_FLAG, __func__);
 
 	memset(&vec, 0, sizeof(vec));
 	memset(&msg, 0, sizeof(msg));
@@ -207,7 +210,7 @@ static int sipa_sock_proc(
 	struct sipa_cal_packet *cal = NULL;
 	struct cal_map *map = NULL;
 
-	pr_debug("[debug][%s] %s: \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: \r\n", LOG_FLAG, __func__);
 
 	cal = (struct sipa_cal_packet *)buf;
 	if (CAL_PACKET_LEN(cal) > max_len) {
@@ -252,7 +255,7 @@ static int sipa_sock_proc(
 		ret = tuning_if_opt.write(map->cal_handle, cal->module_id,
 			cal->param_id, cal->payload_size, cal->payload);
 		if (0 > ret) {
-			pr_err("[debug][%s] %s: tuning_if_opt.write failed "
+			MUTE_pr_err("[debug][%s] %s: tuning_if_opt.write failed "
 				"ret = %d \r\n",
 				LOG_FLAG, __func__, ret);
 
@@ -417,7 +420,7 @@ static int sipa_sock_proc(
 
 	}
 
-	pr_debug("[debug][%s] %s done with opt = 0x%08x, cal_id = 0x%08x, "
+	MUTE_pr_debug("[debug][%s] %s done with opt = 0x%08x, cal_id = 0x%08x, "
 		"rep_code = 0x%08x module id = 0x%08x, param id = 0x%08x\r\n",
 		LOG_FLAG, __func__, cal->opt, cal->cal_id,
 		cal->rep_code, cal->module_id, cal->param_id);
@@ -433,7 +436,7 @@ static int sipa_sock_server_task(
 	static struct socket *sock_clt;
 	static char comm_buf[4096];
 
-	pr_debug("[debug][%s] %s: \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: \r\n", LOG_FLAG, __func__);
 
 	sock_task_state = TASK_STATE_RUN;
 
@@ -448,7 +451,7 @@ static int sipa_sock_server_task(
 			LOG_FLAG, __func__, ret);
 		goto end;
     }
-    pr_debug("[debug][%s] %s: listen ok! ret = %d \r\n",
+    MUTE_pr_debug("[debug][%s] %s: listen ok! ret = %d \r\n",
 		LOG_FLAG, __func__, ret);
 
 	while (TASK_STATE_RUN == sock_task_state) {
@@ -457,7 +460,7 @@ static int sipa_sock_server_task(
 	}
 
 	if (TASK_STATE_RUN == sock_task_state) {
-		pr_debug("[debug][%s] %s: accept ok, Connection "
+		MUTE_pr_debug("[debug][%s] %s: accept ok, Connection "
 			"Established addr<0x%08x>\r\n",
 			LOG_FLAG, __func__, sock_clt->sk->sk_rcv_saddr);
 	}
@@ -469,7 +472,7 @@ static int sipa_sock_server_task(
 			msleep(RECV_WATI_TIME_MS);
 			continue;
 		}
-		pr_debug("[debug][%s] %s: recv len = %d \r\n",
+		MUTE_pr_debug("[debug][%s] %s: recv len = %d \r\n",
 			LOG_FLAG, __func__, ret);
 
 		ret = sipa_sock_proc(sock_clt, comm_buf, ret, sizeof(comm_buf));
@@ -477,17 +480,17 @@ static int sipa_sock_server_task(
 			pr_err("[  err][%s] %s: err !! process ret = %d \r\n",
 				LOG_FLAG, __func__, ret);
 		} else {
-			pr_debug("[debug][%s] %s: process = %d \r\n",
+			MUTE_pr_debug("[debug][%s] %s: process = %d \r\n",
 				LOG_FLAG, __func__, ret);
 		}
 	}
 
 end:
-	pr_debug("[debug][%s] %s: sipa_sock_server_task close \r\n",
+	MUTE_pr_debug("[debug][%s] %s: sipa_sock_server_task close \r\n",
 		LOG_FLAG, __func__);
 
 	if (NULL != sock_clt) {
-		pr_debug("[debug][%s] %s: sock_release sock_clt \r\n",
+		MUTE_pr_debug("[debug][%s] %s: sock_release sock_clt \r\n",
 			LOG_FLAG, __func__);
 		sock_release(sock_clt);
 	}
@@ -524,7 +527,7 @@ static int sipa_close_sock_task(void)
 {
 	int max_wait_time_ms = RECV_WATI_TIME_MS * 10;
 
-	pr_debug("[debug][%s] %s: \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: \r\n", LOG_FLAG, __func__);
 
 	if (TASK_STATE_RUN != sock_task_state)
 		goto end;
@@ -545,7 +548,7 @@ static int sipa_close_sock_task(void)
 	}
 
 end:
-	pr_debug("[debug][%s] %s: use wait time %d ms \r\n",
+	MUTE_pr_debug("[debug][%s] %s: use wait time %d ms \r\n",
 		LOG_FLAG, __func__, (RECV_WATI_TIME_MS * 10) - max_wait_time_ms);
 
 	return 0;
@@ -557,7 +560,7 @@ int sipa_open_sock_server(void)
 	struct sockaddr_in s_addr;
 	struct timeval tv;
 
-	pr_debug("[debug][%s] %s: \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: \r\n", LOG_FLAG, __func__);
 
 	if (0 != sock_start_flag) {
 		pr_err("[  err][%s] %s: flag = %d, sock_srv = %d \r\n",
@@ -581,7 +584,7 @@ int sipa_open_sock_server(void)
 			LOG_FLAG, __func__, ret);
 		goto err;
 	}
-	pr_debug("[debug][%s] %s: server:socket_create ok! ret = %d \r\n",
+	MUTE_pr_debug("[debug][%s] %s: server:socket_create ok! ret = %d \r\n",
 		LOG_FLAG, __func__, ret);
 
 	tv.tv_sec = 0;
@@ -597,7 +600,7 @@ int sipa_open_sock_server(void)
 			LOG_FLAG, __func__, ret);
 		goto err_uncreate;
 	}
-	pr_debug("[debug][%s] %s: server:bind ok! ret = %d \r\n",
+	MUTE_pr_debug("[debug][%s] %s: server:bind ok! ret = %d \r\n",
 		LOG_FLAG, __func__, ret);
 
 	ret = sipa_open_sock_task();
@@ -613,7 +616,7 @@ int sipa_open_sock_server(void)
 	 * cal_map_table should not has any data */
 	memset(cal_map_table, 0, sizeof(cal_map_table));
 
-	pr_debug("[debug][%s] %s: socket server start ok !!! \r\n",
+	MUTE_pr_debug("[debug][%s] %s: socket server start ok !!! \r\n",
 		LOG_FLAG, __func__);
 
 	return 0;
@@ -631,12 +634,12 @@ int sipa_close_sock_server(void)
 {
 	int ret = 0;
 
-	pr_debug("[debug][%s] %s: run !! \r\n", LOG_FLAG, __func__);
+	MUTE_pr_debug("[debug][%s] %s: run !! \r\n", LOG_FLAG, __func__);
 
 	sipa_close_sock_task();
 
 	if ((NULL != sock_srv) && (0 != sock_start_flag)) {
-		pr_debug("[debug][%s] %s: sock_release sock_srv !! \r\n",
+		MUTE_pr_debug("[debug][%s] %s: sock_release sock_srv !! \r\n",
 			LOG_FLAG, __func__);
 		sock_release(sock_srv);
 	}

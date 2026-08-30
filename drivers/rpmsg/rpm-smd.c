@@ -765,7 +765,7 @@ static int msm_rpm_flush_requests(bool print)
 		 * process these sleep set acks.
 		 */
 		if (count >= MAX_WAIT_ON_ACK) {
-			pr_err("Error: more than %d requests are buffered\n",
+			pr_debug("Error: more than %d requests are buffered\n",
 							MAX_WAIT_ON_ACK);
 			return -ENOSPC;
 		}

@@ -450,7 +450,7 @@ static int ipa3_check_qmi_response(int rc,
 	}
 	if (result != IPA_QMI_RESULT_SUCCESS_V01 &&
 	    ipa3_rmnet_ctx.ipa_rmnet_ssr) {
-		IPAWANERR(
+		IPAWANDBG_LOW(
 		"Got bad response %d from request id %d (error %d)\n",
 		req_id, result, error);
 		return result;

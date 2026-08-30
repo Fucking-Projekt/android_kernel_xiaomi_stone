@@ -541,7 +541,7 @@ static int sde_mdp_parse_dt_prop_len(struct platform_device *pdev,
 	of_find_property(pdev->dev.of_node, prop_name, &len);
 
 	if (len < 1) {
-		SDEROT_INFO("prop %s : doesn't exist in device tree\n",
+		SDEROT_DBG("prop %s : doesn\'t exist in device tree\n",
 			prop_name);
 		return 0;
 	}

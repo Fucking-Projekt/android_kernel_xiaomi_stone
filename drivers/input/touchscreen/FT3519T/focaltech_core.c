@@ -1692,7 +1692,7 @@ static void fts_resume_work(struct work_struct *work)
 #ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
 	pdata = dev_get_drvdata(get_xiaomi_touch_dev());
 	if (pdata->bump_sample_rate) {
-		pr_info("%s: bump_sample_rate is true, re-enabling it\n",
+		pr_debug("%s: bump_sample_rate is true, re-enabling it\n",
 			__func__);
 		pdata->set_update = true;
 		xiaomi_touch_interfaces.setModeValue(0, 1);
@@ -1701,7 +1701,7 @@ static void fts_resume_work(struct work_struct *work)
 		xiaomi_touch_interfaces.setModeValue(2, 99);
 		xiaomi_touch_interfaces.setModeValue(7, 0);
 	} else {
-		pr_info("%s: bump_sample_rate is false\n", __func__);
+		pr_debug("%s: bump_sample_rate is false\n", __func__);
 	}
 #endif
 
@@ -2377,7 +2377,7 @@ static int fts_ts_suspend(struct device *dev)
 	}
 	pdata = dev_get_drvdata(get_xiaomi_touch_dev());
 	if (pdata->bump_sample_rate) {
-		pr_info("%s: bump_sample_rate is true, resetting mode\n",
+		pr_debug("%s: bump_sample_rate is true, resetting mode\n",
 			__func__);
 		pdata->set_update = false;
 		xiaomi_touch_interfaces.resetMode(0);
@@ -2560,7 +2560,7 @@ static int fts_set_cur_value(int mode, int value)
 {
 	if (mode < 16 && mode >= 0) {
 		xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE] = value;
-		FTS_INFO("xiaomi_touch_interfaces.touch_mode[%d][SET_CUR_VALUE] == %d", mode, xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE]);
+		FTS_DEBUG("xiaomi_touch_interfaces.touch_mode[%d][SET_CUR_VALUE] == %d", mode, xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE]);
 		if (xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE] > xiaomi_touch_interfaces.touch_mode[mode][GET_MAX_VALUE]) {
 			xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE] = xiaomi_touch_interfaces.touch_mode[mode][GET_MAX_VALUE];
 		} else if (xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE] < xiaomi_touch_interfaces.touch_mode[mode][GET_MIN_VALUE]) {
@@ -2627,7 +2627,7 @@ static int fts_set_cur_value(int mode, int value)
 			/*sunstone-T code for HQ-260430 by zenghui at 2022/11/06  start */
 			xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE]++;
 			fts_write_reg(0X8D, xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE]);
-			FTS_INFO("write 0X8D xiaomi_touch_interfaces.touch_mode[%d][SET_CUR_VALUE] == %d", mode, xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE]);
+			FTS_DEBUG("write 0X8D xiaomi_touch_interfaces.touch_mode[%d][SET_CUR_VALUE] == %d", mode, xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE]);
 			/*sunstone-T code for HQ-260430 by zenghui at 2022/11/06  end */
 		} else if (mode == 11) {
 			xiaomi_touch_interfaces.touch_mode[mode][SET_CUR_VALUE] = value;
