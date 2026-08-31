@@ -93,6 +93,8 @@ unsigned char ow_reset(void)
 	unsigned char presence = 0xFF;
 	unsigned long flags;
 
+	if (!g_onewire_data) return 0xFF;
+
 	raw_spin_lock_irqsave(&g_onewire_data->lock, flags);
 
 	ONE_WIRE_CONFIG_OUT;
@@ -114,6 +116,8 @@ unsigned char read_bit(void)
 {
 	unsigned int vamm;
 
+	if (!g_onewire_data) return 0xFF;
+
 	ONE_WIRE_CONFIG_OUT;
 	ONE_WIRE_OUT_LOW;
 	Delay_ns(200);
@@ -129,6 +133,8 @@ unsigned char read_bit(void)
 
 void write_bit(char bitval)
 {
+	if (!g_onewire_data) return;
+
 	ONE_WIRE_OUT_LOW;
 	Delay_us(1);
 	if (bitval != 0)
@@ -144,6 +150,8 @@ unsigned char read_byte(void)
 	unsigned char i;
 	unsigned char value = 0;
 	unsigned long flags;
+
+	if (!g_onewire_data) return 0xFF;
 
 	raw_spin_lock_irqsave(&g_onewire_data->lock, flags);
 	for (i = 0; i < 8; i++) {
@@ -161,6 +169,8 @@ void write_byte(char val)
 	unsigned char i;
 	unsigned char temp;
 	unsigned long flags;
+
+	if (!g_onewire_data) return;
 
 	raw_spin_lock_irqsave(&g_onewire_data->lock, flags);
 	ONE_WIRE_CONFIG_OUT;
@@ -617,7 +627,7 @@ static void __exit onewire_gpio_exit(void)
 	class_destroy(onewire_class);
 }
 
-module_init(onewire_gpio_init);
+fs_initcall(onewire_gpio_init);
 module_exit(onewire_gpio_exit);
 
 MODULE_AUTHOR("xiaomi Inc.");
