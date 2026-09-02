@@ -2127,12 +2127,7 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 	}
 #endif
 
-#if FTS_ESDCHECK_EN
-	ret = fts_esdcheck_init(ts_data);
-	if (ret) {
-		FTS_ERROR("init esd check fail");
-	}
-#endif
+
 
 	ret = fts_irq_registration(ts_data);
 	if (ret) {
@@ -2275,9 +2270,7 @@ static int fts_ts_remove_entry(struct fts_ts_data *ts_data)
 	fts_test_exit(ts_data);
 #endif
 
-#if FTS_ESDCHECK_EN
-	fts_esdcheck_exit(ts_data);
-#endif
+
 
 	fts_gesture_exit(ts_data);
 	fts_bus_exit(ts_data);
@@ -2381,9 +2374,7 @@ static int fts_ts_suspend(struct device *dev)
 #endif
 /*End Modify*/
 #endif
-#if FTS_ESDCHECK_EN
-	fts_esdcheck_suspend(ts_data);
-#endif
+
 	if(fts_gesture_flag){
 		ts_data->gesture_mode = ENABLE;
 	} else {
@@ -2445,9 +2436,7 @@ static int fts_ts_resume(struct device *dev)
 	fts_wait_tp_to_valid();
 	fts_ex_mode_recovery(ts_data);
 
-#if FTS_ESDCHECK_EN
-	fts_esdcheck_resume(ts_data);
-#endif
+
 
 	if (ts_data->gesture_mode || ts_data->aod_changed) {
 		fts_gesture_resume(ts_data);
@@ -2743,9 +2732,9 @@ static void fts_init_touchmode_data(void)
 	/*Touch_ER_Range mode*/
 	xiaomi_touch_interfaces.touch_mode[Touch_Edge_Filter][GET_MAX_VALUE] = 3;
 	xiaomi_touch_interfaces.touch_mode[Touch_Edge_Filter][GET_MIN_VALUE] = 0;
-	xiaomi_touch_interfaces.touch_mode[Touch_Edge_Filter][GET_DEF_VALUE] = 2;
-	xiaomi_touch_interfaces.touch_mode[Touch_Edge_Filter][SET_CUR_VALUE] = 2;
-	xiaomi_touch_interfaces.touch_mode[Touch_Edge_Filter][GET_CUR_VALUE] = 2;
+	xiaomi_touch_interfaces.touch_mode[Touch_Edge_Filter][GET_DEF_VALUE] = 0;
+	xiaomi_touch_interfaces.touch_mode[Touch_Edge_Filter][SET_CUR_VALUE] = 0;
+	xiaomi_touch_interfaces.touch_mode[Touch_Edge_Filter][GET_CUR_VALUE] = 0;
 
 
 }
