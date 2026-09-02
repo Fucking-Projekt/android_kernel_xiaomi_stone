@@ -93,6 +93,8 @@ static const char * const iommu_ports[] = {
 #define SDE_KMS_MODESET_LOCK_TIMEOUT_US 500
 #define SDE_KMS_MODESET_LOCK_MAX_TRIALS 20
 
+struct drm_device *kcal_drm_dev = NULL;
+
 /**
  * sdecustom - enable certain driver customizations for sde clients
  *	Enabling this modifies the standard DRM behavior slightly and assumes
@@ -4953,6 +4955,7 @@ static int sde_kms_hw_init(struct msm_kms *kms)
 
 	sde_kms = to_sde_kms(kms);
 	dev = sde_kms->dev;
+	kcal_drm_dev = dev;
 	if (!dev || !dev->dev) {
 		SDE_ERROR("invalid device\n");
 		goto end;
