@@ -132,13 +132,9 @@ static ssize_t fts_debug_write(
 	case PROC_SET_TEST_FLAG:
 		FTS_DEBUG("[APK]: PROC_SET_TEST_FLAG = %x", writebuf[1]);
 		if (writebuf[1] == 0) {
-#if FTS_ESDCHECK_EN
-			fts_esdcheck_switch(ts_data, ENABLE);
-#endif
+
 		} else {
-#if FTS_ESDCHECK_EN
-			fts_esdcheck_switch(ts_data, DISABLE);
-#endif
+
 		}
 		break;
 
@@ -359,13 +355,9 @@ static int fts_debug_write(
 	case PROC_SET_TEST_FLAG:
 		FTS_DEBUG("[APK]: PROC_SET_TEST_FLAG = %x", writebuf[1]);
 		if (writebuf[1] == 0) {
-#if FTS_ESDCHECK_EN
-			fts_esdcheck_switch(ts_data, ENABLE);
-#endif
+
 		} else {
-#if FTS_ESDCHECK_EN
-			fts_esdcheck_switch(ts_data, DISABLE);
-#endif
+
 		}
 		break;
 
@@ -1438,13 +1430,9 @@ static int fts_tp_lock_down_info_show(struct seq_file *m, void *data)
 {
 	struct fts_ts_data *ts_data = fts_data;
 	//read lockdown info
-#if FTS_ESDCHECK_EN
-	fts_esdcheck_switch(ts_data, DISABLE);
-#endif
+
 	lct_get_lockdown_info();
-#if FTS_ESDCHECK_EN
-	fts_esdcheck_switch(ts_data, ENABLE);
-#endif
+
 	seq_printf(m, "%s\n", fts_data->fts_lockdowninfo);
 	return 0;
 }
