@@ -593,16 +593,31 @@ skip_avg:
 }
 #endif
 
+static bool fg_is_charging(struct sm_fg_chip *sm)
+{
+	union power_supply_propval val = {0, };
+	int ret;
+
+	if (sm->is_charging)
+		return true;
+
+	if (sm->bq_psy == NULL)
+		sm->bq_psy = power_supply_get_by_name("bq25890_charger");
+
+	if (sm->bq_psy) {
+		ret = power_supply_get_property(sm->bq_psy,
+					POWER_SUPPLY_PROP_STATUS, &val);
+		if (!ret && val.intval == POWER_SUPPLY_STATUS_CHARGING)
+			return true;
+	}
+	return false;
+}
+
 static int _calculate_battery_temp_ex(struct sm_fg_chip *sm, u16 uval)
 {
 	int i = 0, temp = 0;
 	signed short val = 0;
-#ifdef ENABLE_NTC_COMPENSATION_1
-	int len_meas_data;
-	signed short code_adc = 0;
-	int code_meas, temp_mv = 0.0;
-	int rtrace, curr = 0;
-#endif
+	int curr = fg_read_current(sm);
 
 	if ((uval >= 0x8001) && (uval <= 0x823B)) {
 		pr_info("sp_range uval = 0x%x\n",uval);
@@ -611,22 +626,9 @@ static int _calculate_battery_temp_ex(struct sm_fg_chip *sm, u16 uval)
 
 	val = uval;
 
-#ifdef ENABLE_NTC_COMPENSATION_1
-	len_meas_data = sizeof(tex_meas_uV)/sizeof(int);
-
-	curr = fg_read_current(sm); 		//fg_read_current(sm) must return mA
-
-	rtrace = sm->rtrace;//uohm : 7300uohm = 7.3mohm
-
-	code_meas = interp_adc_to_meas(len_meas_data, val, tex_meas_adc_code, tex_meas_uV);
-
-	//Charging : Vthem = Vntc-I*Rtrace, Discharging : Vthem = Vntc+I*Rtrace
-	temp_mv = (code_meas) - (curr * rtrace)/1000;  
-
-	code_adc = interp_meas_to_adc(len_meas_data, temp_mv, tex_meas_uV, tex_meas_adc_code);
-
-	val = code_adc;
-#endif
+	if (curr > 150 || curr < -150) {
+		val = val - (curr / 2);
+	}
 
 	if (val >= sm->battery_temp_table[0]) {
 		temp = EX_TEMP_MIN; //Min : -20
