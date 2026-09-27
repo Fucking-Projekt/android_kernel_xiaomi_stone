@@ -27,3 +27,7 @@
 &sdhc_2 {
 	cd-gpios = <&tlmm 94 GPIO_ACTIVE_HIGH>;
 };
+
+&firmware {
+	/delete-node/ android;
+};

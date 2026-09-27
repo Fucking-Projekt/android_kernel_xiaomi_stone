@@ -2571,6 +2571,16 @@ config PROFILING
 config TRACEPOINTS
 	bool
 
+config SPOOF_LBL
+	bool "Spoof bootloader and SELinux status via kernel"
+	default y
+	help
+	  Enable bootloader locked status spoofing and SELinux enforcing status spoofing.
+	  Features are activated at boot time via command line arguments:
+	  femboy.selinux=1 : Static SELinux enforcing spoofing
+	  femboy.bl=1      : Static Bootloader locked status spoofing
+	  femboy.fs=1      : Dynamic sysfs control (/sys/kernel/femboy/active)
+
 endmenu		# General setup
 
 source "arch/Kconfig"

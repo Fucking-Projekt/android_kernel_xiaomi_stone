@@ -7490,3 +7490,11 @@ int selinux_disable(struct selinux_state *state)
 	return 0;
 }
 #endif
+
+#ifdef CONFIG_SPOOF_LBL
+void kernel_set_selinux_enforcing(bool enforcing)
+{
+	enforcing_set(&selinux_state, enforcing);
+	selinux_status_update_setenforce(&selinux_state, enforcing);
+}
+#endif
