@@ -29,6 +29,7 @@ struct ipa3_interrupt_work_wrap {
 static struct ipa3_interrupt_info ipa_interrupt_to_cb[IPA_IRQ_NUM_MAX];
 static struct workqueue_struct *ipa_interrupt_wq;
 static u32 ipa_ee;
+static cpumask_t ipa_irq_cpu_mask;
 
 static void ipa3_tx_suspend_interrupt_wa(void);
 static void ipa3_enable_tx_suspend_wa(struct work_struct *work);
@@ -492,7 +493,6 @@ int ipa3_interrupts_init(u32 ipa_irq, u32 ee, struct device *ipa_dev)
 {
 	int idx;
 	int res = 0;
-	cpumask_t cpu_mask;
 
 	ipa_ee = ee;
 	for (idx = 0; idx < IPA_IRQ_NUM_MAX; idx++) {
@@ -522,14 +522,14 @@ int ipa3_interrupts_init(u32 ipa_irq, u32 ee, struct device *ipa_dev)
 	 */
 	if (ipa3_ctx->ipa3_hw_mode != IPA_HW_MODE_EMULATION) {
 		/* Create a CPU mask that includes the first four CPUs */
-		cpumask_clear(&cpu_mask);
-		cpumask_set_cpu(0, &cpu_mask);
-		cpumask_set_cpu(1, &cpu_mask);
-		cpumask_set_cpu(2, &cpu_mask);
-		cpumask_set_cpu(3, &cpu_mask);
+		cpumask_clear(&ipa_irq_cpu_mask);
+		cpumask_set_cpu(0, &ipa_irq_cpu_mask);
+		cpumask_set_cpu(1, &ipa_irq_cpu_mask);
+		cpumask_set_cpu(2, &ipa_irq_cpu_mask);
+		cpumask_set_cpu(3, &ipa_irq_cpu_mask);
 
 		/* Set affinity hint for interrupt */
-		irq_set_affinity_hint(ipa_irq, &cpu_mask);
+		irq_set_affinity_hint(ipa_irq, &ipa_irq_cpu_mask);
 
 		res = request_irq(ipa_irq, (irq_handler_t) ipa3_isr,
 					IRQF_TRIGGER_RISING, "ipa", ipa_dev);
@@ -537,6 +537,7 @@ int ipa3_interrupts_init(u32 ipa_irq, u32 ee, struct device *ipa_dev)
 			IPAERR(
 			    "fail to register IPA IRQ handler irq=%d\n",
 			    ipa_irq);
+			irq_set_affinity_hint(ipa_irq, NULL);
 			destroy_workqueue(ipa_interrupt_wq);
 			ipa_interrupt_wq = NULL;
 			return -ENODEV;
@@ -567,6 +568,7 @@ int ipa3_interrupts_init(u32 ipa_irq, u32 ee, struct device *ipa_dev)
 void ipa3_interrupts_destroy(u32 ipa_irq, struct device *ipa_dev)
 {
 	if (ipa3_ctx->ipa3_hw_mode != IPA_HW_MODE_EMULATION) {
+		irq_set_affinity_hint(ipa_irq, NULL);
 		disable_irq_wake(ipa_irq);
 		free_irq(ipa_irq, ipa_dev);
 	}
