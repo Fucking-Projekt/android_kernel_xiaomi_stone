@@ -3828,7 +3828,7 @@ retry:
 		 *			of the others.
 		 */
 		if (unlikely(!order && !(alloc_flags & ALLOC_WMARK_MASK) &&
-		     (alloc_flags & (ALLOC_HARDER | ALLOC_HIGH)))) {
+		     (alloc_flags & (ALLOC_NON_BLOCK | ALLOC_MIN_RESERVE)))) {
 			mark = zone->_watermark[WMARK_MIN];
 		}
 		if (!zone_watermark_fast(zone, order, mark,
