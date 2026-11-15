@@ -4373,8 +4373,7 @@ retry:
 	 */
 	if (!page && !drained) {
 		unreserve_highatomic_pageblock(ac, false);
-		if (!task_is_critical())
-			drain_all_pages(NULL);
+		drain_all_pages(NULL);
 		drained = true;
 		goto retry;
 	}
@@ -4840,10 +4839,6 @@ retry:
 			(gfp_mask & __GFP_FS))
 		goto nopage;
 
-	if (task_is_critical() && !(alloc_flags & ALLOC_MIN_RESERVE)) {
-		alloc_flags |= ALLOC_MIN_RESERVE;
-		goto retry;
-	}
 
 	/* Try direct reclaim and then allocating */
 	if (!woke_kshrinkd) {
