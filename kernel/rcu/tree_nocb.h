@@ -1493,6 +1493,7 @@ static void show_rcu_nocb_state(struct rcu_data *rdp)
 	struct rcu_segcblist *rsclp = &rdp->cblist;
 	bool waslocked;
 	bool wassleep;
+	unsigned long j = jiffies;
 
 	if (rdp->nocb_gp_rdp == rdp)
 		show_rcu_nocb_gp_state(rdp);
@@ -1507,8 +1508,8 @@ static void show_rcu_nocb_state(struct rcu_data *rdp)
 		"lL"[raw_spin_is_locked(&rdp->nocb_lock)],
 		"sS"[!!rdp->nocb_cb_sleep],
 		".W"[swait_active(&rdp->nocb_cb_wq)],
-		jiffies - rdp->nocb_bypass_first,
-		jiffies - rdp->nocb_nobypass_last,
+		j - rdp->nocb_bypass_first,
+		j - rdp->nocb_nobypass_last,
 		rdp->nocb_nobypass_count,
 		".D"[rcu_segcblist_ready_cbs(rsclp)],
 		".W"[!rcu_segcblist_segempty(rsclp, RCU_WAIT_TAIL)],

@@ -1367,6 +1367,7 @@ int rcu_needs_cpu(u64 basemono, u64 *nextevt)
 {
 	struct rcu_data *rdp = this_cpu_ptr(&rcu_data);
 	unsigned long dj;
+	unsigned long j;
 
 	lockdep_assert_irqs_disabled();
 
@@ -1383,10 +1384,11 @@ int rcu_needs_cpu(u64 basemono, u64 *nextevt)
 		invoke_rcu_core();
 		return 1;
 	}
-	rdp->last_accelerate = jiffies;
+	j = jiffies;
+	rdp->last_accelerate = j;
 
 	/* Request timer and round. */
-	dj = round_up(rcu_idle_gp_delay + jiffies, rcu_idle_gp_delay) - jiffies;
+	dj = round_up(rcu_idle_gp_delay + j, rcu_idle_gp_delay) - j;
 
 	*nextevt = basemono + dj * TICK_NSEC;
 	return 0;
